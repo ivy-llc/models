@@ -5,26 +5,26 @@ import pytest
 import numpy as np
 
 # local
-from ivy_models.transformers.helpers import FeedForward, PreNorm
-from ivy_models.transformers.perceiver_io import PerceiverIOSpec, PerceiverIO
+from models.ivy_models.transformers.helpers import FeedForward, PreNorm
+from models.ivy_models.transformers.perceiver_io import PerceiverIOSpec, PerceiverIO
 
 
 # Helpers #
 # --------#
 
-def test_feedforward(dev_str, f, call):
+def test_feedforward(dev_str):
     ivy.seed(0)
-    feedforward = FeedForward(4, dev_str=dev_str)
-    x = ivy.random_uniform(shape=(1, 3, 4), dev_str=dev_str)
+    feedforward = FeedForward(4)
+    x = ivy.random_uniform(shape=(1, 3, 4), device=dev_str)
     ret = feedforward(x)
     assert list(ret.shape) == [1, 3, 4]
 
 
-def test_prenorm(dev_str, f, call):
+def test_prenorm(dev_str):
     ivy.seed(0)
-    att = ivy.MultiHeadAttention(4, dev_str=dev_str)
+    att = ivy.MultiHeadAttention(4, device=dev_str)
     prenorm = PreNorm(4, att, dev_str=dev_str)
-    x = ivy.random_uniform(shape=(1, 3, 4), dev_str=dev_str)
+    x = ivy.random_uniform(shape=(1, 3, 4), device=dev_str)
     ret = prenorm(x)
     assert list(ret.shape) == [1, 3, 4]
 
@@ -54,8 +54,8 @@ def test_perceiver_io_img_classification(dev_str, f, call, batch_shape, img_dims
 
     # inputs
     this_dir = os.path.dirname(os.path.realpath(__file__))
-    img = ivy.array(np.load(os.path.join(this_dir, 'img.npy'))[None], dtype_str='float32', dev_str=dev_str)
-    queries = None if learn_query else ivy.random_uniform(shape=batch_shape + [1, queries_dim], dev_str=dev_str)
+    img = ivy.array(np.load(os.path.join(this_dir, 'img.npy'))[None], dtype='float32', device=dev_str)
+    queries = None if learn_query else ivy.random_uniform(shape=batch_shape + [1, queries_dim], device=dev_str)
 
     model = PerceiverIO(PerceiverIOSpec(input_dim=input_dim,
                                         num_input_axes=num_input_axes,
@@ -134,8 +134,8 @@ def test_perceiver_io_flow_prediction(dev_str, f, call, batch_shape, img_dims, q
     output_dim = 2
 
     # inputs
-    img = ivy.random_uniform(shape=batch_shape + [2] + img_dims + [3], dev_str=dev_str)
-    queries = ivy.random_uniform(shape=batch_shape + img_dims + [32], dev_str=dev_str)
+    img = ivy.random_uniform(shape=batch_shape + [2] + img_dims + [3], device=dev_str)
+    queries = ivy.random_uniform(shape=batch_shape + img_dims + [32], device=dev_str)
 
     # model call
     model = PerceiverIO(PerceiverIOSpec(input_dim=input_dim,
