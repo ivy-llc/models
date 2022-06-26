@@ -128,7 +128,7 @@ class PerceiverIO(ivy.Module):
                 self._spec.latent_dim, self._spec.num_self_att_heads, self._spec.latent_head_dim,
                 self._spec.attn_dropout, device=self._spec.device), epsilon=1e-5, dev_str=self._spec.device)
         self._get_fc = lambda: PreNorm(
-            self._spec.latent_dim, FeedForward(self._spec.latent_dim, dropout=self._spec.fc_dropout),
+            self._spec.latent_dim, FeedForward(self._spec.latent_dim, dropout=self._spec.fc_dropout, dev_str=self._spec.device),
             epsilon=1e-5, dev_str=self._spec.device)
 
         self._layers = list()
@@ -144,7 +144,7 @@ class PerceiverIO(ivy.Module):
         self._decoder_cross_attn = PreNorm(self._spec.queries_dim, ivy.MultiHeadAttention(
             self._spec.queries_dim, self._spec.num_cross_att_heads, self._spec.latent_dim,
             context_dim=self._spec.latent_dim), context_dim=self._spec.latent_dim, epsilon=1e-5)
-        self._decoder = PreNorm(self._spec.queries_dim, FeedForward(self._spec.queries_dim), epsilon=1e-5)\
+        self._decoder = PreNorm(self._spec.queries_dim, FeedForward(self._spec.queries_dim, dev_str=self._spec.device), epsilon=1e-5)\
             if self._spec.with_decoder else None
 
         self._to_logits = ivy.Linear(self._spec.queries_dim, self._spec.output_dim, device=self._spec.device)\

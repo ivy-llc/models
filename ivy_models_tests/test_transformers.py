@@ -12,15 +12,15 @@ from models.ivy_models.transformers.perceiver_io import PerceiverIOSpec, Perceiv
 # Helpers #
 # --------#
 
-def test_feedforward(dev_str):
+def test_feedforward(dev_str, f, call):
     ivy.seed(0)
-    feedforward = FeedForward(4)
+    feedforward = FeedForward(4, dev_str=dev_str)
     x = ivy.random_uniform(shape=(1, 3, 4), device=dev_str)
     ret = feedforward(x)
     assert list(ret.shape) == [1, 3, 4]
 
 
-def test_prenorm(dev_str):
+def test_prenorm(dev_str, f, call):
     ivy.seed(0)
     att = ivy.MultiHeadAttention(4, device=dev_str)
     prenorm = PreNorm(4, att, dev_str=dev_str)
