@@ -35,7 +35,7 @@ def run_around_tests(dev_str, f, wrapped_mode, compile_graph, call):
         pytest.skip()
     ivy.clear_backend_stack()
     with f.use:
-        #f.set_wrapped_mode(wrapped_mode)
+        # f.set_wrapped_mode(wrapped_mode)
         ivy.set_default_device(dev_str)
         yield
 
@@ -87,6 +87,6 @@ def pytest_generate_tests(metafunc):
 
 def pytest_addoption(parser):
     parser.addoption('--dev_str', action="store", default="cpu")
-    parser.addoption('--framework', action="store", default="numpy,jax,tensorflow,torch")
+    parser.addoption('--framework', action="store", default="numpy,jax,tensorflow,torch, mxnet")
     parser.addoption('--wrapped_mode', action="store", default="false")
     parser.addoption('--compile_graph', action="store", default="true")
