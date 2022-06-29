@@ -47,29 +47,6 @@ class PerceiverIOSpec(ivy.Container):
             raise Exception('if learn_query is set, then query_shape must be specified.')
 
         device = ivy.default(device, ivy.default_device())
-        # self.device = ivy.default(device, ivy.default_device())
-        # self.num_lat_att_per_layer = num_lat_att_per_layer
-        # self.fourier_encode_input = fourier_encode_input
-        # self.num_input_axes = num_input_axes
-        # self.num_fourier_freq_bands = num_fourier_freq_bands
-        # self.input_dim = input_dim
-        # self.num_cross_att_heads = num_cross_att_heads
-        # self.cross_head_dim = cross_head_dim
-        # self.latent_head_dim = latent_head_dim
-        # self.latent_dim = latent_dim
-        # self.attn_dropout = attn_dropout
-        # self.num_self_att_heads = num_self_att_heads
-        # self.weight_tie_layers = weight_tie_layers
-        # self.network_depth = network_depth
-        # self.fc_dropout = fc_dropout
-        # self.cross_attend_in_every_layer = cross_attend_in_every_layer
-        # self.queries_dim = queries_dim
-        # self.with_decoder = with_decoder
-        # self.output_dim = output_dim
-        # self.with_final_head = with_final_head
-        # self.learn_query = learn_query
-        # self.num_latents = num_latents
-        # self.query_shape = query_shape
 
         super().__init__(input_dim=input_dim,
                          num_input_axes=num_input_axes,
