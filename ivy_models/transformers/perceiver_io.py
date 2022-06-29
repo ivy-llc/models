@@ -4,7 +4,7 @@ import string
 import numpy as np
 
 # local
-from models.ivy_models.transformers.helpers import PreNorm, FeedForward
+from ivy_models.transformers.helpers import PreNorm, FeedForward
 
 
 # Specification class #
@@ -46,29 +46,30 @@ class PerceiverIOSpec(ivy.Container):
         if learn_query and not ivy.exists(query_shape):
             raise Exception('if learn_query is set, then query_shape must be specified.')
 
-        self.device = ivy.default(device, ivy.default_device())
-        self.num_lat_att_per_layer = num_lat_att_per_layer
-        self.fourier_encode_input = fourier_encode_input
-        self.num_input_axes = num_input_axes
-        self.num_fourier_freq_bands = num_fourier_freq_bands
-        self.input_dim = input_dim
-        self.num_cross_att_heads = num_cross_att_heads
-        self.cross_head_dim = cross_head_dim
-        self.latent_head_dim = latent_head_dim
-        self.latent_dim = latent_dim
-        self.attn_dropout = attn_dropout
-        self.num_self_att_heads = num_self_att_heads
-        self.weight_tie_layers = weight_tie_layers
-        self.network_depth = network_depth
-        self.fc_dropout = fc_dropout
-        self.cross_attend_in_every_layer = cross_attend_in_every_layer
-        self.queries_dim = queries_dim
-        self.with_decoder = with_decoder
-        self.output_dim = output_dim
-        self.with_final_head = with_final_head
-        self.learn_query = learn_query
-        self.num_latents = num_latents
-        self.query_shape = query_shape
+        device = ivy.default(device, ivy.default_device())
+        # self.device = ivy.default(device, ivy.default_device())
+        # self.num_lat_att_per_layer = num_lat_att_per_layer
+        # self.fourier_encode_input = fourier_encode_input
+        # self.num_input_axes = num_input_axes
+        # self.num_fourier_freq_bands = num_fourier_freq_bands
+        # self.input_dim = input_dim
+        # self.num_cross_att_heads = num_cross_att_heads
+        # self.cross_head_dim = cross_head_dim
+        # self.latent_head_dim = latent_head_dim
+        # self.latent_dim = latent_dim
+        # self.attn_dropout = attn_dropout
+        # self.num_self_att_heads = num_self_att_heads
+        # self.weight_tie_layers = weight_tie_layers
+        # self.network_depth = network_depth
+        # self.fc_dropout = fc_dropout
+        # self.cross_attend_in_every_layer = cross_attend_in_every_layer
+        # self.queries_dim = queries_dim
+        # self.with_decoder = with_decoder
+        # self.output_dim = output_dim
+        # self.with_final_head = with_final_head
+        # self.learn_query = learn_query
+        # self.num_latents = num_latents
+        # self.query_shape = query_shape
 
         super().__init__(input_dim=input_dim,
                          num_input_axes=num_input_axes,
@@ -122,14 +123,14 @@ class PerceiverIO(ivy.Module):
             self._spec.latent_dim, ivy.MultiHeadAttention(
                 self._spec.latent_dim, self._spec.num_cross_att_heads, self._spec.cross_head_dim,
                 self._spec.attn_dropout, input_dim, device=self._spec.device), context_dim=input_dim, epsilon=1e-5,
-            dev_str=self._spec.device)
+            device=self._spec.device)
         self._get_latent_attn = lambda: PreNorm(
             self._spec.latent_dim, ivy.MultiHeadAttention(
                 self._spec.latent_dim, self._spec.num_self_att_heads, self._spec.latent_head_dim,
-                self._spec.attn_dropout, device=self._spec.device), epsilon=1e-5, dev_str=self._spec.device)
+                self._spec.attn_dropout, device=self._spec.device), epsilon=1e-5, device=self._spec.device)
         self._get_fc = lambda: PreNorm(
-            self._spec.latent_dim, FeedForward(self._spec.latent_dim, dropout=self._spec.fc_dropout, dev_str=self._spec.device),
-            epsilon=1e-5, dev_str=self._spec.device)
+            self._spec.latent_dim, FeedForward(self._spec.latent_dim, dropout=self._spec.fc_dropout, device=self._spec.device),
+            epsilon=1e-5, device=self._spec.device)
 
         self._layers = list()
         if self._spec.weight_tie_layers:
@@ -144,7 +145,7 @@ class PerceiverIO(ivy.Module):
         self._decoder_cross_attn = PreNorm(self._spec.queries_dim, ivy.MultiHeadAttention(
             self._spec.queries_dim, self._spec.num_cross_att_heads, self._spec.latent_dim,
             context_dim=self._spec.latent_dim), context_dim=self._spec.latent_dim, epsilon=1e-5)
-        self._decoder = PreNorm(self._spec.queries_dim, FeedForward(self._spec.queries_dim, dev_str=self._spec.device), epsilon=1e-5)\
+        self._decoder = PreNorm(self._spec.queries_dim, FeedForward(self._spec.queries_dim, device=self._spec.device), epsilon=1e-5)\
             if self._spec.with_decoder else None
 
         self._to_logits = ivy.Linear(self._spec.queries_dim, self._spec.output_dim, device=self._spec.device)\
