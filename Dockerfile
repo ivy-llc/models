@@ -2,7 +2,7 @@ FROM unifyai/ivy:latest
 
 # Install Ivy
 RUN rm -rf ivy && \
-    git clone --recurse-submodules https://github.com/unifyai/ivy && \
+    git clone https://github.com/unifyai/ivy && \
     cd ivy && \
     cat requirements.txt | grep -v "ivy-" | pip3 install --no-cache-dir -r /dev/stdin && \
     cat optional.txt | grep -v "ivy-" | pip3 install --no-cache-dir -r /dev/stdin && \

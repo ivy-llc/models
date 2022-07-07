@@ -35,7 +35,6 @@ def run_around_tests(device, f, wrapped_mode, compile_graph, call):
         pytest.skip()
     ivy.clear_backend_stack()
     with f.use:
-        # f.set_wrapped_mode(wrapped_mode)
         ivy.set_default_device(device)
         yield
 
