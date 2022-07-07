@@ -1,2 +1,3 @@
 #!/bin/bash -e
-docker run --rm -it -v "$(pwd)":/models unifyai/models:latest python3 -m pytest ivy_models_tests/
+docker build . --file Dockerfile --tag trial
+docker run --rm -it -v "$(pwd)":/models trial python3 -m pytest ivy_models_tests/
