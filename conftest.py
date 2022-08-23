@@ -17,13 +17,6 @@ TEST_FRAMEWORKS: Dict[str, callable] = {
     "torch": lambda: helpers.get_ivy_torch(),
     "mxnet": lambda: helpers.get_ivy_mxnet(),
 }
-TEST_CALL_METHODS: Dict[str, callable] = {
-    "numpy": helpers.np_call,
-    "jax": helpers.jnp_call,
-    "tensorflow": helpers.tf_call,
-    "torch": helpers.torch_call,
-    "mxnet": helpers.mx_call,
-}
 
 
 @pytest.fixture(autouse=True)
@@ -46,11 +39,11 @@ def run_around_tests(dev_str, f, wrapped_mode, compile_graph, fw):
 def pytest_generate_tests(metafunc):
 
     # dev_str
-    raw_value = metafunc.config.getoption('--device')
-    if raw_value == 'all':
-        devices = ['cpu', 'gpu:0', 'tpu:0']
+    raw_value = metafunc.config.getoption("--device")
+    if raw_value == "all":
+        devices = ["cpu", "gpu:0", "tpu:0"]
     else:
-        devices = raw_value.split(',')
+        devices = raw_value.split(",")
 
     # framework
     raw_value = metafunc.config.getoption("--framework")
@@ -84,12 +77,15 @@ def pytest_generate_tests(metafunc):
             for wrapped_mode in wrapped_modes:
                 for compile_graph in compile_modes:
                     configs.append(
-                        (device, TEST_FRAMEWORKS[f_str](), wrapped_mode, compile_graph, TEST_CALL_METHODS[f_str]))
-    metafunc.parametrize('device,f,wrapped_mode,compile_graph,fw', configs)
+                        (device, TEST_FRAMEWORKS[f_str](), wrapped_mode, compile_graph)
+                    )
+    metafunc.parametrize("device,f,wrapped_mode,compile_graph,fw", configs)
 
 
 def pytest_addoption(parser):
-    parser.addoption('--device', action="store", default="cpu")
-    parser.addoption('--framework', action="store", default="numpy,jax,tensorflow,torch")
-    parser.addoption('--wrapped_mode', action="store", default="false")
-    parser.addoption('--compile_graph', action="store", default="true")
+    parser.addoption("--device", action="store", default="cpu")
+    parser.addoption(
+        "--framework", action="store", default="numpy,jax,tensorflow,torch"
+    )
+    parser.addoption("--wrapped_mode", action="store", default="false")
+    parser.addoption("--compile_graph", action="store", default="true")
