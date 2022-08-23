@@ -154,7 +154,7 @@ class PerceiverIO(ivy.Module):
                 data, '{} ... -> ({}) ...'.format(batch_shape_str, batch_shape_str), **batch_shape_dict)
         else:
             flat_batch_size = 1
-            data = ivy.expand_dims(data, 0)
+            data = ivy.expand_dims(data, axis=0)
 
         # flatten the data channels
         data = ivy.einops_rearrange(data, 'b ... d -> b (...) d')
