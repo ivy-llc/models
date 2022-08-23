@@ -20,14 +20,14 @@ TEST_FRAMEWORKS: Dict[str, callable] = {
 
 
 @pytest.fixture(autouse=True)
-def run_around_tests(dev_str, f, wrapped_mode, compile_graph, fw):
+def run_around_tests(device, f, wrapped_mode, compile_graph, fw):
     if wrapped_mode and fw == "tensorflow_graph":
         # ToDo: add support for wrapped_mode and tensorflow compilation
         pytest.skip()
     if wrapped_mode and fw == "jax":
         # ToDo: add support for wrapped_mode with jax, presumably some errenously wrapped jax methods
         pytest.skip()
-    if "gpu" in dev_str and fw == "numpy":
+    if "gpu" in device and fw == "numpy":
         # Numpy does not support GPU
         pytest.skip()
     ivy.clear_backend_stack()
