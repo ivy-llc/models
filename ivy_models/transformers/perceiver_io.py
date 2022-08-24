@@ -167,7 +167,7 @@ class PerceiverIO(ivy.Module):
             if not ivy.exists(self._spec.max_fourier_freq):
                 self._spec.max_fourier_freq = ivy.array(data_shape, dtype='float32')
             enc_pos = ivy.fourier_encode(
-                pos_flat, self._spec.max_fourier_freq, self._spec.num_fourier_freq_bands, True, flatten=True)
+                pos_flat, self._spec.max_fourier_freq, self._spec.num_fourier_freq_bands, True, True, True)
             enc_pos = ivy.einops_repeat(enc_pos, '... -> b ...', b=flat_batch_size)
             data = ivy.concat([data, enc_pos], axis=-1)
 
