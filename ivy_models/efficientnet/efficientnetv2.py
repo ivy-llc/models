@@ -1,4 +1,3 @@
-# global
 import ivy
 import math
 
@@ -19,36 +18,36 @@ class CNNBlock(ivy.Module):
         super(CNNBlock, self).__init__()
     
     def _build(self, *args, **kwargs) -> bool:
-        self.conv = ivy.Conv2D(
-                    self.in_channels, 
-                    self.out_channels, 
-                    [self.kernel_size, self.kernel_size], 
-                    self.stride, 
-                    self.padding,
-                    with_bias=False
-                )
-        self.batch_norm = ivy.BatchNorm2D(self.out_channels)
+        self.conv = ivy.Sequential(
+            ivy.Conv2D(
+                        self.in_channels, 
+                        self.out_channels, 
+                        [self.kernel_size, self.kernel_size], 
+                        self.stride, 
+                        self.padding,
+                        with_bias=False
+                    ),
+            ivy.BatchNorm2D(self.out_channels),
+            ivy.SiLU(),
+        )
 
     def _forward(self, x):
-        x = self.batch_norm(self.conv(x))
-        # SiLU activation, refactor after it's added in Ivy
-        # https://github.com/unifyai/ivy/pull/15385
-        return x * ivy.sigmoid(x)
+        return self.conv(x)
 
      
 class SqueezeExcitation(ivy.Module):
     def __init__(self, input_channels, reduced_dim):
         self.conv1 = ivy.Conv2D(input_channels, reduced_dim, [1, 1], 1, 'VALID')
         self.conv2 = ivy.Conv2D(reduced_dim, input_channels, [1, 1], 1, 'VALID')
+        self.silu = ivy.SiLU()
         super(SqueezeExcitation, self).__init__()
 
     def _forward(self, x):
         se = ivy.adaptive_avg_pool2d(x, 1) # C x H x W -> C x 1 x 1
         se = self.conv1(se)
-        se = se * ivy.sigmoid(se) # SiLU
+        se = self.silu(se)
         se = self.conv2(se)
-        se = ivy.sigmoid(se)
-        return x * se
+        return self.silu(se)
 
 
 class MBConvBlock(ivy.Module):
@@ -59,6 +58,7 @@ class MBConvBlock(ivy.Module):
         kernel_size,
         stride,
         expand_ratio,
+        padding="VALID",
         reduction_ratio=0.25, # squeeze excitation
         survival_prob=0.8,  # for stochastic depth
     ):
@@ -70,7 +70,7 @@ class MBConvBlock(ivy.Module):
         self.output_channels = output_channels
         self.kernel_size = kernel_size
         self.stride = stride
-        self.padding = "SAME"
+        self.padding = padding
 
         self.use_residual = input_channels == output_channels and stride == 1
         self.hidden_dim = input_channels * expand_ratio
@@ -88,7 +88,7 @@ class MBConvBlock(ivy.Module):
             self.output_channels,
             kernel_size=1,
             stride=1,
-            padding=1,
+            padding=self.padding,
             )
 
         conv = [
@@ -134,8 +134,8 @@ class FusedMBConvBlock(ivy.Module):
         output_channels,
         kernel_size,
         stride,
-        padding,
         expand_ratio,
+        padding='VALID',
         survival_prob=0.8,  # for stochastic depth
     ):
         """Mobile Inverted Residual Bottleneck Block
@@ -162,7 +162,7 @@ class FusedMBConvBlock(ivy.Module):
                 self.output_channels,
                 kernel_size=3,
                 stride=1,
-                padding=1,
+                padding=self.padding,
             )
         self.conv = ivy.Sequential(            
             ivy.Conv2D(
@@ -194,248 +194,24 @@ class FusedMBConvBlock(ivy.Module):
             return self.conv(x)
 
 
-class EfficientNet(ivy.Module):
-    def __init__(self, version, num_classes, dropout_rate=0.1):
-        # self.base_model = [
-        #     # expand_ratio, channels, repeats, stride, kernel_size
-        #     [1, 16, 1, 1, 3],
-        #     [6, 24, 2, 2, 3],
-        #     [6, 40, 2, 2, 5],
-        #     [6, 80, 3, 2, 3],
-        #     [6, 112, 3, 1, 5],
-        #     [6, 192, 4, 2, 5],
-        #     [6, 320, 1, 1, 3],
-        # ]
-        # phi_values = {
-        #     # tuple of: (phi_value, resolution, drop_rate)
-        #     "b0": (0, 224, 0.2),  # alpha, beta, gamma, depth = alpha ** phi
-        #     "b1": (0.5, 240, 0.2),
-        #     "b2": (1, 260, 0.3),
-        #     "b3": (2, 300, 0.3),
-        #     "b4": (3, 380, 0.4),
-        #     "b5": (4, 456, 0.4),
-        #     "b6": (5, 528, 0.5),
-        #     "b7": (6, 600, 0.5),
-        # }
-        # alpha = 1.2
-        # beta = 1.1
-        # phi, res, self.dropout_rate = phi_values[version]
-        variant_parameters = {
-            "efficientnetv2-s": [
-                {
-                    "kernel_size": 3,
-                    "num_repeat": 2,
-                    "input_filters": 24,
-                    "output_filters": 24,
-                    "expand_ratio": 1,
-                    "se_ratio": 0.0,
-                    "strides": 1,
-                    "conv_type": 1,
-                },
-                {
-                    "kernel_size": 3,
-                    "num_repeat": 4,
-                    "input_filters": 24,
-                    "output_filters": 48,
-                    "expand_ratio": 4,
-                    "se_ratio": 0.0,
-                    "strides": 2,
-                    "conv_type": 1,
-                },
-                {
-                    "conv_type": 1,
-                    "expand_ratio": 4,
-                    "input_filters": 48,
-                    "kernel_size": 3,
-                    "num_repeat": 4,
-                    "output_filters": 64,
-                    "se_ratio": 0,
-                    "strides": 2,
-                },
-                {
-                    "conv_type": 0,
-                    "expand_ratio": 4,
-                    "input_filters": 64,
-                    "kernel_size": 3,
-                    "num_repeat": 6,
-                    "output_filters": 128,
-                    "se_ratio": 0.25,
-                    "strides": 2,
-                },
-                {
-                    "conv_type": 0,
-                    "expand_ratio": 6,
-                    "input_filters": 128,
-                    "kernel_size": 3,
-                    "num_repeat": 9,
-                    "output_filters": 160,
-                    "se_ratio": 0.25,
-                    "strides": 1,
-                },
-                {
-                    "conv_type": 0,
-                    "expand_ratio": 6,
-                    "input_filters": 160,
-                    "kernel_size": 3,
-                    "num_repeat": 15,
-                    "output_filters": 256,
-                    "se_ratio": 0.25,
-                    "strides": 2,
-                },
-            ],
-            "efficientnetv2-m": [
-                {
-                    "kernel_size": 3,
-                    "num_repeat": 3,
-                    "input_filters": 24,
-                    "output_filters": 24,
-                    "expand_ratio": 1,
-                    "se_ratio": 0,
-                    "strides": 1,
-                    "conv_type": 1,
-                },
-                {
-                    "kernel_size": 3,
-                    "num_repeat": 5,
-                    "input_filters": 24,
-                    "output_filters": 48,
-                    "expand_ratio": 4,
-                    "se_ratio": 0,
-                    "strides": 2,
-                    "conv_type": 1,
-                },
-                {
-                    "kernel_size": 3,
-                    "num_repeat": 5,
-                    "input_filters": 48,
-                    "output_filters": 80,
-                    "expand_ratio": 4,
-                    "se_ratio": 0,
-                    "strides": 2,
-                    "conv_type": 1,
-                },
-                {
-                    "kernel_size": 3,
-                    "num_repeat": 7,
-                    "input_filters": 80,
-                    "output_filters": 160,
-                    "expand_ratio": 4,
-                    "se_ratio": 0.25,
-                    "strides": 2,
-                    "conv_type": 0,
-                },
-                {
-                    "kernel_size": 3,
-                    "num_repeat": 14,
-                    "input_filters": 160,
-                    "output_filters": 176,
-                    "expand_ratio": 6,
-                    "se_ratio": 0.25,
-                    "strides": 1,
-                    "conv_type": 0,
-                },
-                {
-                    "kernel_size": 3,
-                    "num_repeat": 18,
-                    "input_filters": 176,
-                    "output_filters": 304,
-                    "expand_ratio": 6,
-                    "se_ratio": 0.25,
-                    "strides": 2,
-                    "conv_type": 0,
-                },
-                {
-                    "kernel_size": 3,
-                    "num_repeat": 5,
-                    "input_filters": 304,
-                    "output_filters": 512,
-                    "expand_ratio": 6,
-                    "se_ratio": 0.25,
-                    "strides": 1,
-                    "conv_type": 0,
-                },
-            ],
-            "efficientnetv2-l": [
-                {
-                    "kernel_size": 3,
-                    "num_repeat": 4,
-                    "input_filters": 32,
-                    "output_filters": 32,
-                    "expand_ratio": 1,
-                    "se_ratio": 0,
-                    "strides": 1,
-                    "conv_type": 1,
-                },
-                {
-                    "kernel_size": 3,
-                    "num_repeat": 7,
-                    "input_filters": 32,
-                    "output_filters": 64,
-                    "expand_ratio": 4,
-                    "se_ratio": 0,
-                    "strides": 2,
-                    "conv_type": 1,
-                },
-                {
-                    "kernel_size": 3,
-                    "num_repeat": 7,
-                    "input_filters": 64,
-                    "output_filters": 96,
-                    "expand_ratio": 4,
-                    "se_ratio": 0,
-                    "strides": 2,
-                    "conv_type": 1,
-                },
-                {
-                    "kernel_size": 3,
-                    "num_repeat": 10,
-                    "input_filters": 96,
-                    "output_filters": 192,
-                    "expand_ratio": 4,
-                    "se_ratio": 0.25,
-                    "strides": 2,
-                    "conv_type": 0,
-                },
-                {
-                    "kernel_size": 3,
-                    "num_repeat": 19,
-                    "input_filters": 192,
-                    "output_filters": 224,
-                    "expand_ratio": 6,
-                    "se_ratio": 0.25,
-                    "strides": 1,
-                    "conv_type": 0,
-                },
-                {
-                    "kernel_size": 3,
-                    "num_repeat": 25,
-                    "input_filters": 224,
-                    "output_filters": 384,
-                    "expand_ratio": 6,
-                    "se_ratio": 0.25,
-                    "strides": 2,
-                    "conv_type": 0,
-                },
-                {
-                    "kernel_size": 3,
-                    "num_repeat": 7,
-                    "input_filters": 384,
-                    "output_filters": 640,
-                    "expand_ratio": 6,
-                    "se_ratio": 0.25,
-                    "strides": 1,
-                    "conv_type": 0,
-                },
-            ],
-        }
-        self.model_blocks = variant_parameters[version]
-        self.depth_factor = 1.
-        self.width_factor = 1.
+class EfficientNetV2(ivy.Module):
+    def __init__(
+            self, 
+            config,
+            num_classes, 
+            depth_divisor=8,
+            min_depth=8,
+            dropout_rate=0.1
+        ):
+        self.model_blocks = config["blocks"]
+        self.depth_factor = config["phi_values"]["depth_coefficient"]
+        self.width_factor = config["phi_values"]["width_coefficient"]
         self.dropout_rate = dropout_rate
         self.num_classes = num_classes
+        self.depth_divisor = depth_divisor
+        self.min_depth = min_depth
         self.last_channels = math.ceil(1280 * self.width_factor)
-        # self.se_reduction_ratio = 4
-        super(EfficientNet, self).__init__()
+        super(EfficientNetV2, self).__init__()
     '''
             {
                 "kernel_size": 3,
@@ -448,20 +224,37 @@ class EfficientNet(ivy.Module):
                 "conv_type": 1,
             },
     '''
+    @staticmethod
+    def round_filters(filters, width_coefficient, min_depth, depth_divisor):
+        """Round number of filters based on depth multiplier."""
+        filters *= width_coefficient
+        minimum_depth = min_depth or depth_divisor
+        new_filters = max(
+            minimum_depth,
+            int(filters + depth_divisor / 2) // depth_divisor * depth_divisor,
+        )
+        return int(new_filters)
+
 
     def _build(self, *args, **kwrgs):
         channels = int(self.model_blocks[0]['input_filters'] * self.width_factor)
         features = [CNNBlock(3, channels, 3, stride=2, padding=1)]
         
+        for args in self.model_blocks:
+            layers_repeats = math.ceil(args['num_repeat'] * self.depth_factor)
 
-        for i, args in self.model_blocks:
-            layers_repeats = math.ceil(args.num_repeat * self.depth_factor)
-
-            in_channels = channels
-            # se_reduction_ratio = args.se_ratio
-            # not too sure about out_channels, check the math later
-            out_channels = self.se_reduction_ratio * \
-                math.ceil(int(channels * self.width_factor) / self.se_reduction_ratio)
+            in_channels = self.round_filters(
+                args['input_filters'],
+                self.width_factor,
+                self.min_depth,
+                self.depth_divisor
+            )
+            out_channels = self.round_filters(
+                args['output_filters'],
+                self.width_factor,
+                self.min_depth,
+                self.depth_divisor
+            )
 
             for layer_stage in range(layers_repeats):
                 if layer_stage <= 2:
@@ -469,9 +262,9 @@ class EfficientNet(ivy.Module):
                         FusedMBConvBlock(
                             in_channels,
                             out_channels,
-                            expand_ratio=args.expand_ratio,
-                            stride=args.strides,
-                            kernel_size=args.kernel_size,
+                            expand_ratio=args['expand_ratio'],
+                            stride=args['strides'],
+                            kernel_size=args['kernel_size'],
                         )
                     )
                 else:
@@ -479,10 +272,10 @@ class EfficientNet(ivy.Module):
                         MBConvBlock(
                             in_channels,
                             out_channels,
-                            expand_ratio=args.expand_ratio,
-                            stride=args.strides,
-                            kernel_size=args.kernel_size,
-                            reduction_ratio=args.se_ratio,
+                            expand_ratio=args['expand_ratio'],
+                            stride=args['strides'],
+                            kernel_size=args['kernel_size'],
+                            reduction_ratio=args['se_ratio'],
                         )
                     )
                 in_channels = out_channels
@@ -502,3 +295,23 @@ class EfficientNet(ivy.Module):
         x = ivy.adaptive_avg_pool2d(self.features(x), 1)
         return self.classifier(ivy.reshape(x, shape=(x.shape[0], -1)))
 
+
+if __name__ == "__main__":
+    import json
+    # ivy.set_tensorflow_backend()
+    ivy.set_jax_backend()
+    
+    with open("variant_configs.json") as json_file:
+        configs = json.load(json_file)
+
+    configs = configs["efficientnetv2-b0"]
+
+    model = EfficientNetV2(
+            configs, 
+            10
+        )
+    # print(model.v)
+    res = configs["phi_values"]['resolution']
+    x = ivy.random_normal(shape=(16, res, res, 3))
+    print(type(x), x.device, x.shape)
+    print(model(x).shape)
