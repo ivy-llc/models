@@ -304,7 +304,7 @@ if __name__ == "__main__":
     with open("variant_configs.json") as json_file:
         configs = json.load(json_file)
 
-    configs = configs["efficientnetv2-b0"]
+    configs = configs["v2"]["efficientnetv2-b0"]
 
     model = EfficientNetV2(
             configs, 
