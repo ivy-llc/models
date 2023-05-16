@@ -137,16 +137,16 @@ def resnet_18(v=None):
     return ResNet(ResidualBlock, [2, 2, 2, 2], v=v)
 
 
-def resnet_34():
+def resnet_34(v=None):
     """ResNet-34 model"""
-    return ResNet(ResidualBlock, [3, 4, 6, 3])
+    return ResNet(ResidualBlock, [3, 4, 6, 3], v=v)
 
 
-def resnet_101():
+def resnet_101(v=None):
     """ResNet-101 model"""
-    return ResNet(ResidualBlock, [3, 4, 23, 3])
+    return ResNet(ResidualBlock, [3, 4, 23, 3], v=v)
 
 
-def resnet_152():
+def resnet_152(v=None):
     """ResNet-152 model"""
-    return ResNet(ResidualBlock, [3, 8, 36, 3])
+    return ResNet(ResidualBlock, [3, 8, 36, 3], v=v)
