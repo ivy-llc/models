@@ -64,11 +64,20 @@ class SqueezeExcitation(ivy.Module):
         super(SqueezeExcitation, self).__init__()
 
     def _forward(self, x):
-        se = ivy.adaptive_avg_pool2d(x, 1) # C x H x W -> C x 1 x 1
-        se = self.conv1(se)
-        se = self.silu(se)
-        se = self.conv2(se)
-        return self.silu(se)
+        # N x H x W x C -> N x C x H x W
+        x = ivy.reshape( 
+                x, 
+                shape=(x.shape[0], x.shape[3], x.shape[1], x.shape[2])
+            ) 
+        x = ivy.adaptive_avg_pool2d(x, 1)  # C x H x W -> C x 1 x 1
+        x = ivy.reshape( 
+                x, 
+                shape=(x.shape[0], x.shape[2], x.shape[3], x.shape[1])
+            ) 
+        x = self.conv1(x)
+        x = self.silu(x)
+        x = self.conv2(x)
+        return self.silu(x)
 
 
 class MBConvBlock(ivy.Module):
@@ -159,12 +168,15 @@ class MBConvBlock(ivy.Module):
 
 
     def _forward(self, inputs):
+        print('mbconv')
+        print('1', inputs.shape)
         x = self.expand_conv(inputs) if self.expand else inputs
-
+        print('2', x.shape)
+        x = self.conv(x)
+        print('3', x.shape)
         if self.use_residual:
-            return self.stochastic_depth(self.conv(x)) + inputs
-        else:
-            return self.conv(x)
+            return self.stochastic_depth(x) + inputs
+        return x
 
 
 class FusedMBConvBlock(ivy.Module):
@@ -207,7 +219,7 @@ class FusedMBConvBlock(ivy.Module):
 
         self.use_residual = input_channels == output_channels and stride == 1
         self.hidden_dim = input_channels * expand_ratio
-        self.expand = True if expand_ratio > 1 else False
+        self.expand = input_channels != self.hidden_dim
         self.survival_prob = survival_prob
         super(FusedMBConvBlock, self).__init__()
 
@@ -216,7 +228,7 @@ class FusedMBConvBlock(ivy.Module):
         if self.expand:
             self.expand_conv = CNNBlock(
                 self.input_channels, 
-                self.output_channels,
+                self.hidden_dim,
                 kernel_size=3,
                 stride=1,
                 padding=self.padding,
@@ -239,16 +251,19 @@ class FusedMBConvBlock(ivy.Module):
         binary_tensor = (
             ivy.random_uniform(shape=(x.shape[0], 1, 1, 1), low=0, high=1, device=x.device) < self.survival_prob
         )
-        return ivy.divide(x, self.survival_prob) * binary_tensor
+        return ivy.divide(x, self.survival_prob) * binary_tensor  
 
 
     def _forward(self, inputs):
+        print('1', inputs.shape)
         x = self.expand_conv(inputs) if self.expand else inputs
-
+        print('2', x.shape)
+        print(self.input_channels, self.hidden_dim, self.output_channels, self.kernel_size, self.stride)
+        x = self.conv(x)
+        print('3', x.shape)
         if self.use_residual:
-            return self.stochastic_depth(self.conv(x)) + inputs
-        else:
-            return self.conv(x)
+            return self.stochastic_depth(x) + inputs
+        return x
 
 
 class EfficientNetV2(ivy.Module):
@@ -365,14 +380,23 @@ class EfficientNetV2(ivy.Module):
 
 
     def _forward(self, x):
-        x = ivy.adaptive_avg_pool2d(self.features(x), 1)
-        return self.classifier(ivy.reshape(x, shape=(x.shape[0], -1)))
+        x = self.features(x)
+        # N x H x W x C -> N x C x H x W
+        x = ivy.reshape( 
+                x, 
+                shape=(x.shape[0], x.shape[3], x.shape[1], x.shape[2])
+            ) 
+        x = ivy.adaptive_avg_pool2d(x, 1)
+        x = ivy.reshape(x, shape=(x.shape[0], -1))
+        return self.classifier(x)
 
 
 if __name__ == "__main__":
     import json
     # ivy.set_tensorflow_backend()
     ivy.set_jax_backend()
+    import jax
+    jax.config.update('jax_enable_x64', True)
     
     with open("variant_configs.json") as json_file:
         configs = json.load(json_file)
@@ -383,5 +407,9 @@ if __name__ == "__main__":
             configs, 
             10
         )
-    print(model.v)
+    # print(model.v)
 
+    res = configs["phi_values"]['resolution']
+    x = ivy.random_normal(shape=(16, res, res, 3))
+    print(type(x), x.device, x.shape)
+    print(model(x).shape)
