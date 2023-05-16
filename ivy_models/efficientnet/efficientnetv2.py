@@ -4,14 +4,32 @@ import math
 
 class CNNBlock(ivy.Module):
     def __init__(self, 
-        in_channels, 
-        out_channels, 
+        input_channels, 
+        output_channels, 
         kernel_size, 
         stride, 
         padding,
     ):
-        self.in_channels = in_channels
-        self.out_channels = out_channels
+        """
+        Helper module used in the MBConv and FusedMBConvBlock. Basic CNN
+        block with batch norm and SiLU activation layer.
+
+        Parameters
+        ----------
+        input_channels
+            Number of input channels for the layer.
+        output_channels
+            Number of output channels for the layer.
+        kernel_size
+            Size of the convolutional filter.
+        stride
+            The stride of the sliding window for each dimension of input.
+        padding
+            SAME" or "VALID" indicating the algorithm, or
+            list indicating the per-dimension paddings.
+        """
+        self.input_channels = input_channels
+        self.output_channels = output_channels
         self.kernel_size = kernel_size
         self.stride = stride
         self.padding = padding
@@ -20,14 +38,14 @@ class CNNBlock(ivy.Module):
     def _build(self, *args, **kwargs) -> bool:
         self.conv = ivy.Sequential(
             ivy.Conv2D(
-                        self.in_channels, 
-                        self.out_channels, 
+                        self.input_channels, 
+                        self.output_channels, 
                         [self.kernel_size, self.kernel_size], 
                         self.stride, 
                         self.padding,
                         with_bias=False
                     ),
-            ivy.BatchNorm2D(self.out_channels),
+            ivy.BatchNorm2D(self.output_channels),
             ivy.SiLU(),
         )
 
@@ -37,6 +55,9 @@ class CNNBlock(ivy.Module):
      
 class SqueezeExcitation(ivy.Module):
     def __init__(self, input_channels, reduced_dim):
+        """
+        Helper module used in the MBConv and FusedMBConvBlock.
+        """
         self.conv1 = ivy.Conv2D(input_channels, reduced_dim, [1, 1], 1, 'VALID')
         self.conv2 = ivy.Conv2D(reduced_dim, input_channels, [1, 1], 1, 'VALID')
         self.silu = ivy.SiLU()
@@ -59,12 +80,31 @@ class MBConvBlock(ivy.Module):
         stride,
         expand_ratio,
         padding="VALID",
-        reduction_ratio=0.25, # squeeze excitation
-        survival_prob=0.8,  # for stochastic depth
+        reduction_ratio=0.25, 
+        survival_prob=0.8, 
     ):
-        """Mobile Inverted Residual Bottleneck Block
+        """
+        Instantiates the Mobile Inverted Residual Bottleneck Block 
 
-        TODO: complete docstring after code all good
+        Parameters
+        ----------
+        input_channels
+            Number of input channels for the layer.
+        output_channels
+            Number of output channels for the layer.
+        kernel_size
+            Size of the convolutional filter.
+        stride
+            The stride of the sliding window for each dimension of input.
+        expand_ratio
+            Degree of input channel expansion. 
+        padding
+            SAME" or "VALID" indicating the algorithm, or
+            list indicating the per-dimension paddings.
+        reduction_ratio
+            Dimensionality reduction in squeeze excitation.
+        survival_prob
+            Hyperparameter for stochastic depth.
         """
         self.input_channels = input_channels
         self.output_channels = output_channels
@@ -85,7 +125,7 @@ class MBConvBlock(ivy.Module):
         if self.expand:
             self.expand_conv = CNNBlock(
             self.input_channels, 
-            self.output_channels,
+            self.hidden_dim,
             kernel_size=1,
             stride=1,
             padding=self.padding,
@@ -136,11 +176,28 @@ class FusedMBConvBlock(ivy.Module):
         stride,
         expand_ratio,
         padding='VALID',
-        survival_prob=0.8,  # for stochastic depth
+        survival_prob=0.8, 
     ):
-        """Mobile Inverted Residual Bottleneck Block
+        """
+        Instantiates the Fused Mobile Inverted Residual Bottleneck Block 
 
-        TODO: complete docstring after code all good
+        Parameters
+        ----------
+        input_channels
+            Number of input channels for the layer.
+        output_channels
+            Number of output channels for the layer.
+        kernel_size
+            Size of the convolutional filter.
+        stride
+            The stride of the sliding window for each dimension of input.
+        expand_ratio
+            Degree of input channel expansion. 
+        padding
+            SAME" or "VALID" indicating the algorithm, or
+            list indicating the per-dimension paddings.
+        survival_prob
+            Hyperparameter for stochastic depth.
         """
         self.input_channels = input_channels
         self.output_channels = output_channels
@@ -201,8 +258,35 @@ class EfficientNetV2(ivy.Module):
             num_classes, 
             depth_divisor=8,
             min_depth=8,
-            dropout_rate=0.1
+            dropout_rate=0.1,
+            device='cuda:0',
+            v: ivy.Container = None,
         ):
+        """
+        Instantiates the EfficientNetV2 architecture using given scaling
+        coefficients.
+
+        Parameters
+        ----------
+        config
+            Variant specific configuration. Should contain scaling coefficients,
+            individual block's kernel_size, num_repeat, input_filters, output_filters, 
+            expand_ratio, se_ratio, strides, conv_type
+        num_classes
+            Number of classes to classify images into.
+        depth_divisor
+            A unit of network width
+        min_depth
+            Minimum number of filters
+        dropout_rate
+            Dropout rate before final classifier layer
+        device
+            device on which to create the model's variables 'cuda:0', 'cuda:1', 'cpu'
+            etc. Default is cuda:0.
+        v
+            the variables for the model, as a container, constructed internally
+            by default.
+        """
         self.model_blocks = config["blocks"]
         self.depth_factor = config["phi_values"]["depth_coefficient"]
         self.width_factor = config["phi_values"]["width_coefficient"]
@@ -211,19 +295,8 @@ class EfficientNetV2(ivy.Module):
         self.depth_divisor = depth_divisor
         self.min_depth = min_depth
         self.last_channels = math.ceil(1280 * self.width_factor)
-        super(EfficientNetV2, self).__init__()
-    '''
-            {
-                "kernel_size": 3,
-                "num_repeat": 2,
-                "input_filters": 24,
-                "output_filters": 24,
-                "expand_ratio": 1,
-                "se_ratio": 0.0,
-                "strides": 1,
-                "conv_type": 1,
-            },
-    '''
+        super(EfficientNetV2, self).__init__(v=v)
+
     @staticmethod
     def round_filters(filters, width_coefficient, min_depth, depth_divisor):
         """Round number of filters based on depth multiplier."""
@@ -310,8 +383,5 @@ if __name__ == "__main__":
             configs, 
             10
         )
-    # print(model.v)
-    res = configs["phi_values"]['resolution']
-    x = ivy.random_normal(shape=(16, res, res, 3))
-    print(type(x), x.device, x.shape)
-    print(model(x).shape)
+    print(model.v)
+
