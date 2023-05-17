@@ -90,7 +90,7 @@ class MBConvBlock(ivy.Module):
         stride,
         expand_ratio,
         padding="VALID",
-        reduction_ratio=0.25, 
+        reduction_ratio=4, 
         survival_prob=0.8,  
     ):
         """
@@ -125,7 +125,7 @@ class MBConvBlock(ivy.Module):
         self.use_residual = input_channels == output_channels and stride == 1
         self.hidden_dim = input_channels * expand_ratio
         self.expand = input_channels != self.hidden_dim
-        self.reduced_dim = int(self.hidden_dim * reduction_ratio)
+        self.reduced_dim = int(self.input_channels / reduction_ratio)
         self.reduction_ratio = reduction_ratio
         self.survival_prob = survival_prob
         super(MBConvBlock, self).__init__()
@@ -143,6 +143,8 @@ class MBConvBlock(ivy.Module):
 
         self.conv = ivy.Sequential(
             ivy.DepthwiseConv2D(self.hidden_dim, [self.kernel_size, self.kernel_size], self.stride, self.padding, with_bias=False),
+            ivy.BatchNorm2D(self.hidden_dim),
+            ivy.SiLU(),
             SqueezeExcitation(self.hidden_dim, self.reduced_dim),
             ivy.Conv2D(self.hidden_dim, self.output_channels, [1, 1], 1, self.padding, with_bias=False),
             ivy.BatchNorm2D(self.output_channels),
@@ -229,7 +231,7 @@ class EfficientNetV1(ivy.Module):
                 )
                 in_channels = out_channels
         features.append(
-            CNNBlock(in_channels, self.last_channels, kernel_size=1, stride=1, padding=0)
+            CNNBlock(in_channels, self.last_channels, kernel_size=1, stride=1, padding="SAME")
         )
 
         self.features = ivy.Sequential(*features)
@@ -268,7 +270,7 @@ if __name__ == "__main__":
     model = EfficientNetV1(
             base_model,
             phi_values,
-            10
+            1000,
         )
     # print(model.v)
 
