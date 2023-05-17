@@ -1,4 +1,3 @@
-# global
 import ivy
 import math
 
@@ -46,6 +45,7 @@ class CNNBlock(ivy.Module):
                 self.stride,
                 self.padding,
                 with_bias=False,
+                data_format="NCHW",
             ),
             ivy.BatchNorm2D(self.output_channels),
             ivy.SiLU(),
@@ -67,8 +67,22 @@ class SqueezeExcitation(ivy.Module):
         reduced_dim
             Number of dimensionality reduction applied during the squeeze phase
         """
-        self.conv1 = ivy.Conv2D(input_channels, reduced_dim, [1, 1], 1, "VALID")
-        self.conv2 = ivy.Conv2D(reduced_dim, input_channels, [1, 1], 1, "VALID")
+        self.conv1 = ivy.Conv2D(
+            input_channels,
+            reduced_dim,
+            [1, 1],
+            1,
+            "VALID",
+            data_format="NCHW",
+        )
+        self.conv2 = ivy.Conv2D(
+            reduced_dim,
+            input_channels,
+            [1, 1],
+            1,
+            "VALID",
+            data_format="NCHW",
+        )
         self.silu = ivy.SiLU()
         super(SqueezeExcitation, self).__init__()
 
@@ -149,6 +163,7 @@ class MBConvBlock(ivy.Module):
                 self.stride,
                 self.padding,
                 with_bias=False,
+                data_format="NCHW",
             ),
             ivy.BatchNorm2D(self.hidden_dim),
             ivy.SiLU(),
@@ -160,6 +175,7 @@ class MBConvBlock(ivy.Module):
                 1,
                 self.padding,
                 with_bias=False,
+                data_format="NCHW",
             ),
             ivy.BatchNorm2D(self.output_channels),
         )
@@ -260,9 +276,7 @@ class EfficientNetV1(ivy.Module):
         )
 
     def _forward(self, x):
-        x = self.features(x)
-        # N x H x W x C -> N x C x H x W
-        x = ivy.reshape(x, shape=(x.shape[0], x.shape[3], x.shape[1], x.shape[2]))
+        x = self.features(x)  # N x C x H x W
         x = ivy.adaptive_avg_pool2d(x, 1)
         x = ivy.reshape(x, shape=(x.shape[0], -1))
         return self.classifier(x)
@@ -292,5 +306,5 @@ if __name__ == "__main__":
     # print(model.v)
 
     res = phi_values["resolution"]
-    x = ivy.random_normal(shape=(16, res, res, 3))
+    x = ivy.random_normal(shape=(16, 3, res, res))
     print(model(x).shape)
