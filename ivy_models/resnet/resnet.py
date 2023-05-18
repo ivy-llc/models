@@ -98,7 +98,7 @@ class ResLayer(ivy.Module):
 
 
 class ResNet(ivy.Module):
-    def __init__(self, block, layers, num_classes=1000):
+    def __init__(self, block, layers, num_classes=1000, v=None):
         """
         Resnet implementation.
         :param block: residual block used in the network
@@ -129,8 +129,9 @@ class ResNet(ivy.Module):
 
         self.avgpool = ivy.AvgPool2D(7, 1, 0)
         self.fc = ivy.Linear(512, self.num_classes)
-
         super(ResNet, self).__init__()
+        if v is not None:
+            self.v = v
 
     def _forward(self, x):
         x = self.conv1(x)
@@ -148,21 +149,21 @@ class ResNet(ivy.Module):
         return x
 
 
-def resnet_18():
+def resnet_18(v=None):
     """ResNet-18 model"""
-    return ResNet(ResidualBlock, [2, 2, 2, 2])
+    return ResNet(ResidualBlock, [2, 2, 2, 2], v=v)
 
 
-def resnet_34():
+def resnet_34(v=None):
     """ResNet-34 model"""
-    return ResNet(ResidualBlock, [3, 4, 6, 3])
+    return ResNet(ResidualBlock, [3, 4, 6, 3], v=v)
 
 
-def resnet_101():
+def resnet_101(v=None):
     """ResNet-101 model"""
-    return ResNet(ResidualBlock, [3, 4, 23, 3])
+    return ResNet(ResidualBlock, [3, 4, 23, 3], v=v)
 
 
-def resnet_152():
+def resnet_152(v=None):
     """ResNet-152 model"""
-    return ResNet(ResidualBlock, [3, 8, 36, 3])
+    return ResNet(ResidualBlock, [3, 8, 36, 3], v=v)
