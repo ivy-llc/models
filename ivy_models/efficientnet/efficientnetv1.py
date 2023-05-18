@@ -133,7 +133,7 @@ class MBConvBlock(ivy.Module):
 
     def _build(self, *args, **kwrgs):
         if self.expand:
-            self.expand_conv = CNNBlock(
+            self.block_expand = CNNBlock(
                 self.input_channels,
                 self.hidden_dim,
                 kernel_size=1,
@@ -173,7 +173,7 @@ class MBConvBlock(ivy.Module):
         return ivy.divide(x, self.survival_prob) * binary_tensor
 
     def _forward(self, inputs):
-        x = self.expand_conv(inputs) if self.expand else inputs
+        x = self.block_expand(inputs) if self.expand else inputs
         x = self.conv(x)
         if self.use_residual:
             return self.stochastic_depth(x) + inputs
@@ -219,7 +219,7 @@ class EfficientNetV1(ivy.Module):
         self.num_classes = num_classes
         self.last_channels = math.ceil(1280 * self.width_factor)
         self.se_reduction_ratio = 4
-        super(EfficientNetV1, self).__init__(v=v)
+        super(EfficientNetV1, self).__init__(v=v, device=device)
 
     def _build(self, *args, **kwrgs):
         channels = int(32 * self.width_factor)
@@ -264,6 +264,9 @@ class EfficientNetV1(ivy.Module):
         x = ivy.reshape(x, shape=(x.shape[0], x.shape[3], x.shape[1], x.shape[2]))
         x = ivy.adaptive_avg_pool2d(x, 1)
         x = ivy.reshape(x, shape=(x.shape[0], -1))
+        print(x.dtype, x.device, x.shape, self.last_channels)
+        print(self.classifier.v)
+        print(self.classifier.v.submodules.v1.w.dtype)
         return self.classifier(x)
 
 
