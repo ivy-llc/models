@@ -81,7 +81,7 @@ class SqueezeExcitation(ivy.Module):
         x = self.conv1(x)
         x = self.silu(x)
         x = self.conv2(x)
-        return self.silu(x)
+        return ivy.sigmoid(x)
 
 
 class MBConvBlock(ivy.Module):
@@ -169,6 +169,8 @@ class MBConvBlock(ivy.Module):
         )
 
     def stochastic_depth(self, x):
+        if not self.training:
+            return x
         binary_tensor = (
             ivy.random_uniform(
                 shape=(x.shape[0], 1, 1, 1), low=0, high=1, device=x.device
