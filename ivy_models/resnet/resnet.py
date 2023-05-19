@@ -127,7 +127,7 @@ class ResNet(ivy.Module):
             self.block, 512, self.layers[3], current_inplanes=256, stride=2
         )
 
-        self.avgpool = ivy.AvgPool2D(7, 1, 0)
+        self.avgpool = ivy.AvgPool2D(7, 1, "VALID")
         self.fc = ivy.Linear(512, self.num_classes)
         super(ResNet, self).__init__()
         if v is not None:

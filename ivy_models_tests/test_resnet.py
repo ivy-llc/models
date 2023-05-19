@@ -39,8 +39,15 @@ def test_resnet_18_img_classification(device, f, fw, batch_shape, load_weights):
         assert os.path.isfile(weight_fpath)
 
         # Load weights
-        v = ivy.Container.cont_from_disk_as_pickled(weight_fpath)
-        v = ivy.asarray(v)
+        try:
+            v = ivy.Container.cont_from_disk_as_pickled(weight_fpath)
+            v = ivy.asarray(v)
+        except Exception:
+            # If git large-file-storage is not enabled
+            # (for example when testing in github actions workflow), then the
+            #  test will fail here. A placeholder file does exist,
+            #  but the file cannot be loaded as pickled variables.
+            pytest.skip()
 
         model = resnet_18(v=v)
 
@@ -52,7 +59,7 @@ def test_resnet_18_img_classification(device, f, fw, batch_shape, load_weights):
             output = output["w"]
 
     # Cardinality test
-    assert output.shape == tuple([batch_shape[0], num_classes])
+    assert output.shape == tuple([ivy.to_scalar(batch_shape), num_classes])
 
     # Value test
     if load_weights:
