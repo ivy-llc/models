@@ -1,6 +1,8 @@
 import ivy
 import math
 
+from ivy.stateful.initializers import Zeros, GlorotUniform
+
 
 class CNNBlock(ivy.Module):
     def __init__(
@@ -54,6 +56,81 @@ class CNNBlock(ivy.Module):
 
     def _forward(self, x):
         return self.conv(x)
+
+
+class Conv2D_groups(ivy.Module):
+    def __init__(
+        self,
+        input_channels,
+        output_channels,
+        filter_shape,
+        strides,
+        padding,
+        /,
+        *,
+        groups=1,
+        weight_initializer=GlorotUniform(),
+        bias_initializer=Zeros(),
+        with_bias=True,
+        data_format="NHWC",
+        dilations=1,
+        device=None,
+        v=None,
+        dtype=None,
+    ):
+        self._input_channels = input_channels
+        self._output_channels = output_channels
+        self._filter_shape = filter_shape
+        self._strides = strides
+        self._padding = padding
+        self._w_shape = filter_shape + [input_channels, output_channels]
+        self._b_shape = (
+            (1, 1, 1, output_channels)
+            if data_format == "NHWC"
+            else (1, output_channels, 1, 1)
+        )
+        self._w_init = weight_initializer
+        self._b_init = bias_initializer
+        self._with_bias = with_bias
+        self._data_format = data_format
+        self._dilations = dilations
+        self.groups = groups
+        ivy.Module.__init__(self, device=device, v=v, dtype=dtype)
+
+    def _create_variables(self, device, dtype=None):
+        v = {
+            "w": self._w_init.create_variables(
+                self._w_shape,
+                device,
+                self._output_channels,
+                self._input_channels,
+                dtype=dtype,
+            )
+        }
+        if self._with_bias:
+            v = dict(
+                **v,
+                b=self._b_init.create_variables(
+                    self._b_shape,
+                    device,
+                    self._output_channels,
+                    self._input_channels,
+                    dtype=dtype,
+                ),
+            )
+        return v
+
+    def _forward(self, inputs):
+        return ivy.conv(
+            inputs,
+            self.v.w,
+            self._strides,
+            self._padding,
+            dims=2,
+            data_format=self._data_format,
+            dilations=self._dilations,
+            feature_group_count=self.groups,
+        ) + (self.v.b if self._with_bias else 0)
 
 
 class SqueezeExcitation(ivy.Module):
@@ -147,12 +224,15 @@ class MBConvBlock(ivy.Module):
             )
 
         self.conv = ivy.Sequential(
-            ivy.DepthwiseConv2D(
+            Conv2D_groups(
+                1,
                 self.hidden_dim,
                 [self.kernel_size, self.kernel_size],
                 self.stride,
                 self.padding,
                 with_bias=False,
+                groups=self.hidden_dim,
+                data_format="channel_last",
             ),
             ivy.BatchNorm2D(self.hidden_dim, training=self.training),
             ivy.SiLU(),

@@ -45,7 +45,9 @@ def create_model():
             if isinstance(value, dict):
                 _copy_weights(value)
             else:
-                assert torch_list_weights[0].shape == value.shape
+                assert (
+                    torch_list_weights[0].shape == value.shape
+                ), f"{torch_list_weights[0].shape}, {value.shape}"
                 dictionary.pop(key)
                 dictionary[key] = ivy.Array(
                     torch_list_weights[0].detach().cpu().numpy()
@@ -60,7 +62,7 @@ def create_model():
 # inference
 
 res = phi_values["resolution"]
-image_path = "images/dog.jpeg"
+# image_path = "images/dog.jpeg"
 image_path = "images/ILSVRC2012_test_00000007.jpeg"
 # image_path = 'images/ILSVRC2012_test_00000030.jpeg'
 # Define the transformation pipeline
@@ -88,11 +90,19 @@ def get_processed_image(image_path):
 
 print(image_path)
 
+ivy.set_torch_backend()
+
+input_img = ivy.Array(get_processed_image(image_path)).to_device(device)
+ivy_model = create_model()
+output = ivy.softmax(ivy_model(input_img))
+print("torch", output[0].argmax(), output[0].sort()[-5:])
+
+
 ivy.set_jax_backend()
 
 input_img = ivy.Array(get_processed_image(image_path)).to_device(device)
 ivy_model = create_model()
-output = ivy_model(input_img)
+output = ivy.softmax(ivy_model(input_img))
 print("jax", output[0].argmax(), output[0].sort()[-5:])
 
 
@@ -102,10 +112,3 @@ input_img = ivy.Array(get_processed_image(image_path)).to_device(device)
 ivy_model = create_model()
 output = ivy.softmax(ivy_model(input_img))
 print("tensorflow", output[0].argmax(), output[0].sort()[-5:])
-
-ivy.set_torch_backend()
-
-input_img = ivy.Array(get_processed_image(image_path)).to_device(device)
-ivy_model = create_model()
-output = ivy.softmax(ivy_model(input_img))
-print("torch", output[0].argmax(), output[0].sort()[-5:])
