@@ -213,17 +213,20 @@ class MBConvBlock(ivy.Module):
         super(MBConvBlock, self).__init__()
 
     def _build(self, *args, **kwrgs):
+        conv = []
         if self.expand:
-            self.block_expand = CNNBlock(
-                self.input_channels,
-                self.hidden_dim,
-                kernel_size=1,
-                stride=1,
-                padding=self.padding,
-                training=self.training,
+            conv.append(
+                CNNBlock(
+                    self.input_channels,
+                    self.hidden_dim,
+                    kernel_size=1,
+                    stride=1,
+                    padding=self.padding,
+                    training=self.training,
+                )
             )
 
-        self.conv = ivy.Sequential(
+        conv += [
             Conv2D_groups(
                 1,
                 self.hidden_dim,
@@ -246,7 +249,9 @@ class MBConvBlock(ivy.Module):
                 with_bias=False,
             ),
             ivy.BatchNorm2D(self.output_channels, training=self.training),
-        )
+        ]
+
+        self.conv = ivy.Sequential(*conv)
 
     def stochastic_depth(self, x):
         if not self.training:
@@ -260,10 +265,10 @@ class MBConvBlock(ivy.Module):
         return ivy.divide(x, self.survival_prob) * binary_tensor
 
     def _forward(self, inputs):
-        x = self.block_expand(inputs) if self.expand else inputs
-        x = self.conv(x)
+        x = self.conv(inputs)
         if self.use_residual:
-            return self.stochastic_depth(x) + inputs
+            x = self.stochastic_depth(x)
+            x += inputs
         return x
 
 
