@@ -41,8 +41,8 @@ def _reshape_bias(x) -> None:
 
 def _reshape_weights(x) -> None:
     x = ivy.reshape(x, shape=(x.shape[2], x.shape[3], x.shape[1], x.shape[0]))
-    if x.shape[-2] == 1:
-        return ivy.squeeze(x, axis=-2)
+    # if x.shape[-2] == 1:
+    #     return ivy.squeeze(x, axis=-2)
     if x.shape[-1] == 1:
         return ivy.squeeze(x, axis=-1)
     return x
