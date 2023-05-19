@@ -10,6 +10,7 @@ class CNNBlock(ivy.Module):
         kernel_size,
         stride,
         padding,
+        training: bool = False,
     ):
         """
         Helper module used in the MBConv and FusedMBConvBlock. Basic CNN
@@ -29,6 +30,7 @@ class CNNBlock(ivy.Module):
             SAME" or "VALID" indicating the algorithm, or
             list indicating the per-dimension paddings.
         """
+        self.training = training
         self.input_channels = input_channels
         self.output_channels = output_channels
         self.kernel_size = kernel_size
@@ -46,7 +48,7 @@ class CNNBlock(ivy.Module):
                 self.padding,
                 with_bias=False,
             ),
-            ivy.BatchNorm2D(self.output_channels),
+            ivy.BatchNorm2D(self.output_channels, training=self.training),
             ivy.SiLU(),
         )
 
@@ -93,6 +95,7 @@ class MBConvBlock(ivy.Module):
         padding="VALID",
         reduction_ratio=4,
         survival_prob=0.8,
+        training: bool = False,
     ):
         """
         Instantiates the Mobile Inverted Residual Bottleneck Block
@@ -117,6 +120,7 @@ class MBConvBlock(ivy.Module):
         survival_prob
             Hyperparameter for stochastic depth.
         """
+        self.training = training
         self.input_channels = input_channels
         self.output_channels = output_channels
         self.kernel_size = kernel_size
@@ -139,6 +143,7 @@ class MBConvBlock(ivy.Module):
                 kernel_size=1,
                 stride=1,
                 padding=self.padding,
+                training=self.training,
             )
 
         self.conv = ivy.Sequential(
@@ -149,7 +154,7 @@ class MBConvBlock(ivy.Module):
                 self.padding,
                 with_bias=False,
             ),
-            ivy.BatchNorm2D(self.hidden_dim),
+            ivy.BatchNorm2D(self.hidden_dim, training=self.training),
             ivy.SiLU(),
             SqueezeExcitation(self.hidden_dim, self.reduced_dim),
             ivy.Conv2D(
@@ -160,7 +165,7 @@ class MBConvBlock(ivy.Module):
                 self.padding,
                 with_bias=False,
             ),
-            ivy.BatchNorm2D(self.output_channels),
+            ivy.BatchNorm2D(self.output_channels, training=self.training),
         )
 
     def stochastic_depth(self, x):
@@ -187,6 +192,7 @@ class EfficientNetV1(ivy.Module):
         phi_values,  # phi_value, resolution, drop_rate
         num_classes,
         device="cuda:0",
+        training: bool = True,
         v: ivy.Container = None,
     ):
         """
@@ -206,10 +212,13 @@ class EfficientNetV1(ivy.Module):
         device
             device on which to create the model's variables 'cuda:0', 'cuda:1', 'cpu'
             etc. Default is cuda:0.
+        training
+            Default is ``True``.
         v
             the variables for the model, as a container, constructed internally
             by default.
         """
+        self.training = training
         self.base_model = base_model
         alpha = 1.2
         beta = 1.1
@@ -219,11 +228,13 @@ class EfficientNetV1(ivy.Module):
         self.num_classes = num_classes
         self.last_channels = math.ceil(1280 * self.width_factor)
         self.se_reduction_ratio = 4
-        super(EfficientNetV1, self).__init__(v=v, device=device)
+        super(EfficientNetV1, self).__init__(v=v, device=device, training=self.training)
 
     def _build(self, *args, **kwrgs):
         channels = int(32 * self.width_factor)
-        features = [CNNBlock(3, channels, 3, stride=2, padding=1)]
+        features = [
+            CNNBlock(3, channels, 3, stride=2, padding=1, training=self.training)
+        ]
         in_channels = channels
 
         for args in self.base_model:
@@ -242,19 +253,25 @@ class EfficientNetV1(ivy.Module):
                         kernel_size=args["kernel_size"],
                         padding="SAME",
                         reduction_ratio=self.se_reduction_ratio,
+                        training=self.training,
                     )
                 )
                 in_channels = out_channels
         features.append(
             CNNBlock(
-                in_channels, self.last_channels, kernel_size=1, stride=1, padding="SAME"
+                in_channels,
+                self.last_channels,
+                kernel_size=1,
+                stride=1,
+                padding="SAME",
+                training=self.training,
             )
         )
 
         self.features = ivy.Sequential(*features)
 
         self.classifier = ivy.Sequential(
-            ivy.Dropout(self.dropout_rate),
+            ivy.Dropout(self.dropout_rate, training=self.training),
             ivy.Linear(self.last_channels, self.num_classes),
         )
 
@@ -264,9 +281,6 @@ class EfficientNetV1(ivy.Module):
         x = ivy.reshape(x, shape=(x.shape[0], x.shape[3], x.shape[1], x.shape[2]))
         x = ivy.adaptive_avg_pool2d(x, 1)
         x = ivy.reshape(x, shape=(x.shape[0], -1))
-        print(x.dtype, x.device, x.shape, self.last_channels)
-        print(self.classifier.v)
-        print(self.classifier.v.submodules.v1.w.dtype)
         return self.classifier(x)
 
 
