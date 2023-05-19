@@ -79,10 +79,10 @@ preprocess = transforms.Compose(
 
 
 def get_processed_image(image_path):
-    image = Image.open(image_path)
-    input_tensor = preprocess(image)
-    x = input_tensor.detach().cpu().numpy()
-    x = x.reshape((1, 224, 224, 3))
+    x = Image.open(image_path)
+    x = preprocess(x).unsqueeze(0)
+    x = x.detach().cpu().numpy()
+    x = x.reshape((1, res, res, 3))
     return x
 
 
@@ -92,8 +92,8 @@ ivy.set_jax_backend()
 
 input_img = ivy.Array(get_processed_image(image_path)).to_device(device)
 ivy_model = create_model()
-output = ivy.softmax(ivy_model(input_img))
-print("jax", output[0].sort()[-5:], output[0].argmax())
+output = ivy_model(input_img)
+print("jax", output[0].argmax(), output[0].sort()[-5:])
 
 
 ivy.set_tensorflow_backend()
@@ -101,11 +101,11 @@ ivy.set_tensorflow_backend()
 input_img = ivy.Array(get_processed_image(image_path)).to_device(device)
 ivy_model = create_model()
 output = ivy.softmax(ivy_model(input_img))
-print("tensorflow", output[0].sort()[-5:], output[0].argmax())
+print("tensorflow", output[0].argmax(), output[0].sort()[-5:])
 
 ivy.set_torch_backend()
 
 input_img = ivy.Array(get_processed_image(image_path)).to_device(device)
 ivy_model = create_model()
 output = ivy.softmax(ivy_model(input_img))
-print("torch", output[0].sort()[-5:], output[0].argmax())
+print("torch", output[0].argmax(), output[0].sort()[-5:])
