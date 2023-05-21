@@ -227,16 +227,23 @@ class MBConvBlock(ivy.Module):
             )
 
         conv += [
-            Conv2D_groups(
-                1,
+            ivy.DepthwiseConv2D(
                 self.hidden_dim,
                 [self.kernel_size, self.kernel_size],
                 self.stride,
                 self.padding,
                 with_bias=False,
-                groups=self.hidden_dim,
-                data_format="channel_last",
             ),
+            # Conv2D_groups(
+            #     1,
+            #     self.hidden_dim,
+            #     [self.kernel_size, self.kernel_size],
+            #     self.stride,
+            #     self.padding,
+            #     with_bias=False,
+            #     groups=self.hidden_dim,
+            #     data_format="channel_last",
+            # ),
             ivy.BatchNorm2D(self.hidden_dim, training=self.training),
             ivy.SiLU(),
             SqueezeExcitation(self.hidden_dim, self.reduced_dim),

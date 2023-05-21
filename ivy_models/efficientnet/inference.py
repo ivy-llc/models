@@ -30,6 +30,7 @@ def create_model():
 
     torch_v = ivy.Container.cont_from_disk_as_pickled(weight_path)
     torch_list_weights = torch_v.cont_to_flat_list()
+    assert len(ivy_model.v.cont_to_flat_list()) == len(torch_list_weights)
 
     ivy_model.v.classifier.submodules.v1.b = ivy.Array(
         torch_list_weights[0].detach().cpu().numpy()
@@ -53,9 +54,9 @@ def create_model():
                     torch_list_weights[0].detach().cpu().numpy()
                 ).to_device(device)
                 del torch_list_weights[0]
-
     for k, v in ivy_model.v.features.submodules.items():
         _copy_weights(v)
+    assert len(torch_list_weights) == 0
     return ivy_model
 
 
