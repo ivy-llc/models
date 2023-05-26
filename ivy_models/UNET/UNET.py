@@ -1,5 +1,7 @@
 import ivy
-ivy.set_backend('tensorflow')
+
+ivy.set_backend("tensorflow")
+
 
 def double_conv(in_c, out_c):
     conv = ivy.Sequential(
@@ -9,6 +11,7 @@ def double_conv(in_c, out_c):
         ivy.ReLU(),
     )
     return conv
+
 
 class UNet(ivy.Module):
     def __init__(self):
@@ -33,6 +36,7 @@ class UNet(ivy.Module):
         x8 = self.pool(x7)
         x9 = self.down_conv_5(x8)
         print(x9.shape)
+
 
 image = ivy.random_normal(shape=(1, 572, 572, 1))
 model = UNet()
