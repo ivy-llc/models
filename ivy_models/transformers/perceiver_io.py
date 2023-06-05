@@ -263,8 +263,8 @@ class PerceiverIO(ivy.Module):
                 )
             else:
                 raise Exception(
-                    "If learn_query is not set as True, the queries must be provided explicitly "
-                    "during the forward pass."
+                    "If learn_query is not set as True, the queries must "
+                    "be provided explicitly during the forward pass."
                 )
 
         queries_shape = list(queries.shape)

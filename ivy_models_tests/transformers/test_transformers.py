@@ -88,8 +88,9 @@ def test_perceiver_io_img_classification(
             v = ivy.Container.from_disk_as_pickled(weight_fpath)
             v = ivy.asarray(v)  # convert numpy weights to ivy arrays
         except Exception:
-            # If git large-file-storage is not enabled (for example when testing in github actions workflow), then the
-            #  test will fail here. A placeholder file does exist, but the file cannot be loaded as pickled variables.
+            # If git large-file-storage is not enabled (for example when testing in
+            # github actions workflow), then the test will fail here. A placeholder
+            # file does exist, but the file cannot be loaded as pickled variables.
             pytest.skip()
         # noinspection PyUnboundLocalVariable
         assert ivy.Container.identical_structure([model.v, v])
