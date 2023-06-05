@@ -49,7 +49,6 @@ class CNNBlock(ivy.Module):
         )
         self.v1 = ivy.BatchNorm2D(self.output_channels)
         self.silu = ivy.SiLU()
-        
 
     def _forward(self, x):
         return self.silu(self.v1(self.v0(x)))
@@ -137,23 +136,25 @@ class MBConvBlock(ivy.Module):
     def _build(self, *args, **kwrgs):
         self.block = []
         if self.expand:
-            self.block.append(CNNBlock(
-                self.input_channels,
-                self.hidden_dim,
-                kernel_size=1,
-                stride=1,
-                padding=self.padding,
-                training=self.training,
-            ))
+            self.block.append(
+                CNNBlock(
+                    self.input_channels,
+                    self.hidden_dim,
+                    kernel_size=1,
+                    stride=1,
+                    padding=self.padding,
+                    training=self.training,
+                )
+            )
 
         self.block += [
             ivy.DepthwiseConv2D(
-                 self.hidden_dim,
-                 [self.kernel_size, self.kernel_size],
-                 self.stride,
-                 self.padding,
-                 with_bias=False,
-             ),
+                self.hidden_dim,
+                [self.kernel_size, self.kernel_size],
+                self.stride,
+                self.padding,
+                with_bias=False,
+            ),
             ivy.BatchNorm2D(self.hidden_dim),
             ivy.SiLU(),
             SqueezeExcitation(self.hidden_dim, self.reduced_dim),
@@ -164,7 +165,7 @@ class MBConvBlock(ivy.Module):
                 stride=1,
                 padding=self.padding,
                 training=self.training,
-            )
+            ),
         ]
 
     def stochastic_depth(self, x):
@@ -240,9 +241,11 @@ class EfficientNetV1(ivy.Module):
         in_channels = channels
 
         for args in self.base_model:
-            out_channels = self.se_reduction_ratio * int(ivy.ceil(
-                int(args["channels"] * self.width_factor) / self.se_reduction_ratio
-            ).item())
+            out_channels = self.se_reduction_ratio * int(
+                ivy.ceil(
+                    int(args["channels"] * self.width_factor) / self.se_reduction_ratio
+                ).item()
+            )
             layers_repeats = int(ivy.ceil(args["repeats"] * self.depth_factor).item())
 
             for layer in range(layers_repeats):
