@@ -32,7 +32,7 @@ def test_resnet_18_img_classification(device, f, fw, batch_shape, load_weights):
         this_dir = os.path.dirname(os.path.realpath(__file__))
         weight_fpath = os.path.join(
             this_dir,
-            "../ivy_models/resnet/pretrained_weights/resnet_18.pickled",
+            "../../ivy_models/resnet/pretrained_weights/resnet_18.pickled",
         )
 
         # Check if weight file exists

@@ -80,7 +80,7 @@ def test_perceiver_io_img_classification(
         this_dir = os.path.dirname(os.path.realpath(__file__))
         weight_fpath = os.path.join(
             this_dir,
-            "../ivy_models/transformers/pretrained_weights/perceiver_io.pickled",
+            "../../ivy_models/transformers/pretrained_weights/perceiver_io.pickled",
         )
         assert os.path.isfile(weight_fpath)
         # noinspection PyBroadException
