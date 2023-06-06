@@ -54,7 +54,7 @@ def test_vgg_11_img_classification(device, f, fw, batch_shape, load_weights):
         this_dir = os.path.dirname(os.path.realpath(__file__))
         weight_fpath = os.path.join(
             this_dir,
-            "../ivy_models/vgg/pretrained_weights/vgg11.pickled",
+            "../../ivy_models/vgg/pretrained_weights/vgg11.pickled",
         )
 
         # Check if weight file exists
@@ -115,7 +115,7 @@ def test_vgg_11_bn_img_classification(device, f, fw, batch_shape, load_weights):
         this_dir = os.path.dirname(os.path.realpath(__file__))
         weight_fpath = os.path.join(
             this_dir,
-            "../ivy_models/vgg/pretrained_weights/vgg11_bn.pickled",
+            "../../ivy_models/vgg/pretrained_weights/vgg11_bn.pickled",
         )
 
         # Check if weight file exists
@@ -176,7 +176,7 @@ def test_vgg_13_img_classification(device, f, fw, batch_shape, load_weights):
         this_dir = os.path.dirname(os.path.realpath(__file__))
         weight_fpath = os.path.join(
             this_dir,
-            "../ivy_models/vgg/pretrained_weights/vgg13.pickled",
+            "../../ivy_models/vgg/pretrained_weights/vgg13.pickled",
         )
 
         # Check if weight file exists
@@ -237,7 +237,7 @@ def test_vgg_13_bn_img_classification(device, f, fw, batch_shape, load_weights):
         this_dir = os.path.dirname(os.path.realpath(__file__))
         weight_fpath = os.path.join(
             this_dir,
-            "../ivy_models/vgg/pretrained_weights/vgg13_bn.pickled",
+            "../../ivy_models/vgg/pretrained_weights/vgg13_bn.pickled",
         )
 
         # Check if weight file exists
@@ -298,7 +298,7 @@ def test_vgg_16_img_classification(device, f, fw, batch_shape, load_weights):
         this_dir = os.path.dirname(os.path.realpath(__file__))
         weight_fpath = os.path.join(
             this_dir,
-            "../ivy_models/vgg/pretrained_weights/vgg16.pickled",
+            "../../ivy_models/vgg/pretrained_weights/vgg16.pickled",
         )
 
         # Check if weight file exists
@@ -359,7 +359,7 @@ def test_vgg_16_bn_img_classification(device, f, fw, batch_shape, load_weights):
         this_dir = os.path.dirname(os.path.realpath(__file__))
         weight_fpath = os.path.join(
             this_dir,
-            "../ivy_models/vgg/pretrained_weights/vgg16_bn.pickled",
+            "../../ivy_models/vgg/pretrained_weights/vgg16_bn.pickled",
         )
 
         # Check if weight file exists
@@ -420,7 +420,7 @@ def test_vgg_19_img_classification(device, f, fw, batch_shape, load_weights):
         this_dir = os.path.dirname(os.path.realpath(__file__))
         weight_fpath = os.path.join(
             this_dir,
-            "../ivy_models/vgg/pretrained_weights/vgg19.pickled",
+            "../../ivy_models/vgg/pretrained_weights/vgg19.pickled",
         )
 
         # Check if weight file exists
@@ -481,7 +481,7 @@ def test_vgg_19_bn_img_classification(device, f, fw, batch_shape, load_weights):
         this_dir = os.path.dirname(os.path.realpath(__file__))
         weight_fpath = os.path.join(
             this_dir,
-            "../ivy_models/vgg/pretrained_weights/vgg19_bn.pickled",
+            "../../ivy_models/vgg/pretrained_weights/vgg19_bn.pickled",
         )
 
         # Check if weight file exists
