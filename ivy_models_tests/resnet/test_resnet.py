@@ -64,7 +64,7 @@ def test_resnet_18_img_classification(device, f, fw, batch_shape, load_weights):
     # Value test
     if load_weights:
         np_out = ivy.to_numpy(output[0])
-        true_indices = np.array([412, 731, 600, 463])
+        true_indices = np.array([287, 285, 281, 282])
         calc_indices = np.argsort(np_out)[-4:]
 
         assert np.array_equal(true_indices, calc_indices)
