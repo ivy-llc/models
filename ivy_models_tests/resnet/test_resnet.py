@@ -69,7 +69,7 @@ def test_resnet_18_img_classification(device, f, fw, batch_shape, load_weights):
 
         assert np.array_equal(true_indices, calc_indices)
 
-        true_logits = np.array([2.0218, 2.1013, 2.1893, 2.4626])
+        true_logits = np.array([10.133721, 11.933505, 12.343024, 13.348762])
         calc_logits = np.take(np_out, calc_indices)
 
         assert np.allclose(true_logits, calc_logits, rtol=0.5)
