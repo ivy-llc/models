@@ -25,7 +25,7 @@ def test_convnext_tiny_img_classification(device, f, fw, batch_shape, load_weigh
 
     if load_weights:
         weight_fpath = os.path.join(
-            this_dir, "../../ivy_models/convnext/pretrained_weights/convnext_tiny.pkl"
+            this_dir, "../../ivy_models/convnext/pretrained_weights/convnext_tiny.pickled"
         )
 
         assert os.path.isfile(weight_fpath)
@@ -62,10 +62,11 @@ def test_convnext_small_img_classification(device, f, fw, batch_shape, load_weig
     num_classes = 1000
     device="cpu"
     
-    # Load image
-    img_path = "convnext/image_convnext.npy"
-    img = ivy.asarray(np.load(img_path), device=device)
-
+    # load image
+    this_dir = os.path.dirname(os.path.realpath(__file__))
+    img = ivy.asarray(
+        np.load(os.path.join(this_dir, "image_convnext.npy")),
+    )
     model = convnext_small()
 
     if load_weights:
@@ -106,10 +107,12 @@ def test_convnext_base_img_classification(device, f, fw, batch_shape, load_weigh
     """Test ConvNeXt base image classification."""
     num_classes = 1000
     device="cpu"
-    
-    # Load image
-    img_path = "convnext/image_convnext.npy"
-    img = ivy.asarray(np.load(img_path), device=device)
+    # load image
+    this_dir = os.path.dirname(os.path.realpath(__file__))
+    img = ivy.asarray(
+        np.load(os.path.join(this_dir, "image_convnext.npy")),
+    )
+
     model = convnext_base()
 
     if load_weights:
@@ -150,10 +153,11 @@ def test_convnext_large_img_classification(device, f, fw, batch_shape, load_weig
     """Test ConvNeXt large image classification."""
     num_classes = 1000
     device="cpu"
-
-    # Load image
-    img_path = "convnext/image_convnext.npy"
-    img = ivy.asarray(np.load(img_path), device=device)
+    # load image
+    this_dir = os.path.dirname(os.path.realpath(__file__))
+    img = ivy.asarray(
+        np.load(os.path.join(this_dir, "image_convnext.npy")),
+    )
     model = convnext_large()
 
     if load_weights:
