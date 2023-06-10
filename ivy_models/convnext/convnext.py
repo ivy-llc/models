@@ -27,8 +27,8 @@ class Block(ivy.Module):
         """Create internal variables for the layer."""
         if self.have_gamma:
             return {
-                "gamma": self._gamma_init.create_variables(
-                    self._gamma_shape, device, dtype=dtype
+                "gamma_param": self._gamma_init.create_variables(
+                    self._gamma_shape, device, dtype
                 ),
             }
         return {}
@@ -42,7 +42,7 @@ class Block(ivy.Module):
         x = self.act(x)
         x = self.pwconv2(x)
         if self.have_gamma:
-            x = self.v.gamma * x
+            x = self.v.gamma_param * x
         x = ivy.permute_dims(x, axes=(0, 3, 1, 2))
         x = input + self.drop_path(x)
         return x

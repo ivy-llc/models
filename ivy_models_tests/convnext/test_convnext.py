@@ -17,13 +17,13 @@ def test_convnext_tiny_img_classification(device, f, fw, batch_shape, load_weigh
     num_classes = 1000
     device="cpu"
     # load image
-    img_path = "convnext/image_convnext.npy"
-    img = ivy.asarray(np.load(img_path), device=device)
-
+    this_dir = os.path.dirname(os.path.realpath(__file__))
+    img = ivy.asarray(
+        np.load(os.path.join(this_dir, "image_convnext.npy")),
+    )
     model = convnext_tiny()
 
     if load_weights:
-        this_dir = os.path.dirname(os.path.realpath(__file__))
         weight_fpath = os.path.join(
             this_dir, "../../ivy_models/convnext/pretrained_weights/convnext_tiny.pkl"
         )
@@ -37,6 +37,7 @@ def test_convnext_tiny_img_classification(device, f, fw, batch_shape, load_weigh
             pytest.skip()
 
         model = convnext_tiny(v)
+    
     
     logits = model(img)
 
