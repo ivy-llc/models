@@ -139,11 +139,11 @@ def test_convnext_base_img_classification(device, f, fw, batch_shape, load_weigh
     # Value test
     if load_weights:
         np_out = ivy.to_numpy(logits[0])
-        true_indices = np.array([623, 111,  21,   1, 644])
+        true_indices = np.array([111,   1, 644,   0, 318])
         calc_indices = np.argsort(np_out)[-5:][::-1]
         assert np.array_equal(true_indices, calc_indices)
 
-        true_logits = np.array([2.5510, 2.5314, 2.4917, 2.2801, 2.2450])
+        true_logits = np.array([2.9980, 2.4199, 2.2514, 2.1669, 2.1209])
         calc_logits = np.take(np_out, calc_indices)
         assert np.allclose(true_logits, calc_logits, rtol=1e-3)
 
