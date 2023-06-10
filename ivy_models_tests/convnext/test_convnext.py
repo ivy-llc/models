@@ -71,7 +71,7 @@ def test_convnext_small_img_classification(device, f, fw, batch_shape, load_weig
     if load_weights:
         this_dir = os.path.dirname(os.path.realpath(__file__))
         weight_fpath = os.path.join(
-            this_dir, "../../ivy_models/convnext/pretrained_weights/convnext_small.pkl"
+            this_dir, "../../ivy_models/convnext/pretrained_weights/convnext_small.pickled"
         )
 
         assert os.path.isfile(weight_fpath)
@@ -115,7 +115,7 @@ def test_convnext_base_img_classification(device, f, fw, batch_shape, load_weigh
     if load_weights:
         this_dir = os.path.dirname(os.path.realpath(__file__))
         weight_fpath = os.path.join(
-            this_dir, "../../ivy_models/convnext/pretrained_weights/convnext_base.pkl"
+            this_dir, "../../ivy_models/convnext/pretrained_weights/convnext_base.pickled"
         )
 
         assert os.path.isfile(weight_fpath)
@@ -159,7 +159,7 @@ def test_convnext_large_img_classification(device, f, fw, batch_shape, load_weig
     if load_weights:
         this_dir = os.path.dirname(os.path.realpath(__file__))
         weight_fpath = os.path.join(
-            this_dir, "../../ivy_models/convnext/pretrained_weights/convnext_large.pkl"
+            this_dir, "../../ivy_models/convnext/pretrained_weights/convnext_large.pickled"
         )
         assert os.path.isfile(weight_fpath)
         
