@@ -1,0 +1,4 @@
+*.pkl filter=lfs diff=lfs merge=lfs -text
+*.pickled filter=lfs diff=lfs merge=lfs -text
+perceiver_io.pkl filter=lfs diff=lfs merge=lfs -text
+perceiver_io.pickled filter=lfs diff=lfs merge=lfs -text

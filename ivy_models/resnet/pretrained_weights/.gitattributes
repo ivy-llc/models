@@ -1,0 +1,4 @@
+*.pkl filter=lfs diff=lfs merge=lfs -text
+*.pickled filter=lfs diff=lfs merge=lfs -text
+resnet_18.pkl filter=lfs diff=lfs merge=lfs -text
+resnet_18.pickled filter=lfs diff=lfs merge=lfs -text
