@@ -1,0 +1,10 @@
+convnext_small_weights.pkl filter=lfs diff=lfs merge=lfs -text
+*.pkl filter=lfs diff=lfs merge=lfs -text
+convnext_tiny.pkl filter=lfs diff=lfs merge=lfs -text
+convnext_base.pkl filter=lfs diff=lfs merge=lfs -text
+convnext_large.pkl filter=lfs diff=lfs merge=lfs -text
+convnext_small.pkl filter=lfs diff=lfs merge=lfs -text
+convnext_base.pickled filter=lfs diff=lfs merge=lfs -text
+convnext_large.pickled filter=lfs diff=lfs merge=lfs -text
+convnext_small.pickled filter=lfs diff=lfs merge=lfs -text
+convnext_tiny.pickled filter=lfs diff=lfs merge=lfs -text
