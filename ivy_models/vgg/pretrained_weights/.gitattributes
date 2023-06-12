@@ -1,0 +1,17 @@
+*.pkl filter=lfs diff=lfs merge=lfs -text
+vgg11_bn.pkl filter=lfs diff=lfs merge=lfs -text
+vgg11.pkl filter=lfs diff=lfs merge=lfs -text
+vgg13_bn.pkl filter=lfs diff=lfs merge=lfs -text
+vgg13.pkl filter=lfs diff=lfs merge=lfs -text
+vgg16_bn.pkl filter=lfs diff=lfs merge=lfs -text
+vgg16.pkl filter=lfs diff=lfs merge=lfs -text
+vgg19_bn.pkl filter=lfs diff=lfs merge=lfs -text
+vgg19.pkl filter=lfs diff=lfs merge=lfs -text
+vgg11_bn.pickled filter=lfs diff=lfs merge=lfs -text
+vgg11.pickled filter=lfs diff=lfs merge=lfs -text
+vgg13_bn.pickled filter=lfs diff=lfs merge=lfs -text
+vgg13.pickled filter=lfs diff=lfs merge=lfs -text
+vgg16_bn.pickled filter=lfs diff=lfs merge=lfs -text
+vgg16.pickled filter=lfs diff=lfs merge=lfs -text
+vgg19_bn.pickled filter=lfs diff=lfs merge=lfs -text
+vgg19.pickled filter=lfs diff=lfs merge=lfs -text
