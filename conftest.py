@@ -24,7 +24,8 @@ def run_around_tests(device, f, wrapped_mode, compile_graph, fw):
         # ToDo: add support for wrapped_mode and tensorflow compilation
         pytest.skip()
     if wrapped_mode and fw == "jax":
-        # ToDo: add support for wrapped_mode with jax, presumably some errenously wrapped jax methods
+        # ToDo: add support for wrapped_mode with jax,
+        # presumably some errenously wrapped jax methods
         pytest.skip()
     if "gpu" in device and fw == "numpy":
         # Numpy does not support GPU
