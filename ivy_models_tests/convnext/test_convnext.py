@@ -5,17 +5,17 @@ import numpy as np
 
 from ivy_models.convnext import (
     convnext_tiny,
-    convnext_small, 
+    convnext_small,
     convnext_base,
     convnext_large,
 )
+
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
 def test_convnext_tiny_img_classification(device, f, fw, batch_shape, load_weights):
     """Test ConvNeXt tiny image classification."""
     num_classes = 1000
-    device="cpu"
     # load image
     this_dir = os.path.dirname(os.path.realpath(__file__))
     img = ivy.asarray(
@@ -25,11 +25,12 @@ def test_convnext_tiny_img_classification(device, f, fw, batch_shape, load_weigh
 
     if load_weights:
         weight_fpath = os.path.join(
-            this_dir, "../../ivy_models/convnext/pretrained_weights/convnext_tiny.pickled"
+            this_dir,
+            "../../ivy_models/convnext/pretrained_weights/convnext_tiny.pickled",
         )
 
         assert os.path.isfile(weight_fpath)
-        
+
         try:
             v = ivy.Container.cont_from_disk_as_pickled(weight_fpath)
             v = ivy.asarray(v)
@@ -37,8 +38,7 @@ def test_convnext_tiny_img_classification(device, f, fw, batch_shape, load_weigh
             pytest.skip()
 
         model = convnext_tiny(v)
-    
-    
+
     logits = model(img)
 
     # Cardinality test
@@ -47,7 +47,7 @@ def test_convnext_tiny_img_classification(device, f, fw, batch_shape, load_weigh
     # Value test
     if load_weights:
         np_out = ivy.to_numpy(logits[0])
-        true_indices = np.array([  0,   1,  78, 303, 111])
+        true_indices = np.array([0, 1, 78, 303, 111])
         calc_indices = np.argsort(np_out)[-5:][::-1]
         assert np.array_equal(true_indices, calc_indices)
 
@@ -55,13 +55,13 @@ def test_convnext_tiny_img_classification(device, f, fw, batch_shape, load_weigh
         calc_logits = np.take(np_out, calc_indices)
         assert np.allclose(true_logits, calc_logits, rtol=1e-3)
 
+
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
 def test_convnext_small_img_classification(device, f, fw, batch_shape, load_weights):
     """Test ConvNeXt small image classification."""
     num_classes = 1000
-    device="cpu"
-    
+
     # load image
     this_dir = os.path.dirname(os.path.realpath(__file__))
     img = ivy.asarray(
@@ -72,11 +72,12 @@ def test_convnext_small_img_classification(device, f, fw, batch_shape, load_weig
     if load_weights:
         this_dir = os.path.dirname(os.path.realpath(__file__))
         weight_fpath = os.path.join(
-            this_dir, "../../ivy_models/convnext/pretrained_weights/convnext_small.pickled"
+            this_dir,
+            "../../ivy_models/convnext/pretrained_weights/convnext_small.pickled",
         )
 
         assert os.path.isfile(weight_fpath)
-        
+
         try:
             v = ivy.Container.cont_from_disk_as_pickled(weight_fpath)
             v = ivy.asarray(v)
@@ -93,7 +94,7 @@ def test_convnext_small_img_classification(device, f, fw, batch_shape, load_weig
     if load_weights:
         # Value test
         np_out = ivy.to_numpy(logits[0])
-        true_indices = np.array([623, 111,  21,   1, 644])
+        true_indices = np.array([623, 111, 21, 1, 644])
         calc_indices = np.argsort(np_out)[-5:][::-1]
         assert np.array_equal(true_indices, calc_indices)
 
@@ -101,12 +102,12 @@ def test_convnext_small_img_classification(device, f, fw, batch_shape, load_weig
         calc_logits = np.take(np_out, calc_indices)
         assert np.allclose(true_logits, calc_logits, rtol=1e-3)
 
+
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
 def test_convnext_base_img_classification(device, f, fw, batch_shape, load_weights):
     """Test ConvNeXt base image classification."""
     num_classes = 1000
-    device="cpu"
     # load image
     this_dir = os.path.dirname(os.path.realpath(__file__))
     img = ivy.asarray(
@@ -118,11 +119,12 @@ def test_convnext_base_img_classification(device, f, fw, batch_shape, load_weigh
     if load_weights:
         this_dir = os.path.dirname(os.path.realpath(__file__))
         weight_fpath = os.path.join(
-            this_dir, "../../ivy_models/convnext/pretrained_weights/convnext_base.pickled"
+            this_dir,
+            "../../ivy_models/convnext/pretrained_weights/convnext_base.pickled",
         )
 
         assert os.path.isfile(weight_fpath)
-        
+
         try:
             v = ivy.Container.cont_from_disk_as_pickled(weight_fpath)
             v = ivy.asarray(v)
@@ -139,7 +141,7 @@ def test_convnext_base_img_classification(device, f, fw, batch_shape, load_weigh
     # Value test
     if load_weights:
         np_out = ivy.to_numpy(logits[0])
-        true_indices = np.array([111,   1, 644,   0, 318])
+        true_indices = np.array([111, 1, 644, 0, 318])
         calc_indices = np.argsort(np_out)[-5:][::-1]
         assert np.array_equal(true_indices, calc_indices)
 
@@ -147,12 +149,12 @@ def test_convnext_base_img_classification(device, f, fw, batch_shape, load_weigh
         calc_logits = np.take(np_out, calc_indices)
         assert np.allclose(true_logits, calc_logits, rtol=1e-3)
 
+
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
 def test_convnext_large_img_classification(device, f, fw, batch_shape, load_weights):
     """Test ConvNeXt large image classification."""
     num_classes = 1000
-    device="cpu"
     # load image
     this_dir = os.path.dirname(os.path.realpath(__file__))
     img = ivy.asarray(
@@ -163,10 +165,11 @@ def test_convnext_large_img_classification(device, f, fw, batch_shape, load_weig
     if load_weights:
         this_dir = os.path.dirname(os.path.realpath(__file__))
         weight_fpath = os.path.join(
-            this_dir, "../../ivy_models/convnext/pretrained_weights/convnext_large.pickled"
+            this_dir,
+            "../../ivy_models/convnext/pretrained_weights/convnext_large.pickled",
         )
         assert os.path.isfile(weight_fpath)
-        
+
         try:
             v = ivy.Container.cont_from_disk_as_pickled(weight_fpath)
             v = ivy.asarray(v)
@@ -183,7 +186,7 @@ def test_convnext_large_img_classification(device, f, fw, batch_shape, load_weig
     # Value test
     if load_weights:
         np_out = ivy.to_numpy(logits[0])
-        true_indices = np.array([  0, 111,  78, 623, 940])
+        true_indices = np.array([0, 111, 78, 623, 940])
         calc_indices = np.argsort(np_out)[-5:][::-1]
         assert np.array_equal(true_indices, calc_indices)
 
