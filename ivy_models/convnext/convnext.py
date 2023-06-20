@@ -70,9 +70,7 @@ class ConvNeXt(ivy.Module):
         self.layer_scale_init_value = layer_scale_init_value
         self.head_init_scale = head_init_scale
 
-        super(ConvNeXt, self).__init__(device=device)
-        if v is not None:
-            self.v = v
+        super(ConvNeXt, self).__init__(device=device, v=v)
 
     def _build(self, *args, **kwargs):
         self.downsample_layers = []
@@ -160,21 +158,53 @@ class LayerNorm(ivy.Module):
         return self.v.weight[:, None, None] * x + self.v.bias[:, None, None]
 
 
-def convnext_tiny(v=None):
-    return ConvNeXt(depths=[3, 3, 9, 3], dims=[96, 192, 384, 768], v=v)
+def convnext(size: str, pretrained=True):
+    """ loads a ConvNeXt with specified size, optionally pretrained."""
+    size_dict = {
+        "tiny": ([3, 3, 9, 3], [96, 192, 384, 768]),
+        "small":([3, 3, 27, 3], [96, 192, 384, 768]),
+        "base": ([3, 3, 27, 3], [128, 256, 512, 1024]),
+        "large":([3, 3, 27, 3], [192, 384, 768, 1536]),
+        }
+    try:
+        depths, dims = size_dict[size]
+    except:
+        raise Exception("Enter a valid model size: tiny/small/base/large")
 
+    if not pretrained:
+        return ConvNeXt(depths=depths, dims=dims)
+    
+    weight_dl = {
+        "tiny": "https://dl.fbaipublicfiles.com/convnext/convnext_tiny_1k_224_ema.pth",
+        "small": "https://dl.fbaipublicfiles.com/convnext/convnext_small_1k_224_ema.pth",
+        "base": "https://dl.fbaipublicfiles.com/convnext/convnext_base_1k_224_ema.pth",
+        "large": "https://dl.fbaipublicfiles.com/convnext/convnext_large_1k_224_ema.pth",
+    }
 
-def convnext_small(v=None):
-    return ConvNeXt(depths=[3, 3, 27, 3], dims=[96, 192, 384, 768], v=v)
+    import torch
+    weights = torch.hub.load_state_dict_from_url(weight_dl[size])
+    weights_raw = ivy.Container(weights)
+    reference_model = ConvNeXt(depths=depths, dims=dims)
+    mapping = {}
+    for old_key, new_key in zip(weights_raw.cont_sort_by_key().cont_to_iterator_keys(),
+                                reference_model.v.cont_sort_by_key().cont_to_iterator_keys()):
+        new_mapping = new_key
+        if "downsample_layers" in old_key:
+            if "0/0/bias" in old_key:
+                new_mapping = {"key_chain": new_key, "pattern": "h -> 1 h 1 1"}
+            elif "0/0/weight" in old_key:
+                new_mapping = {"key_chain": new_key, "pattern": "b c h w-> h w c b"}
+            elif "downsample_layers/0" not in old_key and "1/bias" in old_key: 
+                new_mapping = {"key_chain": new_key, "pattern": "h -> 1 h 1 1"}
+            elif "downsample_layers/0" not in old_key and "1/w" in old_key: 
+                new_mapping = {"key_chain": new_key, "pattern": "b c h w -> h w c b"}
+        elif "dwconv" in old_key:
+            if "bias" in old_key:
+                new_mapping = {"key_chain": new_key, "pattern": "h -> 1 h 1 1"}
+            elif "weight" in old_key:
+                new_mapping = {"key_chain": new_key, "pattern": "a 1 c d -> c d a"}
+        mapping[old_key] = new_mapping
 
-
-def convnext_base(v=None):
-    return ConvNeXt(depths=[3, 3, 27, 3], dims=[128, 256, 512, 1024], v=v)
-
-
-def convnext_large(v=None):
-    return ConvNeXt(depths=[3, 3, 27, 3], dims=[192, 384, 768, 1536], v=v)
-
-
-def convnext_xlarge(v=None):
-    return ConvNeXt(depths=[3, 3, 27, 3], dims=[256, 512, 1024, 2048], v=v)
+    w_clean = weights_raw.cont_restructure(mapping, keep_orig=False)
+    w_clean = ivy.asarray(w_clean)
+    return ConvNeXt(depths=depths, dims=dims, v=w_clean)
