@@ -159,44 +159,47 @@ class LayerNorm(ivy.Module):
 
 
 def convnext(size: str, pretrained=True):
-    """ loads a ConvNeXt with specified size, optionally pretrained."""
+    """Loads a ConvNeXt with specified size, optionally pretrained."""
     size_dict = {
         "tiny": ([3, 3, 9, 3], [96, 192, 384, 768]),
-        "small":([3, 3, 27, 3], [96, 192, 384, 768]),
+        "small": ([3, 3, 27, 3], [96, 192, 384, 768]),
         "base": ([3, 3, 27, 3], [128, 256, 512, 1024]),
-        "large":([3, 3, 27, 3], [192, 384, 768, 1536]),
-        }
+        "large": ([3, 3, 27, 3], [192, 384, 768, 1536]),
+    }
     try:
         depths, dims = size_dict[size]
-    except:
+    except KeyError:
         raise Exception("Enter a valid model size: tiny/small/base/large")
 
     if not pretrained:
         return ConvNeXt(depths=depths, dims=dims)
-    
+
     weight_dl = {
-        "tiny": "https://dl.fbaipublicfiles.com/convnext/convnext_tiny_1k_224_ema.pth",
-        "small": "https://dl.fbaipublicfiles.com/convnext/convnext_small_1k_224_ema.pth",
-        "base": "https://dl.fbaipublicfiles.com/convnext/convnext_base_1k_224_ema.pth",
-        "large": "https://dl.fbaipublicfiles.com/convnext/convnext_large_1k_224_ema.pth",
+        "tiny": "https://dl.fbaipublicfiles.com/convnext/convnext_tiny_1k_224_ema.pth",  # noqa
+        "small": "https://dl.fbaipublicfiles.com/convnext/convnext_small_1k_224_ema.pth",  # noqa
+        "base": "https://dl.fbaipublicfiles.com/convnext/convnext_base_1k_224_ema.pth",  # noqa
+        "large": "https://dl.fbaipublicfiles.com/convnext/convnext_large_1k_224_ema.pth",  # noqa
     }
 
     import torch
+
     weights = torch.hub.load_state_dict_from_url(weight_dl[size])
     weights_raw = ivy.Container(weights)
     reference_model = ConvNeXt(depths=depths, dims=dims)
     mapping = {}
-    for old_key, new_key in zip(weights_raw.cont_sort_by_key().cont_to_iterator_keys(),
-                                reference_model.v.cont_sort_by_key().cont_to_iterator_keys()):
+    for old_key, new_key in zip(
+        weights_raw.cont_sort_by_key().cont_to_iterator_keys(),
+        reference_model.v.cont_sort_by_key().cont_to_iterator_keys(),
+    ):
         new_mapping = new_key
         if "downsample_layers" in old_key:
             if "0/0/bias" in old_key:
                 new_mapping = {"key_chain": new_key, "pattern": "h -> 1 h 1 1"}
             elif "0/0/weight" in old_key:
                 new_mapping = {"key_chain": new_key, "pattern": "b c h w-> h w c b"}
-            elif "downsample_layers/0" not in old_key and "1/bias" in old_key: 
+            elif "downsample_layers/0" not in old_key and "1/bias" in old_key:
                 new_mapping = {"key_chain": new_key, "pattern": "h -> 1 h 1 1"}
-            elif "downsample_layers/0" not in old_key and "1/w" in old_key: 
+            elif "downsample_layers/0" not in old_key and "1/w" in old_key:
                 new_mapping = {"key_chain": new_key, "pattern": "b c h w -> h w c b"}
         elif "dwconv" in old_key:
             if "bias" in old_key:
