@@ -183,8 +183,10 @@ def convnext(size: str, pretrained=True):
 
     import torch
 
+    old_backend = ivy.backend
+    ivy.set_backend("torch")
     weights = torch.hub.load_state_dict_from_url(weight_dl[size])
-    weights_raw = ivy.Container(weights)
+    weights_raw = ivy.to_numpy(ivy.Container(weights))
     reference_model = ConvNeXt(depths=depths, dims=dims)
     mapping = {}
     for old_key, new_key in zip(
@@ -208,6 +210,7 @@ def convnext(size: str, pretrained=True):
                 new_mapping = {"key_chain": new_key, "pattern": "a 1 c d -> c d a"}
         mapping[old_key] = new_mapping
 
+    ivy.set_backend(old_backend)
     w_clean = weights_raw.cont_restructure(mapping, keep_orig=False)
     w_clean = ivy.asarray(w_clean)
     return ConvNeXt(depths=depths, dims=dims, v=w_clean)
