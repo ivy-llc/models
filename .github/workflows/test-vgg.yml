@@ -1,4 +1,4 @@
-name: nightly-tests
+name: test-vgg
 on: [push, pull_request]
 jobs:
   run-nightly-tests:
@@ -14,4 +14,4 @@ jobs:
       - name: Run Tests
         run: |
           cd models
-          docker run --rm -v `pwd`:/models unifyai/models:latest python3 -m pytest ivy_models_tests/convnext
+          docker run --rm -v `pwd`:/models unifyai/models:latest python3 -m pytest ivy_models_tests/vgg
