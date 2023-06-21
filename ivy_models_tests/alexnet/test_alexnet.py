@@ -5,6 +5,7 @@ import numpy as np
 
 from ivy_models.alexnet import AlexNet, alexnet
 
+
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
 def test_alexnet_tiny_img_classification(device, f, fw, batch_shape, load_weights):
