@@ -2,18 +2,21 @@
 import ivy
 
 
-def load_torch_weights(url, ref_model, custom_mapping=None):
-    import torch
+def _prune_keys(raw, ref, raw_keys_to_prune=[], ref_keys_to_prune=[]):
+    if raw_keys_to_prune != []:
+        for kc in raw_keys_to_prune:
+            raw = raw.cont_prune_key_from_key_chains(containing=kc)
+    if ref_keys_to_prune != []:
+        for kc in ref_keys_to_prune:
+            ref = ref.cont_prune_key_from_key_chains(containing=kc)
+    return raw, ref
 
-    old_backend = ivy.backend
-    ivy.set_backend("torch")
-    weights = torch.hub.load_state_dict_from_url(url)
-    weights_raw = ivy.to_numpy(ivy.Container(weights))
 
+def _map_weights(raw, ref, custom_mapping=None):
     mapping = {}
     for old_key, new_key in zip(
-        weights_raw.cont_sort_by_key().cont_to_iterator_keys(),
-        ref_model.v.cont_sort_by_key().cont_to_iterator_keys(),
+        raw.cont_sort_by_key().cont_to_iterator_keys(),
+        ref.cont_sort_by_key().cont_to_iterator_keys(),
     ):
         new_mapping = new_key
         if custom_mapping is not None:
@@ -21,8 +24,47 @@ def load_torch_weights(url, ref_model, custom_mapping=None):
             if new_mapping is None:
                 continue
         mapping[old_key] = new_mapping
+    return mapping
 
-    ivy.set_backend(old_backend)
+
+def load_torch_weights(url, ref_model, custom_mapping=None):
+    import torch
+
+    ivy.set_backend("torch")
+    weights = torch.hub.load_state_dict_from_url(url)
+    weights_raw = ivy.to_numpy(ivy.Container(weights))
+    mapping = _map_weights(weights_raw, ref_model.v, custom_mapping=custom_mapping)
+
+    ivy.previous_backend()
+    w_clean = weights_raw.cont_restructure(mapping, keep_orig=False)
+    return ivy.asarray(w_clean)
+
+
+def load_jax_weights(
+    url, ref_model, custom_mapping=None, raw_keys_to_prune=[], ref_keys_to_prune=[]
+):
+    import urllib.request
+    import os
+    import pickle
+
+    ivy.set_backend("jax")
+    urllib.request.urlretrieve(url, filename="jax_weights.pystate")
+    with open("jax_weights.pystate", "rb") as f:
+        weights = pickle.loads(f.read())
+    os.remove("jax_weights.pystate")
+
+    try:
+        weights = {**weights["params"], **weights["state"]}
+    except KeyError:
+        pass
+
+    weights_raw = ivy.to_numpy(ivy.Container(weights))
+    weights_raw, weights_ref = _prune_keys(
+        weights_raw, ref_model.v, raw_keys_to_prune, ref_keys_to_prune
+    )
+    mapping = _map_weights(weights_raw, weights_ref, custom_mapping=custom_mapping)
+
+    ivy.previous_backend()
     w_clean = weights_raw.cont_restructure(mapping, keep_orig=False)
     return ivy.asarray(w_clean)
 
