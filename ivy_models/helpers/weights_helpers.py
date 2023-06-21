@@ -2,6 +2,28 @@
 import ivy
 
 
+def load_torch_weights(url, ref_model, custom_mapping=None):
+    import torch
+
+    old_backend = ivy.backend
+    ivy.set_backend("torch")
+    weights = torch.hub.load_state_dict_from_url(url)
+    weights_raw = ivy.to_numpy(ivy.Container(weights))
+
+    mapping = {}
+    for old_key, new_key in zip(
+        weights_raw.cont_sort_by_key().cont_to_iterator_keys(),
+        ref_model.v.cont_sort_by_key().cont_to_iterator_keys(),
+    ):
+        mapping[old_key] = (
+            new_key if custom_mapping is None else custom_mapping(old_key, new_key)
+        )
+
+    ivy.set_backend(old_backend)
+    w_clean = weights_raw.cont_restructure(mapping, keep_orig=False)
+    return ivy.asarray(w_clean)
+
+
 def _permute_4d_weights(dictionary: ivy.Container, permute_fn) -> None:
     """
     Recursively permutes 4D weights in the dictionary

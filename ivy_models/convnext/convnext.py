@@ -1,4 +1,5 @@
 import ivy
+import ivy_models
 from ivy.stateful.module import Module
 from ivy.stateful.initializers import Zeros, Ones, Constant
 
@@ -158,6 +159,25 @@ class LayerNorm(ivy.Module):
         return self.v.weight[:, None, None] * x + self.v.bias[:, None, None]
 
 
+def _convnext_torch_weights_mapping(old_key, new_key):
+    new_mapping = new_key
+    if "downsample_layers" in old_key:
+        if "0/0/bias" in old_key:
+            new_mapping = {"key_chain": new_key, "pattern": "h -> 1 h 1 1"}
+        elif "0/0/weight" in old_key:
+            new_mapping = {"key_chain": new_key, "pattern": "b c h w-> h w c b"}
+        elif "downsample_layers/0" not in old_key and "1/bias" in old_key:
+            new_mapping = {"key_chain": new_key, "pattern": "h -> 1 h 1 1"}
+        elif "downsample_layers/0" not in old_key and "1/w" in old_key:
+            new_mapping = {"key_chain": new_key, "pattern": "b c h w -> h w c b"}
+    elif "dwconv" in old_key:
+        if "bias" in old_key:
+            new_mapping = {"key_chain": new_key, "pattern": "h -> 1 h 1 1"}
+        elif "weight" in old_key:
+            new_mapping = {"key_chain": new_key, "pattern": "a 1 c d -> c d a"}
+    return new_mapping
+
+
 def convnext(size: str, pretrained=True):
     """Loads a ConvNeXt with specified size, optionally pretrained."""
     size_dict = {
@@ -181,36 +201,8 @@ def convnext(size: str, pretrained=True):
         "large": "https://dl.fbaipublicfiles.com/convnext/convnext_large_1k_224_ema.pth",  # noqa
     }
 
-    import torch
-
-    old_backend = ivy.backend
-    ivy.set_backend("torch")
-    weights = torch.hub.load_state_dict_from_url(weight_dl[size])
-    weights_raw = ivy.to_numpy(ivy.Container(weights))
     reference_model = ConvNeXt(depths=depths, dims=dims)
-    mapping = {}
-    for old_key, new_key in zip(
-        weights_raw.cont_sort_by_key().cont_to_iterator_keys(),
-        reference_model.v.cont_sort_by_key().cont_to_iterator_keys(),
-    ):
-        new_mapping = new_key
-        if "downsample_layers" in old_key:
-            if "0/0/bias" in old_key:
-                new_mapping = {"key_chain": new_key, "pattern": "h -> 1 h 1 1"}
-            elif "0/0/weight" in old_key:
-                new_mapping = {"key_chain": new_key, "pattern": "b c h w-> h w c b"}
-            elif "downsample_layers/0" not in old_key and "1/bias" in old_key:
-                new_mapping = {"key_chain": new_key, "pattern": "h -> 1 h 1 1"}
-            elif "downsample_layers/0" not in old_key and "1/w" in old_key:
-                new_mapping = {"key_chain": new_key, "pattern": "b c h w -> h w c b"}
-        elif "dwconv" in old_key:
-            if "bias" in old_key:
-                new_mapping = {"key_chain": new_key, "pattern": "h -> 1 h 1 1"}
-            elif "weight" in old_key:
-                new_mapping = {"key_chain": new_key, "pattern": "a 1 c d -> c d a"}
-        mapping[old_key] = new_mapping
-
-    ivy.set_backend(old_backend)
-    w_clean = weights_raw.cont_restructure(mapping, keep_orig=False)
-    w_clean = ivy.asarray(w_clean)
+    w_clean = ivy_models.helpers.load_torch_weights(
+        weight_dl[size], reference_model, custom_mapping=_convnext_torch_weights_mapping
+    )
     return ConvNeXt(depths=depths, dims=dims, v=w_clean)
