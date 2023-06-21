@@ -1,5 +1,7 @@
 # global
+import builtins
 import ivy
+import ivy_models
 
 
 class ResidualBlock(ivy.Module):
@@ -149,9 +151,27 @@ class ResNet(ivy.Module):
         return x
 
 
-def resnet_18(v=None):
+def _resnet_torch_weights_mapping(old_key, new_key):
+    W_KEY = ["conv1/weight", "conv2/weight", "downsample/0/weight"]
+    new_mapping = new_key
+    if builtins.any([kc in old_key for kc in W_KEY]):
+        new_mapping = {"key_chain": new_key, "pattern": "b c h w -> h w c b"}
+    elif "num_batches_tracked" in old_key:
+        new_mapping = None
+    return new_mapping
+
+
+def resnet_18(pretrained=True):
     """ResNet-18 model"""
-    return ResNet(ResidualBlock, [2, 2, 2, 2], v=v)
+    if not pretrained:
+        return ResNet(ResidualBlock, [2, 2, 2, 2])
+
+    reference_model = ResNet(ResidualBlock, [2, 2, 2, 2])
+    url = "https://download.pytorch.org/models/resnet18-f37072fd.pth"
+    w_clean = ivy_models.helpers.load_torch_weights(
+        url, reference_model, custom_mapping=_resnet_torch_weights_mapping
+    )
+    return ResNet(ResidualBlock, [2, 2, 2, 2], v=w_clean)
 
 
 def resnet_34(v=None):

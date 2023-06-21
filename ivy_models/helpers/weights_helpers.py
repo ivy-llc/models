@@ -15,9 +15,12 @@ def load_torch_weights(url, ref_model, custom_mapping=None):
         weights_raw.cont_sort_by_key().cont_to_iterator_keys(),
         ref_model.v.cont_sort_by_key().cont_to_iterator_keys(),
     ):
-        mapping[old_key] = (
-            new_key if custom_mapping is None else custom_mapping(old_key, new_key)
-        )
+        new_mapping = new_key
+        if custom_mapping is not None:
+            new_mapping = custom_mapping(old_key, new_key)
+            if new_mapping is None:
+                continue
+        mapping[old_key] = new_mapping
 
     ivy.set_backend(old_backend)
     w_clean = weights_raw.cont_restructure(mapping, keep_orig=False)
