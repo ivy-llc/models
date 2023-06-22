@@ -1,0 +1,17 @@
+name: test-transformers
+on: [push, pull_request]
+jobs:
+  run-nightly-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️Ivy Models
+        uses: actions/checkout@v2
+        with:
+          lfs: true
+          path: models
+          persist-credentials: false
+      
+      - name: Run Tests
+        run: |
+          cd models
+          docker run --rm -v `pwd`:/models unifyai/models:latest python3 -m pytest ivy_models_tests/transformers

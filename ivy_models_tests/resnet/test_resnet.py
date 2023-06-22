@@ -26,30 +26,7 @@ def test_resnet_18_img_classification(device, f, fw, batch_shape, load_weights):
     )
 
     # Create model
-    model = resnet_18()
-
-    if load_weights:
-        this_dir = os.path.dirname(os.path.realpath(__file__))
-        weight_fpath = os.path.join(
-            this_dir,
-            "../../ivy_models/resnet/pretrained_weights/resnet_18.pickled",
-        )
-
-        # Check if weight file exists
-        assert os.path.isfile(weight_fpath)
-
-        # Load weights
-        try:
-            v = ivy.Container.cont_from_disk_as_pickled(weight_fpath)
-            v = ivy.asarray(v)
-        except Exception:
-            # If git large-file-storage is not enabled
-            # (for example when testing in github actions workflow), then the
-            #  test will fail here. A placeholder file does exist,
-            #  but the file cannot be loaded as pickled variables.
-            pytest.skip()
-
-        model = resnet_18(v=v)
+    model = resnet_18(pretrained=load_weights)
 
     # Perform inference
     output = model(img[0])
