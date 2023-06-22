@@ -14,17 +14,17 @@ class PreNorm(ivy.Module):
             else None
         )
         ivy.Module.__init__(self, v=v, device=device)
-        if self.v.cont_has_key_chain("attention/to_q/b"):
-            self.v = self.v.cont_restructure(
-                {
-                    "attention/to_q/b": "attention/linear/b",
-                    "attention/to_q/w": "attention/linear/w",
-                }
-            )
-        elif self.v.cont_has_key_chain("attention/mlp/submodules/v0/b"):
-            self.v = self.v.cont_restructure(
-                {"norm/bias": "a_norm/bias", "norm/weight": "a_norm/weight"}
-            )
+        # if self.v.cont_has_key_chain("attention/to_q/b"):
+        #     self.v = self.v.cont_restructure(
+        #         {
+        #             "attention/to_q/b": "attention/linear/b",
+        #             "attention/to_q/w": "attention/linear/w",
+        #         }
+        #     )
+        # elif self.v.cont_has_key_chain("attention/mlp/submodules/v0/b"):
+        #     self.v = self.v.cont_restructure(
+        #         {"norm/bias": "a_norm/bias", "norm/weight": "a_norm/weight"}
+        #     )
 
     def _forward(self, x, **kwargs):
         x = self._norm(x)
@@ -35,7 +35,7 @@ class PreNorm(ivy.Module):
 
 class FeedForward(ivy.Module):
     def __init__(self, dim, dropout=0.0, device=None, v=None):
-        self._mlp = ivy.Sequential(
+        self._net = ivy.Sequential(
             ivy.Linear(dim, dim, device=device),
             ivy.GELU(),
             ivy.Linear(dim, dim, device=device),
@@ -45,7 +45,7 @@ class FeedForward(ivy.Module):
         ivy.Module.__init__(self, v=v)
 
     def _forward(self, x):
-        return self._mlp(x)
+        return self._net(x)
 
 
 def _perceiver_jax_weights_mapping():
