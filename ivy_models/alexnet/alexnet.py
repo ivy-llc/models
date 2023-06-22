@@ -1,4 +1,5 @@
 import ivy
+import ivy_models
 
 
 class AlexNet(ivy.Module):
@@ -44,32 +45,24 @@ class AlexNet(ivy.Module):
         return x
 
 
+def _alexnet_torch_weights_mapping(old_key, new_key):
+    new_mapping = new_key
+    if "features" in old_key:
+        if "bias" in old_key:
+            new_mapping = {"key_chain": new_key, "pattern": "h -> 1 h 1 1"}
+        elif "weight" in old_key:
+            new_mapping = {"key_chain": new_key, "pattern": "b c h w-> h w c b"}
+    return new_mapping
+
+
 def alexnet(pretrained=True, num_classes=1000, dropout=0):
-    """Loads an instance of AlexNet, optionally with pretrained weights."""
+    """Ivy AlexNet model"""
     if not pretrained:
         return AlexNet(num_classes=num_classes, dropout=dropout)
 
-    import torch
-
-    weights = torch.hub.load_state_dict_from_url(
-        "https://download.pytorch.org/models/alexnet-owt-7be5be79.pth"
-    )
-    weights_raw = ivy.Container(weights)
-
     reference_model = AlexNet(num_classes=1000)
-    mapping = {}
-    for old_key, new_key in zip(
-        weights_raw.cont_sort_by_key().cont_to_iterator_keys(),
-        reference_model.v.cont_sort_by_key().cont_to_iterator_keys(),
-    ):
-        new_mapping = new_key
-        if "features" in old_key and "bias" in old_key:
-            new_mapping = {"key_chain": new_key, "pattern": "h -> 1 h 1 1"}
-        elif "features" in old_key and "weight" in old_key:
-            new_mapping = {"key_chain": new_key, "pattern": "b c h w-> h w c b"}
-        mapping[old_key] = new_mapping
-
-    w_clean = weights_raw.cont_restructure(mapping, keep_orig=False)
-    w_clean = ivy.asarray(w_clean)
-
-    return AlexNet(num_classes=1000, dropout=0, v=w_clean)
+    url = "https://download.pytorch.org/models/alexnet-owt-7be5be79.pth"
+    w_clean = ivy_models.helpers.load_torch_weights(
+        url, reference_model, custom_mapping=_alexnet_torch_weights_mapping
+    )
+    return AlexNet(num_classes=1000, v=w_clean)
