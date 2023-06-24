@@ -1,5 +1,6 @@
 # global
 import ivy
+import torch
 
 
 def _prune_keys(raw, ref, raw_keys_to_prune=[], ref_keys_to_prune=[]):
@@ -25,15 +26,16 @@ def _map_weights(raw, ref, custom_mapping=None):
     return mapping
 
 
-def load_torch_weights(url, ref_model, raw_keys_to_prune=["num_batches_tracked"], ref_keys_to_prune=[], custom_mapping=None):
-    import torch
-
+def load_torch_weights(
+    url,
+    ref_model,
+    raw_keys_to_prune=["num_batches_tracked"],
+    ref_keys_to_prune=[],
+    custom_mapping=None,
+    map_location=torch.device("cpu"),
+):
     ivy.set_backend("torch")
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    if device=='cpu':
-        weights = torch.hub.load_state_dict_from_url(url, map_location=torch.device('cpu'))
-    else:
-        weights = torch.hub.load_state_dict_from_url(url)
+    weights = torch.hub.load_state_dict_from_url(url, map_location=map_location)
 
     weights_raw = ivy.to_numpy(ivy.Container(weights))
     weights_raw, weights_ref = _prune_keys(
