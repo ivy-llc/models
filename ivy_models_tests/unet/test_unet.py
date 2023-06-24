@@ -11,7 +11,7 @@ jax.config.update("jax_enable_x64", True)
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_image_img_segmentation(device, f, fw, batch_shape, load_weights):
+def test_unet_img_segmentation(device, f, fw, batch_shape, load_weights):
     """Test UNet image segmentation."""
     num_classes = 1000
     device = "cpu"
