@@ -75,7 +75,8 @@ def vgg11(pretrained=True):
     w_clean = ivy_models.helpers.load_torch_weights(
         url, reference_model, custom_mapping=_vgg_torch_weights_mapping
     )
-    return VGG([1, 1, 2, 2, 2], False, v=w_clean)
+    reference_model.v = w_clean
+    return reference_model
 
 
 def vgg11_bn(pretrained=True):
@@ -88,7 +89,8 @@ def vgg11_bn(pretrained=True):
     w_clean = ivy_models.helpers.load_torch_weights(
         url, reference_model, custom_mapping=_vgg_torch_weights_mapping
     )
-    return VGG([1, 1, 2, 2, 2], True, v=w_clean)
+    reference_model.v = w_clean
+    return reference_model
 
 
 def vgg13(pretrained=True):
@@ -101,7 +103,8 @@ def vgg13(pretrained=True):
     w_clean = ivy_models.helpers.load_torch_weights(
         url, reference_model, custom_mapping=_vgg_torch_weights_mapping
     )
-    return VGG([2, 2, 2, 2, 2], False, v=w_clean)
+    reference_model.v = w_clean
+    return reference_model
 
 
 def vgg13_bn(pretrained=True):
@@ -114,7 +117,8 @@ def vgg13_bn(pretrained=True):
     w_clean = ivy_models.helpers.load_torch_weights(
         url, reference_model, custom_mapping=_vgg_torch_weights_mapping
     )
-    return VGG([2, 2, 2, 2, 2], True, v=w_clean)
+    reference_model.v = w_clean
+    return reference_model
 
 
 def vgg16(pretrained=True):
@@ -127,7 +131,8 @@ def vgg16(pretrained=True):
     w_clean = ivy_models.helpers.load_torch_weights(
         url, reference_model, custom_mapping=_vgg_torch_weights_mapping
     )
-    return VGG([2, 2, 3, 3, 3], False, v=w_clean)
+    reference_model.v = w_clean
+    return reference_model
 
 
 def vgg16_bn(pretrained=True):
@@ -140,7 +145,8 @@ def vgg16_bn(pretrained=True):
     w_clean = ivy_models.helpers.load_torch_weights(
         url, reference_model, custom_mapping=_vgg_torch_weights_mapping
     )
-    return VGG([2, 2, 3, 3, 3], True, v=w_clean)
+    reference_model.v = w_clean
+    return reference_model
 
 
 def vgg19(pretrained=True):
@@ -153,7 +159,8 @@ def vgg19(pretrained=True):
     w_clean = ivy_models.helpers.load_torch_weights(
         url, reference_model, custom_mapping=_vgg_torch_weights_mapping
     )
-    return VGG([2, 2, 4, 4, 4], False, v=w_clean)
+    reference_model.v = w_clean
+    return reference_model
 
 
 def vgg19_bn(pretrained=True):
@@ -166,4 +173,5 @@ def vgg19_bn(pretrained=True):
     w_clean = ivy_models.helpers.load_torch_weights(
         url, reference_model, custom_mapping=_vgg_torch_weights_mapping
     )
-    return VGG([2, 2, 4, 4, 4], True, v=w_clean)
+    reference_model.v = w_clean
+    return reference_model

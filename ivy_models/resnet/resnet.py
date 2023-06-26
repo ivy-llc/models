@@ -172,7 +172,8 @@ def resnet_18(pretrained=True):
         raw_keys_to_prune=["num_batches_tracked"],
         custom_mapping=_resnet_torch_weights_mapping,
     )
-    return ResNet(ResidualBlock, [2, 2, 2, 2], v=w_clean)
+    reference_model.v = w_clean
+    return reference_model
 
 
 def resnet_34(v=None):

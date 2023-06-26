@@ -205,4 +205,5 @@ def convnext(size: str, pretrained=True):
     w_clean = ivy_models.helpers.load_torch_weights(
         weight_dl[size], reference_model, custom_mapping=_convnext_torch_weights_mapping
     )
-    return ConvNeXt(depths=depths, dims=dims, v=w_clean)
+    reference_model.v = w_clean
+    return reference_model
