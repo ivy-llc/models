@@ -1,14 +1,13 @@
 # global
 import ivy
+import torch
 
 
 def _prune_keys(raw, ref, raw_keys_to_prune=[], ref_keys_to_prune=[]):
     if raw_keys_to_prune != []:
-        for kc in raw_keys_to_prune:
-            raw = raw.cont_prune_key_from_key_chains(containing=kc)
+        raw = raw.cont_prune_keys(raw_keys_to_prune)
     if ref_keys_to_prune != []:
-        for kc in ref_keys_to_prune:
-            ref = ref.cont_prune_key_from_key_chains(containing=kc)
+        ref = ref.cont_prune_keys(ref_keys_to_prune)
     return raw, ref
 
 
@@ -27,13 +26,22 @@ def _map_weights(raw, ref, custom_mapping=None):
     return mapping
 
 
-def load_torch_weights(url, ref_model, custom_mapping=None):
-    import torch
-
+def load_torch_weights(
+    url,
+    ref_model,
+    raw_keys_to_prune=[],
+    ref_keys_to_prune=[],
+    custom_mapping=None,
+    map_location=torch.device("cpu"),
+):
     ivy.set_backend("torch")
-    weights = torch.hub.load_state_dict_from_url(url)
+    weights = torch.hub.load_state_dict_from_url(url, map_location=map_location)
+
     weights_raw = ivy.to_numpy(ivy.Container(weights))
-    mapping = _map_weights(weights_raw, ref_model.v, custom_mapping=custom_mapping)
+    weights_raw, weights_ref = _prune_keys(
+        weights_raw, ref_model.v, raw_keys_to_prune, ref_keys_to_prune
+    )
+    mapping = _map_weights(weights_raw, weights_ref, custom_mapping=custom_mapping)
 
     ivy.previous_backend()
     w_clean = weights_raw.cont_restructure(mapping, keep_orig=False)
