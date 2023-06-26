@@ -156,8 +156,6 @@ def _resnet_torch_weights_mapping(old_key, new_key):
     new_mapping = new_key
     if builtins.any([kc in old_key for kc in W_KEY]):
         new_mapping = {"key_chain": new_key, "pattern": "b c h w -> h w c b"}
-    elif "num_batches_tracked" in old_key:
-        new_mapping = None
     return new_mapping
 
 
@@ -169,7 +167,10 @@ def resnet_18(pretrained=True):
     reference_model = ResNet(ResidualBlock, [2, 2, 2, 2])
     url = "https://download.pytorch.org/models/resnet18-f37072fd.pth"
     w_clean = ivy_models.helpers.load_torch_weights(
-        url, reference_model, custom_mapping=_resnet_torch_weights_mapping
+        url,
+        reference_model,
+        raw_keys_to_prune=["num_batches_tracked"],
+        custom_mapping=_resnet_torch_weights_mapping,
     )
     return ResNet(ResidualBlock, [2, 2, 2, 2], v=w_clean)
 
