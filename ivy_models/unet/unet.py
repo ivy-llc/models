@@ -101,28 +101,46 @@ if __name__ == "__main__":
     import torch
     import numpy as np
     ivy.set_torch_backend()
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-    # filename = '/home/muhammad/open-source/models/ivy_models/unet/Screenshot 2023-06-24 091018.png'
+    # --------------- TO REMOVE ------------------
+    # print(device)
+    # filename = '/workspaces/models/ivy_models/unet/Screenshot 2023-06-24 091018.png'
     # torch_img = Image.open(filename)
     # # Convert the image to RGB if it has an alpha channel
     # if torch_img.mode != 'RGB':
     #     torch_img = torch_img.convert('RGB')
+    # np.save('resent_image', torch_img)
+    # --------------- TO REMOVE ------------------
 
-    
+    # Loading data
+    np_array = np.load('ivy_models/unet/resent_image.npy')
+    # prepaaring data
+    pil_image = Image.fromarray(np_array)
+    torch_img = torch.from_numpy(preprocess(None, pil_image, 0.5, is_mask=False))
+    torch_img = torch_img.unsqueeze(0)
+    torch_img = torch_img.to(device=device, dtype=torch.float32)
+    torch_img = torch_img.numpy().reshape(1, torch_img.shape[2], torch_img.shape[3], 3)
 
-    # torch_img = torch.from_numpy(preprocess(None, torch_img, 0.5, is_mask=False))
-    # torch_img = torch_img.unsqueeze(0)
-    # torch_img = torch_img.to(device=device, dtype=torch.float32)
-    # torch_img = torch_img.numpy().reshape(1, torch_img.shape[2], torch_img.shape[3], 3)
-    # np.save('resent_array', torch_img)
-    torch_img = np.load('ivy_models/unet/resent_array.npy')
+    # print(torch_img.shape)
+    # defining model with pretrained weights
     net = UNet(n_channels=3, n_classes=2, pretrained=True)
+    
+    # predicting
+    # with torch.no_grad():
+    #     output = net(torch_img).cpu()
+    #     output = F.interpolate(output, (pil_image.size[1], pil_image.size[0]), mode='bilinear')
+    #     if net.n_classes > 1:
+    #         mask = output.argmax(dim=1)
+    #     else:
+    #         mask = torch.sigmoid(output) > out_threshold
 
-    # print(t)
-    pred = net(torch_img)
-    print(pred)
+    # mask = mask[0].long().squeeze().numpy()
+
+    # ----------- TO REMOVE ----------
+    # # print(t)
+    # pred = net(torch_img)
+    # print(pred)
 
 
 
