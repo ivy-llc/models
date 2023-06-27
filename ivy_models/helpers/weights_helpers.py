@@ -29,7 +29,7 @@ def _map_weights(raw, ref, custom_mapping=None):
 def load_torch_weights(
     url,
     ref_model,
-    raw_keys_to_prune=["num_batches_tracked"],
+    raw_keys_to_prune=[],
     ref_keys_to_prune=[],
     custom_mapping=None,
     map_location=torch.device("cpu"),
