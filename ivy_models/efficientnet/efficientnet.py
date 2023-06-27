@@ -2,16 +2,18 @@
 # https://github.com/pytorch/vision/blob/main/torchvision/models/efficientnet.py
 
 import ivy
+import ivy_models
+import builtins
 import copy
 from dataclasses import dataclass
 from functools import partial
 from typing import Callable, Optional, Sequence, Union, Tuple
 
-from misc import (
+from .layers import (
     _make_divisible,
-    Conv2dNormActivation,
-    SqueezeExcitation,
-    StochasticDepth,
+    EfficientNetConv2dNormActivation,
+    EfficientNetSqueezeExcitation,
+    EfficientNetStochasticDepth,
 )
 
 
@@ -49,7 +51,7 @@ class MBConvConfig(_MBConvConfig):
         out_channels = self.adjust_channels(out_channels, width_mult, 8)
         num_layers = self.adjust_depth(num_layers, depth_mult)
         if block is None:
-            block = MBConv
+            block = EfficientNetMBConv
         super().__init__(
             expand_ratio,
             kernel,
@@ -78,7 +80,7 @@ class FusedMBConvConfig(_MBConvConfig):
         block: Optional[Callable[..., ivy.Module]] = None,
     ) -> None:
         if block is None:
-            block = FusedMBConv
+            block = EfficientNetFusedMBConv
         super().__init__(
             expand_ratio,
             kernel,
@@ -90,13 +92,13 @@ class FusedMBConvConfig(_MBConvConfig):
         )
 
 
-class MBConv(ivy.Module):
+class EfficientNetMBConv(ivy.Module):
     def __init__(
         self,
         cnf: MBConvConfig,
         stochastic_depth_prob: float,
         norm_layer: Callable[..., ivy.Module],
-        se_layer: Callable[..., ivy.Module] = SqueezeExcitation,
+        se_layer: Callable[..., ivy.Module] = EfficientNetSqueezeExcitation,
     ) -> None:
         if not (1 <= cnf.stride <= 2):
             raise ValueError("illegal stride value")
@@ -112,7 +114,7 @@ class MBConv(ivy.Module):
         expanded_channels = cnf.adjust_channels(cnf.input_channels, cnf.expand_ratio, 8)
         if expanded_channels != cnf.input_channels:
             layers.append(
-                Conv2dNormActivation(
+                EfficientNetConv2dNormActivation(
                     cnf.input_channels,
                     expanded_channels,
                     kernel_size=1,
@@ -123,7 +125,7 @@ class MBConv(ivy.Module):
 
         # depthwise
         layers.append(
-            Conv2dNormActivation(
+            EfficientNetConv2dNormActivation(
                 expanded_channels,
                 expanded_channels,
                 kernel_size=cnf.kernel,
@@ -143,7 +145,7 @@ class MBConv(ivy.Module):
 
         # project
         layers.append(
-            Conv2dNormActivation(
+            EfficientNetConv2dNormActivation(
                 expanded_channels,
                 cnf.out_channels,
                 kernel_size=1,
@@ -153,7 +155,7 @@ class MBConv(ivy.Module):
         )
 
         self.block = ivy.Sequential(*layers)
-        self.stochastic_depth = StochasticDepth(stochastic_depth_prob)
+        self.stochastic_depth = EfficientNetStochasticDepth(stochastic_depth_prob)
         self.out_channels = cnf.out_channels
 
         super().__init__()
@@ -166,7 +168,7 @@ class MBConv(ivy.Module):
         return result
 
 
-class FusedMBConv(ivy.Module):
+class EfficientNetFusedMBConv(ivy.Module):
     def __init__(
         self,
         cnf: FusedMBConvConfig,
@@ -187,7 +189,7 @@ class FusedMBConv(ivy.Module):
         if expanded_channels != cnf.input_channels:
             # fused expand
             layers.append(
-                Conv2dNormActivation(
+                EfficientNetConv2dNormActivation(
                     cnf.input_channels,
                     expanded_channels,
                     kernel_size=cnf.kernel,
@@ -199,7 +201,7 @@ class FusedMBConv(ivy.Module):
 
             # project
             layers.append(
-                Conv2dNormActivation(
+                EfficientNetConv2dNormActivation(
                     expanded_channels,
                     cnf.out_channels,
                     kernel_size=1,
@@ -209,7 +211,7 @@ class FusedMBConv(ivy.Module):
             )
         else:
             layers.append(
-                Conv2dNormActivation(
+                EfficientNetConv2dNormActivation(
                     cnf.input_channels,
                     cnf.out_channels,
                     kernel_size=cnf.kernel,
@@ -220,7 +222,7 @@ class FusedMBConv(ivy.Module):
             )
 
         self.block = ivy.Sequential(*layers)
-        self.stochastic_depth = StochasticDepth(stochastic_depth_prob)
+        self.stochastic_depth = EfficientNetStochasticDepth(stochastic_depth_prob)
         self.out_channels = cnf.out_channels
 
         super().__init__()
@@ -266,7 +268,7 @@ class EfficientNet(ivy.Module):
         # building first layer
         firstconv_output_channels = inverted_residual_setting[0].input_channels
         layers.append(
-            Conv2dNormActivation(
+            EfficientNetConv2dNormActivation(
                 3,
                 firstconv_output_channels,
                 kernel_size=3,
@@ -306,7 +308,7 @@ class EfficientNet(ivy.Module):
             last_channel if last_channel is not None else 4 * lastconv_input_channels
         )
         layers.append(
-            Conv2dNormActivation(
+            EfficientNetConv2dNormActivation(
                 lastconv_input_channels,
                 lastconv_output_channels,
                 kernel_size=1,
@@ -437,46 +439,55 @@ def _efficientnet_conf(
     return inverted_residual_setting, last_channel, dropout, norm_layer
 
 
-if __name__ == "__main__":
-    # Preprocess torch image
-    import torch
-    from torchvision import transforms
-    from PIL import Image
+def _efficient_net_torch_weights_mapping(old_key, new_key):
+    new_mapping = new_key
+    W_KEY = [
+        "1/0/block/0/0/weight",
+        "block/1/0/weight",
+    ]
+    W_KEY2 = [
+        "fc1/weight",
+        "fc2/weight",
+        "0/weight",
+    ]
+    if builtins.any([kc in old_key for kc in W_KEY]):
+        new_mapping = {"key_chain": new_key, "pattern": "b 1 h w-> h w b"}
+    elif "fc1/bias" in old_key or "fc2/bias" in old_key:
+        new_mapping = {"key_chain": new_key, "pattern": "h-> 1 1 1 h"}
+    elif builtins.any([kc in old_key for kc in W_KEY2]):
+        new_mapping = {"key_chain": new_key, "pattern": "b c h w-> h w c b"}
+    return new_mapping
 
-    ivy.set_torch_backend()
 
-    filename = "images/dog.jpeg"
-    preprocess = transforms.Compose(
-        [
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ]
-    )
-    torch_img = Image.open(filename)
-    torch_img = preprocess(torch_img)
-    torch_img = torch.unsqueeze(torch_img, 0)
-    img = torch_img.numpy().reshape(1, 224, 224, 3)
-
-    # supported archs -
-    # efficientnet_b0, efficientnet_b1, efficientnet_b2, efficientnet_b3,
-    # efficientnet_b4, efficientnet_b5, efficientnet_b6, efficientnet_b7,
-    # efficientnet_v2_s, efficientnet_v2_m, efficientnet_v2_l
+def efficientnet_b0(pretrained=True):
     inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
         "efficientnet_b0"
     )
-    ivy_model = EfficientNet(
+    if not pretrained:
+        return EfficientNet(
+            inverted_residual_setting,
+            dropout,
+            norm_layer=norm_layer,
+            last_channel=last_channel,
+        )
+
+    reference_model = EfficientNet(
         inverted_residual_setting,
         dropout,
         norm_layer=norm_layer,
         last_channel=last_channel,
     )
-
-    output = ivy.softmax(ivy_model(ivy.asarray(img)))  # pass the image to the model
-    print(output.shape)
-    # classes = ivy.argsort(output[0], descending=True)[:3]  # get the top 3 classes
-    # logits = ivy.gather(output[0], classes)  # get the logits
-
-    # print("Indices of the top 3 classes are:", classes)
-    # print("Logits of the top 3 classes are:", logits)
+    url = "https://download.pytorch.org/models/efficientnet_b0_rwightman-3dd342df.pth"
+    w_clean = ivy_models.helpers.load_torch_weights(
+        url,
+        reference_model,
+        raw_keys_to_prune=["num_batches_tracked"],
+        custom_mapping=_efficient_net_torch_weights_mapping,
+    )
+    return EfficientNet(
+        inverted_residual_setting,
+        dropout,
+        norm_layer=norm_layer,
+        last_channel=last_channel,
+        v=w_clean,
+    )
