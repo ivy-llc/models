@@ -40,5 +40,5 @@ def load_and_preprocess_img(
         ]
     )
     img = compose(img)
-    img = img.unsqueeze(0).permute(dims=(0, 2, 3, 1))
+    img = img.unsqueeze(0).permute((0, 2, 3, 1))
     return img.numpy()
