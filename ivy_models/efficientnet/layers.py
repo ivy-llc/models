@@ -18,7 +18,7 @@ def _make_divisible(v: float, divisor: int, min_value: Optional[int] = None) -> 
     return int(new_v)
 
 
-class Conv2dNormActivation(ivy.Sequential):
+class EfficientNetConv2dNormActivation(ivy.Sequential):
     def __init__(
         self,
         in_channels: int,
@@ -72,7 +72,7 @@ class Conv2dNormActivation(ivy.Sequential):
         self.out_channels = out_channels
 
 
-class SqueezeExcitation(ivy.Module):
+class EfficientNetSqueezeExcitation(ivy.Module):
     def __init__(
         self,
         input_channels: int,
@@ -124,7 +124,7 @@ def stochastic_depth(x, p):
     return ivy.divide(x, survival_rate) * binary_tensor
 
 
-class StochasticDepth(ivy.Module):
+class EfficientNetStochasticDepth(ivy.Module):
     """See :func:`stochastic_depth`."""
 
     def __init__(self, p: float) -> None:
