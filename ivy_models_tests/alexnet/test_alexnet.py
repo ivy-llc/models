@@ -24,11 +24,7 @@ def test_alexnet_tiny_img_classification(device, f, fw, batch_shape, load_weight
     )
     img = ivy.permute_dims(img, (0, 3, 1, 2))
 
-    if load_weights:
-        model = alexnet(pretrained=True)
-    else:
-        model = alexnet(pretrained=False)
-
+    model = alexnet(pretrained=load_weights)
     logits = model(img)
 
     # Cardinality test
