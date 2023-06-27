@@ -2,3 +2,4 @@ matplotlib
 numpy
 torchvision
 Pillow # mod_name=PIL
+transformers
