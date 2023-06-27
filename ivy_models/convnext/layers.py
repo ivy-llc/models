@@ -2,6 +2,7 @@ import ivy
 from ivy.stateful.initializers import Zeros, Ones, Constant
 from ivy.stateful.module import Module
 
+
 class ConvNeXtBlock(ivy.Module):
     def __init__(self, dim, drop_path=0.0, layer_scale_init_value=1e-6):
         self.dim = dim
