@@ -7,7 +7,9 @@ from ivy_models.alexnet import alexnet
 from ivy_models_tests import helpers
 
 import jax
+
 jax.config.update("jax_enable_x64", False)
+
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
@@ -20,7 +22,7 @@ def test_alexnet_tiny_img_classification(device, f, fw, batch_shape, load_weight
     img = helpers.load_and_preprocess_img(
         os.path.join(this_dir, "..", "..", "images", "cat.jpg"), 256, 224
     )
-    img = ivy.permute_dims(img, (0,3,1,2))
+    img = ivy.permute_dims(img, (0, 3, 1, 2))
 
     if load_weights:
         model = alexnet(pretrained=True)
