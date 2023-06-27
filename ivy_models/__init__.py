@@ -2,6 +2,7 @@ from . import transformers
 from . import resnet
 from . import vgg
 from . import convnext
+from . import alexnet
 from . import helpers
 from . import unet
 from .transformers import perceiver_io
@@ -10,3 +11,4 @@ from .resnet import *
 from .vgg import *
 from .convnext import *
 from .unet import *
+from .alexnet import *
