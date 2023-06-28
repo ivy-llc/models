@@ -64,13 +64,13 @@ class BaseSpec:
         pass
 
     def to_dict(self):
-        pass
+        return self.__dict__
 
-    def from_dict(self):
-        pass
+    def from_dict(self, config_dict: dict):
+        self.__init__(**config_dict)
 
-    def to_json_file(self):
-        pass
+    def to_json_file(self, save_directory: str = "."):
+        self.save_pretrained(save_directory=save_directory)
 
     def from_json_file(self):
         pass
