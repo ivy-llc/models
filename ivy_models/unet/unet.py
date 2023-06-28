@@ -1,4 +1,4 @@
-from .unet_layers import UNetDoubleConv, UNetDown, UNetOutConv, UNetUp
+from .layers import UNetDoubleConv, UNetDown, UNetOutConv, UNetUp
 from ivy_models.helpers import load_torch_weights
 import ivy
 import builtins
