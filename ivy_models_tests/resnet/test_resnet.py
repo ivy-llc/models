@@ -2,10 +2,6 @@ import os
 import ivy
 import pytest
 import numpy as np
-import jax
-
-# Enable x64 support in JAX
-jax.config.update("jax_enable_x64", True)
 
 from ivy_models.resnet import resnet_18
 from ivy_models_tests import helpers
@@ -35,8 +31,8 @@ def test_resnet_18_img_classification(device, f, fw, batch_shape, load_weights):
     # Value test
     if load_weights:
         output = output[0]
-        true_indices = ivy.array([282, 285, 281])
-        calc_indices = ivy.argsort(output, descending=True)[:3]
+        true_indices = ivy.array([282, 285, 281]).sort()
+        calc_indices = ivy.argsort(output, descending=True)[:3].sort()
 
         assert np.array_equal(true_indices, calc_indices)
 

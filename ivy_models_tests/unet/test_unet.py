@@ -2,9 +2,6 @@ import os
 import ivy
 import pytest
 import numpy as np
-import jax
-
-jax.config.update("jax_enable_x64", False)
 
 from ivy_models.unet import unet_carvana
 from ivy_models_tests import helpers
