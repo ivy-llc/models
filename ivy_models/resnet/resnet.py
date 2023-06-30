@@ -11,12 +11,14 @@ class ResNet(ivy.Module):
     """
     Residual Neural Network (ResNet) architecture.
 
-    Args:
-        block (Type[Union[BasicBlock, Bottleneck]]): The block type used in the ResNet architecture.
-        layers (List[int]): List of integers specifying the number of blocks in each layer.
+    Args::
+        block (Type[Union[BasicBlock, Bottleneck]]):
+            The block type used in the ResNet architecture.
+        layers: List of integers specifying the number of blocks in each layer.
         num_classes (int): Number of output classes. Defaults to 1000.
         base_width (int): The base width of the ResNet. Defaults to 64.
-        replace_stride_with_dilation (Optional[List[bool]]): List indicating whether to replace stride with dilation.
+        replace_stride_with_dilation (Optional[List[bool]]):
+            List indicating whether to replace stride with dilation.
         v (ivy.Container): Unused parameter. Can be ignored.
 
     """

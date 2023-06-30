@@ -28,11 +28,11 @@ class BasicBlock(ivy.Module):
     """
     Basic block used in the ResNet architecture.
 
-    Args:
+    Args::
         inplanes (int): Number of input channels.
         planes (int): Number of output channels.
         stride (int): Stride value for the block. Defaults to 1.
-        downsample (Optional[ivy.Module]): Downsample module for the block. Defaults to None.
+        downsample (Optional[ivy.Module]): Downsample module for the block.
         base_width (int): The base width of the block. Defaults to 64.
         dilation (int): Dilation rate of the block. Defaults to 1.
 
@@ -72,7 +72,6 @@ class BasicBlock(ivy.Module):
 
     def _forward(self, x):
         """Forward pass method for the module."""
-
         identity = x
 
         out = self.conv1(x)
@@ -95,11 +94,11 @@ class Bottleneck(ivy.Module):
     """
     Bottleneck block used in the ResNet architecture.
 
-    Args:
+    Args::
         inplanes (int): Number of input channels.
         planes (int): Number of output channels.
         stride (int): Stride value for the block. Defaults to 1.
-        downsample (Optional[ivy.Module]): Downsample module for the block. Defaults to None.
+        downsample (Optional[ivy.Module]): Downsample module for the block.
         base_width (int): The base width of the block. Defaults to 64.
         dilation (int): Dilation rate of the block. Defaults to 1.
 
@@ -137,7 +136,6 @@ class Bottleneck(ivy.Module):
 
     def _forward(self, x):
         """Forward pass method for the module."""
-
         identity = x
 
         out = self.conv1(x)
