@@ -15,7 +15,7 @@ def test_efficientnet_b0_img_classification(device, f, fw, batch_shape, load_wei
 
     # Load image
     img = helpers.load_and_preprocess_img(
-        os.path.join(this_dir, "..", "..", "images", "dog.jpg"), 256, 224
+        os.path.join(this_dir, "..", "..", "images", "cat.jpg"), 256, 224
     )
 
     # Create model
@@ -28,12 +28,10 @@ def test_efficientnet_b0_img_classification(device, f, fw, batch_shape, load_wei
     # Value test
     if load_weights:
         np_out = ivy.to_numpy(logits[0])
-        # todo: getting the max for now as the sequence
-        # often reversed due to close logits (even in native)
-        true_indices = np.array([258])
-        calc_indices = np.argsort(np_out)[-1:][::-1]
+        true_indices = np.array([282, 281, 285])
+        calc_indices = np.argsort(np_out)[-3:][::-1]
         assert np.array_equal(true_indices, calc_indices)
 
-        true_logits = np.array([9.095613])
+        true_logits = np.array([8.69796944, 7.64586592, 6.92855835])
         calc_logits = np.take(np_out, calc_indices)
         assert np.allclose(true_logits, calc_logits, rtol=1e-1)
