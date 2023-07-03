@@ -1,13 +1,13 @@
+from ivy_models.helpers import load_torch_weights
 import ivy
 import builtins
-from ivy_models.helpers import load_torch_weights
 
 class Fire(ivy.Module):
     def __init__(self, inplanes: int, squeeze_planes: int, expand1x1_planes: int, expand3x3_planes: int) -> None:
         self.inplanes = inplanes
-        self.squeeze = ivy.Conv2D(inplanes, squeeze_planes, [1, 1], 1, 1)
+        self.squeeze = ivy.Conv2D(inplanes, squeeze_planes, [1, 1], 1, 0)
         self.squeeze_activation = ivy.ReLU()
-        self.expand1x1 = ivy.Conv2D(squeeze_planes, expand1x1_planes, [1, 1], 1, 1)
+        self.expand1x1 = ivy.Conv2D(squeeze_planes, expand1x1_planes, [1, 1], 1, 0)
         self.expand1x1_activation = ivy.ReLU()
         self.expand3x3 = ivy.Conv2D(squeeze_planes, expand3x3_planes, [3, 3], 1, 1)
         self.expand3x3_activation = ivy.ReLU()
@@ -25,7 +25,7 @@ class SqueezeNet(ivy.Module):
         self.num_classes = num_classes
         if version == "1_0":
             self.features = ivy.Sequential(
-                ivy.Conv2D(3, 96, [7, 7], 2, 1),
+                ivy.Conv2D(3, 96, [7, 7], 2, 0),
                 ivy.ReLU(),
                 ivy.MaxPool2D(3, 2, 0),
                 Fire(96, 16, 64, 64),
@@ -41,7 +41,7 @@ class SqueezeNet(ivy.Module):
             )
         elif version == "1_1":
             self.features = ivy.Sequential(
-                ivy.Conv2D(3, 64, [3, 3], 2, 1),
+                ivy.Conv2D(3, 64, [3, 3], 2, 0),
                 ivy.ReLU(),
                 ivy.MaxPool2D(3, 2, 0),
                 Fire(64, 16, 64, 64),
@@ -59,7 +59,7 @@ class SqueezeNet(ivy.Module):
             raise ValueError(f"Unsupported SqueezeNet version {version}: 1_0 or 1_1 expected")
 
         # Final convolution is initialized differently from the rest
-        final_conv = ivy.Conv2D(512, self.num_classes, [1, 1], 1, 1)
+        final_conv = ivy.Conv2D(512, self.num_classes, [1, 1], 1, 0)
         self.classifier = ivy.Sequential(
             ivy.Dropout(prob=dropout), final_conv, ivy.ReLU(), ivy.AdaptiveAvgPool2d((1, 1))
         )
@@ -102,10 +102,10 @@ def squeezeNet(version: str = "1_0", num_classes: int = 1000, dropout: float = 0
 
     
 if __name__ == '__main__':
-    with open("/home/muhammad/open-source/ivy_orgnization/models/ivy_models/squeezenet/imagenet_classes.txt", "r") as f:
+    with open("/workspaces/models/ivy_models/squeezenet/imagenet_classes.txt", "r") as f:
         categories = [s.strip() for s in f.readlines()]
 
-    filename = "/home/muhammad/open-source/ivy_orgnization/models/images/cat.jpg"
+    filename = "/workspaces/models/images/cat.jpg"
 
     import torch
     from torchvision import transforms
@@ -135,10 +135,9 @@ if __name__ == '__main__':
     torch_img = preprocess(torch_img)
     torch_img = torch.unsqueeze(torch_img, 0)
 
-    img = torch_img.numpy()
+    img = img = torch_img.permute((0, 2, 3, 1)).detach().numpy()
 
 
-    import ivy
     ivy.set_backend("torch")
 
     squeezenet = squeezeNet()
