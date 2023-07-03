@@ -5,18 +5,18 @@ import builtins
 class Fire(ivy.Module):
     def __init__(self, inplanes: int, squeeze_planes: int, expand1x1_planes: int, expand3x3_planes: int) -> None:
         self.inplanes = inplanes
-        self.squeeze = ivy.Conv2D(inplanes, squeeze_planes, [1, 1], 1, 0)
+        self.squeeze = ivy.Conv2D(inplanes, squeeze_planes, [1, 1], 1, 0, data_format="NCHW")
         self.squeeze_activation = ivy.ReLU()
-        self.expand1x1 = ivy.Conv2D(squeeze_planes, expand1x1_planes, [1, 1], 1, 0)
+        self.expand1x1 = ivy.Conv2D(squeeze_planes, expand1x1_planes, [1, 1], 1, 0, data_format="NCHW")
         self.expand1x1_activation = ivy.ReLU()
-        self.expand3x3 = ivy.Conv2D(squeeze_planes, expand3x3_planes, [3, 3], 1, 1)
+        self.expand3x3 = ivy.Conv2D(squeeze_planes, expand3x3_planes, [3, 3], 1, 1, data_format="NCHW")
         self.expand3x3_activation = ivy.ReLU()
         super().__init__()
 
     def _forward(self, x):
         x = self.squeeze_activation(self.squeeze(x))
         return ivy.concat(
-            [self.expand1x1_activation(self.expand1x1(x)), self.expand3x3_activation(self.expand3x3(x))], axis=3
+            [self.expand1x1_activation(self.expand1x1(x)), self.expand3x3_activation(self.expand3x3(x))], axis=1
         )
     
 
@@ -25,31 +25,31 @@ class SqueezeNet(ivy.Module):
         self.num_classes = num_classes
         if version == "1_0":
             self.features = ivy.Sequential(
-                ivy.Conv2D(3, 96, [7, 7], 2, 0),
+                ivy.Conv2D(3, 96, [7, 7], 2, 0, data_format="NCHW"),
                 ivy.ReLU(),
-                ivy.MaxPool2D(3, 2, 0),
+                ivy.MaxPool2D(3, 2, 0, data_format="NCHW"),
                 Fire(96, 16, 64, 64),
                 Fire(128, 16, 64, 64),
                 Fire(128, 32, 128, 128),
-                ivy.MaxPool2D(3, 2, 0),
+                ivy.MaxPool2D(3, 2, 0, data_format="NCHW"),
                 Fire(256, 32, 128, 128),
                 Fire(256, 48, 192, 192),
                 Fire(384, 48, 192, 192),
                 Fire(384, 64, 256, 256),
-                ivy.MaxPool2D(3, 2, 0),
+                ivy.MaxPool2D(3, 2, 0, data_format="NCHW"),
                 Fire(512, 64, 256, 256),
             )
         elif version == "1_1":
             self.features = ivy.Sequential(
-                ivy.Conv2D(3, 64, [3, 3], 2, 0),
+                ivy.Conv2D(3, 64, [3, 3], 2, 0, data_format="NCHW"),
                 ivy.ReLU(),
-                ivy.MaxPool2D(3, 2, 0),
+                ivy.MaxPool2D(3, 2, 0, data_format="NCHW"),
                 Fire(64, 16, 64, 64),
                 Fire(128, 16, 64, 64),
-                ivy.MaxPool2D(3, 2, 0),
+                ivy.MaxPool2D(3, 2, 0, data_format="NCHW"),
                 Fire(128, 32, 128, 128),
                 Fire(256, 32, 128, 128),
-                ivy.MaxPool2D(3, 2, 0),
+                ivy.MaxPool2D(3, 2, 0, data_format="NCHW"),
                 Fire(256, 48, 192, 192),
                 Fire(384, 48, 192, 192),
                 Fire(384, 64, 256, 256),
@@ -59,7 +59,7 @@ class SqueezeNet(ivy.Module):
             raise ValueError(f"Unsupported SqueezeNet version {version}: 1_0 or 1_1 expected")
 
         # Final convolution is initialized differently from the rest
-        final_conv = ivy.Conv2D(512, self.num_classes, [1, 1], 1, 0)
+        final_conv = ivy.Conv2D(512, self.num_classes, [1, 1], 1, 0, data_format="NCHW")
         self.classifier = ivy.Sequential(
             ivy.Dropout(prob=dropout), final_conv, ivy.ReLU(), ivy.AdaptiveAvgPool2d((1, 1))
         )
@@ -68,7 +68,7 @@ class SqueezeNet(ivy.Module):
     def _forward(self, x):
         x = self.features(x)
         x = self.classifier(x)
-        return ivy.flatten(x, 1)
+        return ivy.flatten(x, start_dim=1)
     
 
 def _squeezenet_torch_weights_mapping(old_key, new_key):
@@ -76,7 +76,7 @@ def _squeezenet_torch_weights_mapping(old_key, new_key):
     if "weight" in old_key:
         new_mapping = {"key_chain": new_key, "pattern": "b c h w -> w h c b"}
     elif "bias" in old_key:
-        new_mapping = {"key_chain": new_key, "pattern": "h -> 1 1 1 h"}
+        new_mapping = {"key_chain": new_key, "pattern": "h -> 1 h 1 1"}
 
     return new_mapping
 
