@@ -29,7 +29,8 @@ class BaseModel(ivy.Module):
                     # todo: check input shape with config var
                     model = ivy.transpile(
                         self,
-                        to="tensorflow",
+                        to="flax",
+                        # todo: fix the arg!
                         args=(ivy.random_uniform(shape=(1, 3, 224, 224)),),
                     )
                     super().__init__(hf_config, model)
@@ -37,7 +38,9 @@ class BaseModel(ivy.Module):
                 def forward(cls, *args, **kwargs):
                     return cls.model(*args, **kwargs)
 
-        else:
+        elif backend in ["torch", "tensorflow", "keras"]:
+            if backend == "keras":
+                backend = "tensorflow"
             HF_MODELS = {
                 "torch": PreTrainedModel,
                 "tensorflow": TFPreTrainedModel,
@@ -58,6 +61,13 @@ class BaseModel(ivy.Module):
 
                 def forward(cls, *args, **kwargs):
                     return cls.model(*args, **kwargs)
+
+        else:
+            raise ivy.exceptions.IvyException(
+                "backend: {} must be in [torch, tensorflow, keras, jax, flax]".format(
+                    backend
+                )
+            )
 
         return IvyHfModel()
 
