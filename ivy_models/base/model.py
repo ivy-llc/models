@@ -1,28 +1,39 @@
 import ivy
 import ivy_models
+import os
 from typing import Union, Optional
 
 
 class BaseModel(ivy.Module):
-
     def _get_hf_model(
         self,
         backend: str = "torch",
     ):
-        from transformers import PretrainedConfig, PreTrainedModel, TFPreTrainedModel, FlaxPreTrainedModel
+        from transformers import (
+            PretrainedConfig,
+            PreTrainedModel,
+            TFPreTrainedModel,
+            FlaxPreTrainedModel,
+        )
 
         hf_config = PretrainedConfig(**self._spec.__dict__)
 
         if backend in ["jax", "flax"]:
+
             class IvyHfModel(FlaxPreTrainedModel):
                 def __init__(cls):
                     ivy.set_backend("jax")
                     # todo: check input shape with config var
-                    model = ivy.transpile(self, to="tensorflow", args=(ivy.random_uniform(shape=(1, 3, 224, 224)),))
+                    model = ivy.transpile(
+                        self,
+                        to="tensorflow",
+                        args=(ivy.random_uniform(shape=(1, 3, 224, 224)),),
+                    )
                     super().__init__(hf_config, model)
 
                 def forward(cls, *args, **kwargs):
                     return cls.model(*args, **kwargs)
+
         else:
             HF_MODELS = {
                 "torch": PreTrainedModel,
@@ -34,14 +45,19 @@ class BaseModel(ivy.Module):
                     super().__init__(hf_config)
                     ivy.set_backend(backend)
                     # todo: check input shape with config var
-                    cls.model = ivy.transpile(self, to=backend, args=(ivy.random_uniform(shape=(1, 224, 224, hf_config.input_dim))))
+                    cls.model = ivy.transpile(
+                        self,
+                        to=backend,
+                        args=(
+                            ivy.random_uniform(shape=(1, 224, 224, hf_config.input_dim))
+                        ),
+                    )
 
                 def forward(cls, *args, **kwargs):
                     return cls.model(*args, **kwargs)
 
-        return IvyHfModel() 
+        return IvyHfModel()
 
-    
     def push_to_hf_hub(
         self,
         hf_repo_id: str,
@@ -68,4 +84,21 @@ class BaseModel(ivy.Module):
             safe_serialization=safe_serialization,
         )
         print("Successful!")
-        
+
+    def save_pretrained(self):
+        return
+
+    def from_pretrained(
+        self,
+        pretrained_model_name_or_path: Optional[Union[str, os.PathLike]],
+        *model_args,
+        config: Optional[Union[ivy_models.BaseSpec, str, os.PathLike]] = None,
+        cache_dir: Optional[Union[str, os.PathLike]] = None,
+        ignore_mismatched_sizes: bool = False,
+        force_download: bool = False,
+        local_files_only: bool = False,
+        token: Optional[Union[str, bool]] = None,
+        revision: str = "main",
+        **kwargs,
+    ):
+        return
