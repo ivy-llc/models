@@ -2,7 +2,7 @@ import os
 import ivy
 import pytest
 import numpy as np
-from ivy_models.googlenet import inception_v1
+from ivy_models.googlenet import inceptionNet_v1
 from ivy_models_tests import helpers
 
 import torch
