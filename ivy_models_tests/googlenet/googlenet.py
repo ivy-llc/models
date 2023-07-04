@@ -60,7 +60,7 @@ def test_inception_v1_img_classification(device, f, fw, batch_shape, load_weight
     )
 
     # Create model
-    model = inception_v1(pretrained=load_weights)
+    model = inceptionNet_v1(pretrained=load_weights)
 
     # Perform inference
     output = model(img)

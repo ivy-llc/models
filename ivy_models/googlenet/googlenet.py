@@ -251,3 +251,6 @@ def inceptionNet_v1(pretrained=True):
         custom_mapping=_inceptionNet_torch_weights_mapping,
     )
     return GoogLeNet(v=w_clean)
+
+def temp():
+    pass

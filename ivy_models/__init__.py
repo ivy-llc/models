@@ -3,13 +3,20 @@ from .base import *
 from . import helpers
 
 from . import transformers
+from . import resnet
+from . import vgg
+from . import googlenet
+from . import convnext
+from . import alexnet
+from . import helpers
+from . import unet
+from . import efficientnet
 from .transformers import perceiver_io
 from .transformers.perceiver_io import *
 
 from . import resnet
 from .resnet import *
-
-from . import vgg
+from .googlenet import *
 from .vgg import *
 
 from . import convnext
