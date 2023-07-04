@@ -60,17 +60,40 @@ class BaseSpec:
         if push_to_hub:
             self.push_to_hf_hub(**kwargs)
 
-    def from_pretrained(self):
+    def from_pretrained(
+        self,
+        pretrained_model_name_or_path: Union[str, os.PathLike],
+        cache_dir: Optional[Union[str, os.PathLike]] = None,
+        force_download: bool = False,
+        local_files_only: bool = False,
+        token: Optional[Union[str, bool]] = None,
+        revision: str = "main",
+        **kwargs,
+    ):
         pass
 
     def to_dict(self):
         return self.__dict__
 
     def from_dict(self, config_dict: dict):
+        if not isinstance(config_dict, dict):
+            raise ivy.exceptions.IvyException("`config_dict` must be a Python dict.")
+
         self.__init__(**config_dict)
 
     def to_json_file(self, save_directory: str = "."):
         self.save_pretrained(save_directory=save_directory)
 
-    def from_json_file(self):
-        pass
+    def from_json_file(self, json_file: str):
+        if not isinstance(json_file, str) or json_file[-5:] != ".json":
+            raise ivy.exceptions.IvyException(
+                "`json_file`: {} must be a string with `.json` extension.".format(json)
+            )
+
+        try:
+            with open(json_file) as f:
+                config_dict = json.loads(f)
+        except json.JSONDecodeError:
+            raise ivy.exceptions.IvyException("File is not a valid JSON document.")
+
+        self.__init__(**config_dict)
