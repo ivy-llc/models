@@ -45,7 +45,7 @@ def pytest_generate_tests(metafunc):
         devices = raw_value.split(",")
 
     # framework
-    raw_value = metafunc.config.getoption("--framework")
+    raw_value = metafunc.config.getoption("--backend")
     if raw_value == "all":
         f_strs = TEST_FRAMEWORKS.keys()
     else:
@@ -89,8 +89,6 @@ def pytest_generate_tests(metafunc):
 
 def pytest_addoption(parser):
     parser.addoption("--device", action="store", default="cpu")
-    parser.addoption(
-        "--framework", action="store", default="numpy,jax,tensorflow,torch"
-    )
+    parser.addoption("--backend", action="store", default="numpy,jax,tensorflow,torch")
     parser.addoption("--wrapped_mode", action="store", default="false")
     parser.addoption("--compile_graph", action="store", default="true")
