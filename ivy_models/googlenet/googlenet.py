@@ -9,15 +9,18 @@ class ConvBlock(ivy.Module):
     def __init__(self, in_chaivyels, out_chaivyels, kernel_size, stride, padding):
         super(ConvBlock, self).__init__()
 
-        self.conv = ivy.Conv2d(in_chaivyels, out_chaivyels, kernel_size, stride, padding)
-        self.bn = ivy.BatchNorm2d(out_chaivyels)
+        self.conv = ivy.Conv2D(
+            in_chaivyels, out_chaivyels, kernel_size, stride, padding
+        )
+        self.bn = ivy.BatchNorm2D(out_chaivyels)
         self.activation = ivy.ReLU()
 
-    def forward(self, x):
+    def _forward(self, x):
         x = self.conv(x)
         x = self.bn(x)
         x = self.activation(x)
         return x
+
 
 class Inception(ivy.Module):
     def __init__(
@@ -50,11 +53,11 @@ class Inception(ivy.Module):
         )
 
         self.block4 = ivy.Sequential(
-            ivy.MaxPool2d(3, stride=1, padding=1, ceil_mode=True),
+            ivy.MaxPool2D(3, 1, 1),  # ceil_mode=True
             ConvBlock(in_channels, pool_proj, kernel_size=1, stride=1, padding=0),
         )
 
-    def forward(self, x):
+    def _forward(self, x):
         # Note the different way this forward function
         # calculates the output.
         block1 = self.block1(x)
@@ -62,29 +65,30 @@ class Inception(ivy.Module):
         block3 = self.block3(x)
         block4 = self.block4(x)
 
-        return ivy.concat([block1, block2, block3, block4], 1)
+        return ivy.concat([block1, block2, block3, block4], axis=1)
+
 
 class Auxiliary(ivy.Module):
     def __init__(self, in_channels, num_classes):
         super(Auxiliary, self).__init__()
 
         self.pool = ivy.AdaptiveAvgPool2d((4, 4))
-        self.conv = ivy.Conv2d(in_channels, 128, kernel_size=1, stride=1, padding=0)
+        self.conv = ivy.Conv2D(in_channels, 128, filter_shape=1, strides=1, padding=0)
         self.activation = ivy.ReLU()
 
         self.fc1 = ivy.Linear(2048, 1024)
         self.dropout = ivy.Dropout(0.7)
         self.fc2 = ivy.Linear(1024, num_classes)
 
-    def forward(self, x):
+    def _forward(self, x):
         out = self.pool(x)
 
         out = self.conv(out)
         out = self.activation(out)
-        print('out shape is  ', out.shape)
+        print("out shape is  ", out.shape)
         # out shape is  torch.Size([2, 128, 4, 4])
 
-        out = ivy.flatten(out, 1)
+        out = ivy.flatten(1, out=out)
 
         out = self.fc1(out)
         out = self.activation(out)
@@ -94,16 +98,17 @@ class Auxiliary(ivy.Module):
 
         return out
 
+
 class GoogLeNet(ivy.Module):
     def __init__(self, num_classes=1000, v=None):
         super(GoogLeNet, self).__init__()
         if v is not None:
             self.v = v
         self.conv1 = ConvBlock(3, 64, kernel_size=7, stride=2, padding=3)
-        self.pool1 = ivy.MaxPool2d(3, stride=2, padding=0, ceil_mode=True)
+        self.pool1 = ivy.MaxPool2D(3, 2, 0)
         self.conv2 = ConvBlock(64, 64, kernel_size=1, stride=1, padding=0)
         self.conv3 = ConvBlock(64, 192, kernel_size=3, stride=1, padding=1)
-        self.pool3 = ivy.MaxPool2d(3, stride=2, padding=0, ceil_mode=True)
+        self.pool3 = ivy.MaxPool2D(3, 2, 0)
 
         self.inception3A = Inception(
             in_channels=192,
@@ -123,7 +128,7 @@ class GoogLeNet(ivy.Module):
             num5x5=96,
             pool_proj=64,
         )
-        self.pool4 = ivy.MaxPool2d(3, stride=2, padding=0, ceil_mode=True)
+        self.pool4 = ivy.MaxPool2D(3, 2, 0)
 
         self.inception4A = Inception(
             in_channels=480,
@@ -170,7 +175,7 @@ class GoogLeNet(ivy.Module):
             num5x5=128,
             pool_proj=128,
         )
-        self.pool5 = ivy.MaxPool2d(3, stride=2, padding=0, ceil_mode=True)
+        self.pool5 = ivy.MaxPool2D(3, 2, 0)
 
         self.inception5A = Inception(
             in_channels=832,
@@ -190,7 +195,7 @@ class GoogLeNet(ivy.Module):
             num5x5=128,
             pool_proj=128,
         )
-        self.pool6 = ivy.adaptive_avg_pool2d((1, 1))
+        self.pool6 = ivy.AdaptiveAvgPool2d((1, 1))
 
         self.dropout = ivy.Dropout(0.4)
         self.fc = ivy.Linear(1024, num_classes)
@@ -222,7 +227,7 @@ class GoogLeNet(ivy.Module):
         out = self.inception5A(out)
         out = self.inception5B(out)
         out = self.pool6(out)
-        out = ivy.flatten(out, 1)
+        out = ivy.flatten(1, out=out)
         out = self.dropout(out)
         out = self.fc(out)
 
@@ -230,12 +235,14 @@ class GoogLeNet(ivy.Module):
         # is weighted avg of these 3 out, aux1, and aux2
         return out, aux1, aux2
 
+
 def _inceptionNet_torch_weights_mapping(old_key, new_key):
     W_KEY = ["conv1/weight", "conv2/weight", "downsample/0/weight"]
     new_mapping = new_key
     if builtins.any([kc in old_key for kc in W_KEY]):
         new_mapping = {"key_chain": new_key, "pattern": "b c h w -> h w c b"}
     return new_mapping
+
 
 def inceptionNet_v1(pretrained=True):
     """InceptionNet-V1 model"""
@@ -251,4 +258,3 @@ def inceptionNet_v1(pretrained=True):
         custom_mapping=_inceptionNet_torch_weights_mapping,
     )
     return GoogLeNet(v=w_clean)
-
