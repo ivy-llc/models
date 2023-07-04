@@ -198,7 +198,7 @@ class GoogLeNet(ivy.Module):
         self.aux4A = Auxiliary(512, num_classes)
         self.aux4D = Auxiliary(528, num_classes)
 
-    def forward(self, x):
+    def _forward(self, x):
         out = self.conv1(x)
         out = self.pool1(out)
         out = self.conv2(out)
@@ -252,5 +252,3 @@ def inceptionNet_v1(pretrained=True):
     )
     return GoogLeNet(v=w_clean)
 
-def temp():
-    pass
