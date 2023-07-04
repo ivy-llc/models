@@ -39,22 +39,70 @@ class Inception(ivy.Module):
         # Note, within Inception the individual blocks are running parallely
         # NOT sequentially.
         self.block1 = ivy.Sequential(
-            ConvBlock(in_channels, num1x1, kernel_size=1, stride=1, padding=0)
+            ConvBlock(
+                in_channels,
+                num1x1,
+                kernel_size=[
+                    1,
+                ],
+                stride=1,
+                padding=0,
+            )
         )
 
         self.block2 = ivy.Sequential(
-            ConvBlock(in_channels, num3x3_reduce, kernel_size=1, stride=1, padding=0),
-            ConvBlock(num3x3_reduce, num3x3, kernel_size=3, stride=1, padding=1),
+            ConvBlock(
+                in_channels,
+                num3x3_reduce,
+                kernel_size=[
+                    1,
+                ],
+                stride=1,
+                padding=0,
+            ),
+            ConvBlock(
+                num3x3_reduce,
+                num3x3,
+                kernel_size=[
+                    3,
+                ],
+                stride=1,
+                padding=1,
+            ),
         )
 
         self.block3 = ivy.Sequential(
-            ConvBlock(in_channels, num5x5_reduce, kernel_size=1, stride=1, padding=0),
-            ConvBlock(num5x5_reduce, num5x5, kernel_size=5, stride=1, padding=2),
+            ConvBlock(
+                in_channels,
+                num5x5_reduce,
+                kernel_size=[
+                    1,
+                ],
+                stride=1,
+                padding=0,
+            ),
+            ConvBlock(
+                num5x5_reduce,
+                num5x5,
+                kernel_size=[
+                    5,
+                ],
+                stride=1,
+                padding=2,
+            ),
         )
 
         self.block4 = ivy.Sequential(
             ivy.MaxPool2D(3, 1, 1),  # ceil_mode=True
-            ConvBlock(in_channels, pool_proj, kernel_size=1, stride=1, padding=0),
+            ConvBlock(
+                in_channels,
+                pool_proj,
+                kernel_size=[
+                    1,
+                ],
+                stride=1,
+                padding=0,
+            ),
         )
 
     def _forward(self, x):
@@ -73,7 +121,9 @@ class Auxiliary(ivy.Module):
         super(Auxiliary, self).__init__()
 
         self.pool = ivy.AdaptiveAvgPool2d((4, 4))
-        self.conv = ivy.Conv2D(in_channels, 128, filter_shape=1, strides=1, padding=0)
+        self.conv = ivy.Conv2D(
+            in_channels, 128, filter_shape=(1,), strides=1, padding=0
+        )
         self.activation = ivy.ReLU()
 
         self.fc1 = ivy.Linear(2048, 1024)
@@ -104,10 +154,34 @@ class GoogLeNet(ivy.Module):
         super(GoogLeNet, self).__init__()
         if v is not None:
             self.v = v
-        self.conv1 = ConvBlock(3, 64, kernel_size=7, stride=2, padding=3)
+        self.conv1 = ConvBlock(
+            3,
+            64,
+            kernel_size=[
+                7,
+            ],
+            stride=2,
+            padding=3,
+        )
         self.pool1 = ivy.MaxPool2D(3, 2, 0)
-        self.conv2 = ConvBlock(64, 64, kernel_size=1, stride=1, padding=0)
-        self.conv3 = ConvBlock(64, 192, kernel_size=3, stride=1, padding=1)
+        self.conv2 = ConvBlock(
+            64,
+            64,
+            kernel_size=[
+                1,
+            ],
+            stride=1,
+            padding=0,
+        )
+        self.conv3 = ConvBlock(
+            64,
+            192,
+            kernel_size=[
+                3,
+            ],
+            stride=1,
+            padding=1,
+        )
         self.pool3 = ivy.MaxPool2D(3, 2, 0)
 
         self.inception3A = Inception(
