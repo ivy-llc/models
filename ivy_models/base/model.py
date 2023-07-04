@@ -5,6 +5,9 @@ from typing import Union, Optional
 
 
 class BaseModel(ivy.Module):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, *kwargs)
+
     def _get_hf_model(
         self,
         backend: str = "torch",
@@ -88,6 +91,7 @@ class BaseModel(ivy.Module):
     def save_pretrained(self):
         return
 
+    @classmethod
     def from_pretrained(
         self,
         pretrained_model_name_or_path: Optional[Union[str, os.PathLike]],
