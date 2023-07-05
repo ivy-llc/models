@@ -3,6 +3,7 @@ from . import resnet
 from . import vgg
 from . import convnext
 from . import alexnet
+from . import clip
 from . import helpers
 from . import unet
 from . import efficientnet
@@ -16,3 +17,4 @@ from .unet import *
 from .alexnet import *
 from .efficientnet import *
 from .squeezenet import *
+from .clip import *

@@ -75,3 +75,39 @@ def load_jax_weights(
     ivy.previous_backend()
     w_clean = weights_raw.cont_restructure(mapping, keep_orig=False)
     return ivy.asarray(w_clean)
+
+
+def map_cont_weights(model_weights: ivy.Container, pretrained_weights: ivy.Container, mapping_table: dict, copy=False):
+    """
+    Maps pretrained_weights to model_weights.
+    Also apply an optional transformation function on 'pretrained_weights' before assigning the result to the coresponding key_chain in model_weights.
+    Parameters
+    ----------
+    model_weights
+            Ivy model weights
+    pretrained_weights
+            Pretrained torch weights to load in ivy models 
+    mapping_table
+            A dictionary mapping all the flatten keys of model_weights to a dictionnary with a 'context' key representing a key_chain to a tensor in pretrained_weights
+            and an optional 'func' key representing an optional function to apply to the pretrained weight before assigning the result to the ivy model. 
+            E.g. {'transformer/submodules/v0/attn/to_q/w': {'context':'transformer/0/attn/in_pro_weights', 'func': lambda x: x[:x.shape[0]//3},}
+    """
+    if copy:
+        model_weights = model_weights.cont_deep_copy()
+
+    for key, val in mapping_table.items():
+        temp_weight = pretrained_weights[val['context']]
+        temp_val = val['func'](temp_weight) if 'func' in val else temp_weight
+        if list(temp_val.shape) != list(model_weights[key].shape):
+            raise RuntimeError(f"The shape of the new tensor at {key} is {temp_val.shape}, but expected {model_weights[key].shape}")
+        model_weights[key] = temp_val
+    return ivy.asarray(model_weights)
+
+
+def test_weights_closeness(model_weights: ivy.Module, pretrained_weights: ivy.Container, mapping_table: dict, atol=0.0001):
+    for key, val in mapping_table.items():
+        temp_weight = pretrained_weights[val['context']]
+        temp_val = val['func'](temp_weight) if 'func' in val else temp_weight
+
+        if not ivy.allclose(model_weights[key], temp_val, atol=atol).item():
+            raise RuntimeError(f"Closeness test failed for atol={atol}. Model weight's key {key} | Pretrained weight's key {val['context']}")
