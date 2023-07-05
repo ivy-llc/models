@@ -1,5 +1,5 @@
 import ivy
-import ivy_models
+from ivy_models.base.spec import BaseSpec
 import os
 from typing import Union, Optional
 
@@ -106,7 +106,7 @@ class BaseModel(ivy.Module):
         self,
         pretrained_model_name_or_path: Optional[Union[str, os.PathLike]],
         *model_args,
-        config: Optional[Union[ivy_models.BaseSpec, str, os.PathLike]] = None,
+        config: Optional[Union[BaseSpec, str, os.PathLike]] = None,
         cache_dir: Optional[Union[str, os.PathLike]] = None,
         ignore_mismatched_sizes: bool = False,
         force_download: bool = False,
