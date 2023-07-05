@@ -308,7 +308,8 @@ class CLIP(ivy.Module):
         self.ln_final = ivy.LayerNorm([transformer_width])
 
         self.text_projection = ivy.empty((transformer_width, embed_dim))
-        self.logit_scale = ivy.ones([]) * np.log(1 / 0.07)
+        # Casting to float32 because of an issue with avg_pool2d for jax backend when jax_enable_x64 is set to True
+        self.logit_scale = ivy.ones([]) * np.log(1 / 0.07).astype(ivy.float32)
 
         super().__init__(device=device, v=v)
     

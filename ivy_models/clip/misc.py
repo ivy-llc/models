@@ -41,8 +41,10 @@ def get_ivy_weights(model_weights: ivy.Container, state_dict: dict) -> CLIP:
     So some manual mapping was needed.
     """
     
+    ivy.set_backend("torch")
+
     mapping_table = {}
-    pretrained_weights = ivy.asarray(ivy.Container(state_dict).astype(float))
+    pretrained_weights = ivy.to_numpy(ivy.Container(state_dict).astype(ivy.float32))
 
     pretrained_key_chains = pretrained_weights.cont_sort_by_key().cont_all_key_chains()
     model_key_chains = model_weights.cont_all_key_chains()
@@ -135,7 +137,7 @@ def get_ivy_weights(model_weights: ivy.Container, state_dict: dict) -> CLIP:
     assert(len(mapping_table) == len(model_key_chains))
 
     # Load weights and do some minor chekings
+    ivy.previous_backend()
     clean_weights = ivy_models.helpers.map_cont_weights(model_weights, pretrained_weights, mapping_table)
-    # ivy_models.helpers.test_weights_closeness(clean_weights, pretrained_weights, mapping_table, atol=0.00002)
 
     return clean_weights

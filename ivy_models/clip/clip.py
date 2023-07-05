@@ -48,7 +48,7 @@ def _transform(n_px):
         _convert_image_to_rgb,
         ToTensor(),
         Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
-        lambda x: ivy.array(x),
+        lambda x: ivy.array(x.numpy()),
     ])
 
 
@@ -91,7 +91,7 @@ def load_clip(name: str):
     args = get_model_args(state_dict)
     model = CLIP(*args)
     clean_weights = get_ivy_weights(model.v.cont_deep_copy(), state_dict)
-    model.v = clean_weights
+    model = CLIP(*args, v=clean_weights)
     return model
 
 
@@ -142,4 +142,4 @@ def tokenize(texts: Union[str, List[str]], context_length: int = 77, truncate: b
                 raise RuntimeError(f"Input {texts[i]} is too long for context length {context_length}")
         result[i, :len(tokens)] = torch.tensor(tokens)
 
-    return ivy.array(result)
+    return ivy.array(result.numpy())
