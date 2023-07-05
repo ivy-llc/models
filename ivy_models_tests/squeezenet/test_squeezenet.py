@@ -3,7 +3,7 @@ import ivy
 import pytest
 import numpy as np
 
-from ivy_models import squeezenet
+from ivy_models.squeezenet import squeezenet
 from ivy_models_tests import helpers
 
 import jax
