@@ -1,11 +1,12 @@
 import ivy
 import ivy_models
-from .layers import ConvNeXtBlock, ConvNeXtLayerNorm
+from .layers import ConvNeXtBlock, ConvNeXtV2Block, ConvNeXtLayerNorm
 
 
 class ConvNeXt(ivy.Module):
     def __init__(
         self,
+        version=1,
         in_channels=3,
         num_classes=1000,
         depths=[3, 3, 9, 3],
@@ -24,7 +25,8 @@ class ConvNeXt(ivy.Module):
         self.drop_path_rate = drop_path_rate
         self.layer_scale_init_value = layer_scale_init_value
         self.head_init_scale = head_init_scale
-
+        assert version == 1 or version == 2
+        self.version = version
         super(ConvNeXt, self).__init__(device=device, v=v)
 
     def _build(self, *args, **kwargs):
@@ -57,6 +59,12 @@ class ConvNeXt(ivy.Module):
             stage = ivy.Sequential(
                 *[
                     ConvNeXtBlock(
+                        dim=self.dims[i],
+                        drop_path=dp_rates[cur + j],
+                        layer_scale_init_value=self.layer_scale_init_value,
+                    )
+                    if self.version == 1
+                    else ConvNeXtV2Block(
                         dim=self.dims[i],
                         drop_path=dp_rates[cur + j],
                         layer_scale_init_value=self.layer_scale_init_value,
@@ -95,6 +103,8 @@ def _convnext_torch_weights_mapping(old_key, new_key):
             new_mapping = {"key_chain": new_key, "pattern": "h -> 1 h 1 1"}
         elif "weight" in old_key:
             new_mapping = {"key_chain": new_key, "pattern": "a 1 c d -> c d a"}
+    elif "grn" in old_key:
+        new_mapping = {"key_chain": new_key, "pattern": "1 1 1 h -> h"}
     return new_mapping
 
 
@@ -112,7 +122,7 @@ def convnext(size: str, pretrained=True):
         raise Exception("Enter a valid model size: tiny/small/base/large")
 
     if not pretrained:
-        return ConvNeXt(depths=depths, dims=dims)
+        return ConvNeXt(version=1, depths=depths, dims=dims)
 
     weight_dl = {
         "tiny": "https://dl.fbaipublicfiles.com/convnext/convnext_tiny_1k_224_ema.pth",  # noqa
@@ -121,8 +131,37 @@ def convnext(size: str, pretrained=True):
         "large": "https://dl.fbaipublicfiles.com/convnext/convnext_large_1k_224_ema.pth",  # noqa
     }
 
-    reference_model = ConvNeXt(depths=depths, dims=dims)
+    reference_model = ConvNeXt(version=1, depths=depths, dims=dims)
     w_clean = ivy_models.helpers.load_torch_weights(
         weight_dl[size], reference_model, custom_mapping=_convnext_torch_weights_mapping
     )
-    return ConvNeXt(depths=depths, dims=dims, v=w_clean)
+    return ConvNeXt(version=1, depths=depths, dims=dims, v=w_clean)
+
+
+def convnextv2(size: str, pretrained=True):
+    """Loads a ConvNeXt with specified size, optionally pretrained."""
+    size_dict = {
+        "atto": ([2, 2, 6, 2], [40, 80, 160, 320]),
+        "tiny": ([3, 3, 9, 3], [96, 192, 384, 768]),
+        "small": ([3, 3, 27, 3], [96, 192, 384, 768]),
+        "base": ([3, 3, 27, 3], [128, 256, 512, 1024]),
+        "large": ([3, 3, 27, 3], [192, 384, 768, 1536]),
+    }
+    try:
+        depths, dims = size_dict[size]
+    except KeyError:
+        raise Exception("Enter a valid model size: tiny/small/base/large")
+
+    if not pretrained:
+        return ConvNeXt(version=2, depths=depths, dims=dims)
+
+    weight_dl = {
+        "atto": "https://dl.fbaipublicfiles.com/convnext/convnextv2/im1k/convnextv2_atto_1k_224_ema.pt",  # noqa
+        "base": "https://dl.fbaipublicfiles.com/convnext/convnextv2/pt_only/convnextv2_base_1k_224_fcmae.pt",  # noqa
+    }
+
+    reference_model = ConvNeXt(version=2, depths=depths, dims=dims)
+    w_clean = ivy_models.helpers.load_torch_weights(
+        weight_dl[size], reference_model, custom_mapping=_convnext_torch_weights_mapping
+    )
+    return ConvNeXt(version=2, depths=depths, dims=dims, v=w_clean)
