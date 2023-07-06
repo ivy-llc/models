@@ -13,7 +13,7 @@ jax.config.update("jax_enable_x64", False)
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_densenet_img_classification(device, f, fw, batch_shape, load_weights):
+def test_densenet121_img_classification(device, f, fw, batch_shape, load_weights):
     """Test DenseNet image classification."""
     num_classes = 1000
     this_dir = os.path.dirname(os.path.realpath(__file__))
