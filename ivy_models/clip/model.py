@@ -177,7 +177,7 @@ class QuickGELU(ivy.Module):
 
 class ResidualAttentionBlock(ivy.Module):
     def __init__(self, d_model: int, n_head: int, attn_mask: Union[ivy.Array, ivy.NativeArray] = None):
-        self.attn = ivy.MultiHeadAttention(d_model, num_heads=n_head, head_dim=(d_model//n_head))
+        self.attn = ivy.MultiHeadAttention(d_model, num_heads=n_head)
         self.ln_1 = ivy.LayerNorm([d_model])
         self.mlp = ivy.Sequential(ivy.Linear(d_model, d_model * 4), QuickGELU(), ivy.Linear(d_model * 4, d_model))
         self.ln_2 = ivy.LayerNorm([d_model])
@@ -188,7 +188,7 @@ class ResidualAttentionBlock(ivy.Module):
     def attention(self, x: Union[ivy.Array, ivy.NativeArray]):
         if self.attn_mask is not None:
             self.attn_mask = self.attn_mask.to_device(x.device)
-        return self.attn(x, mask=self.attn_mask)
+        return self.attn(x, attention_mask=self.attn_mask)
 
     def _forward(self, x: Union[ivy.Array, ivy.NativeArray]):
         x = x.permute_dims((1,0,2)) # LND -> NLD : ivy's MultiHeadAtention layer expects NLD

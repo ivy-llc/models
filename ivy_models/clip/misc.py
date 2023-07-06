@@ -115,14 +115,10 @@ def get_ivy_weights(model_weights: ivy.Container, state_dict: dict) -> CLIP:
             torch_root = key_chain[:key_chain.rfind('/attn/')+1]
 
             temp = {
-                f"{ivy_root}attn/to_kv/k/b": {'context': f"{torch_root}attn/in_proj_bias", 'func': lambda x: x[x.shape[0]//3:(x.shape[0]//3)*2]},
-                f"{ivy_root}attn/to_kv/k/w": {'context': f"{torch_root}attn/in_proj_weight", 'func': lambda x: x[x.shape[0]//3:(x.shape[0]//3)*2]},
-                f"{ivy_root}attn/to_kv/v/b": {'context': f"{torch_root}attn/in_proj_bias", 'func': lambda x: x[-x.shape[0]//3:]},
-                f"{ivy_root}attn/to_kv/v/w": {'context': f"{torch_root}attn/in_proj_weight", 'func': lambda x: x[-x.shape[0]//3:]},
-                f"{ivy_root}attn/to_out/submodules/v0/b": {'context': f"{torch_root}attn/out_proj/bias"},
-                f"{ivy_root}attn/to_out/submodules/v0/w": {'context': f"{torch_root}attn/out_proj/weight"},
-                f"{ivy_root}attn/to_q/b": {'context': f"{torch_root}attn/in_proj_bias", 'func': lambda x: x[:x.shape[0]//3]},
-                f"{ivy_root}attn/to_q/w": {'context': f"{torch_root}attn/in_proj_weight", 'func': lambda x: x[:x.shape[0]//3]},
+                f"{ivy_root}attn/out_proj_weights" : {'context': f"{torch_root}attn/out_proj/weight"},
+                f"{ivy_root}attn/out_proj_bias" : {'context': f"{torch_root}attn/out_proj/bias"},
+                f"{ivy_root}attn/in_proj_weights" : {'context': f"{torch_root}attn/in_proj_weight"},
+                f"{ivy_root}attn/in_proj_bias" : {'context': f"{torch_root}attn/in_proj_bias"},
                 f"{ivy_root}ln_1/bias": {'context': f"{torch_root}ln_1/bias"},
                 f"{ivy_root}ln_1/weight": {'context': f"{torch_root}ln_1/weight"},
                 f"{ivy_root}ln_2/bias": {'context': f"{torch_root}ln_2/bias"},

@@ -90,7 +90,7 @@ def load_clip(name: str):
 
     args = get_model_args(state_dict)
     model = CLIP(*args)
-    clean_weights = get_ivy_weights(model.v.cont_deep_copy(), state_dict)
+    clean_weights = get_ivy_weights(model.v, state_dict)
     model = CLIP(*args, v=clean_weights)
     return model
 
