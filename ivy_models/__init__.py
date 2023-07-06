@@ -7,6 +7,7 @@ from . import helpers
 from . import unet
 from . import efficientnet
 from . import squeezenet
+from . import densenet
 from .transformers import perceiver_io
 from .transformers.perceiver_io import *
 from .resnet import *
@@ -16,3 +17,4 @@ from .unet import *
 from .alexnet import *
 from .efficientnet import *
 from .squeezenet import *
+from .densenet import *
