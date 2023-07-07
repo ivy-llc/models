@@ -139,13 +139,10 @@ def convnext(size: str, pretrained=True):
 
 
 def convnextv2(size: str, pretrained=True):
-    """Loads a ConvNeXt with specified size, optionally pretrained."""
+    """Loads a ConvNeXtV2 with specified size, optionally pretrained."""
     size_dict = {
         "atto": ([2, 2, 6, 2], [40, 80, 160, 320]),
-        "tiny": ([3, 3, 9, 3], [96, 192, 384, 768]),
-        "small": ([3, 3, 27, 3], [96, 192, 384, 768]),
         "base": ([3, 3, 27, 3], [128, 256, 512, 1024]),
-        "large": ([3, 3, 27, 3], [192, 384, 768, 1536]),
     }
     try:
         depths, dims = size_dict[size]
@@ -157,7 +154,7 @@ def convnextv2(size: str, pretrained=True):
 
     weight_dl = {
         "atto": "https://dl.fbaipublicfiles.com/convnext/convnextv2/im1k/convnextv2_atto_1k_224_ema.pt",  # noqa
-        "base": "https://dl.fbaipublicfiles.com/convnext/convnextv2/pt_only/convnextv2_base_1k_224_fcmae.pt",  # noqa
+        "base": "https://dl.fbaipublicfiles.com/convnext/convnextv2/im1k/convnextv2_base_1k_224_ema.pt",  # noqa
     }
 
     reference_model = ConvNeXt(version=2, depths=depths, dims=dims)
