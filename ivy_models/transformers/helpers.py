@@ -3,7 +3,9 @@ import ivy
 
 
 class PreNorm(ivy.Module):
-    def __init__(self, dim, fn, key_dim=None, value_dim=None, eps=1e-05, device=None, v=None):
+    def __init__(
+        self, dim, fn, key_dim=None, value_dim=None, eps=1e-05, device=None, v=None
+    ):
         self._fn = fn
         self._norm = ivy.LayerNorm([dim], eps=eps, device=device)
         self._norm_key = (
@@ -22,9 +24,9 @@ class PreNorm(ivy.Module):
         args = list(args)
         args[0] = self._norm(args[0])
         if ivy.exists(self._norm_key):
-            args[1]=self._norm_key(args[1])
+            args[1] = self._norm_key(args[1])
         if ivy.exists(self._norm_value):
-            args[2]=self._norm_value(args[2])
+            args[2] = self._norm_value(args[2])
         return self._fn(*args, **kwargs)
 
 

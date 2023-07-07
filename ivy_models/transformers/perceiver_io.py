@@ -251,7 +251,7 @@ class PerceiverIO(ivy.Module):
         # layers
         for layer_dict in self._layers:
             if "cross_att" in layer_dict:
-                x = layer_dict["cross_att"](x,data,data, attention_mask=mask) + x
+                x = layer_dict["cross_att"](x, data, data, attention_mask=mask) + x
             if "cross_fc" in layer_dict:
                 x = layer_dict["cross_fc"](x) + x
 
@@ -277,7 +277,7 @@ class PerceiverIO(ivy.Module):
 
         # cross attend from decoder queries to latents
 
-        latents = self._decoder_cross_attn(queries,x, x)
+        latents = self._decoder_cross_attn(queries, x, x)
 
         # optional decoder feedforward
 
