@@ -106,8 +106,6 @@ class Inception(ivy.Module):
         )
 
     def _forward(self, x):
-        # Note the different way this forward function
-        # calculates the output.
         block1 = self.block1(x)
         block2 = self.block2(x)
         block3 = self.block3(x)

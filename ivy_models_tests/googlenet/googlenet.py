@@ -65,27 +65,16 @@ def test_inception_v1_img_classification(device, f, fw, batch_shape, load_weight
     # Perform inference
     output = model(img)
 
-    # Cardinality test
-    # weights == specificity of the specific model
-    # (becoz arch of the model decided the no of trainable parameters in that model
-    # ie, weigths and biases.)
-
-    # probabs of all 1000 classes for each image in the batch, ie, it's a 2d array
     assert output.shape == tuple([ivy.to_scalar(batch_shape), num_classes])
 
     # Value test
     if load_weights:
         predicted_classes, predicted_logits = generate_gt_inference_for(img)
-        # 1) comparing the indices of 3 highest probabs having classes from gt and cal output arrays
-        # pick probab values for 1000 classes for the first image only from the batch of size (batch_shape)
         output = output[0]
-        # indicies for the 3 highest probab classes from unsorted array are [282, 285, 281] in gt_output
         true_indices = ivy.array(predicted_classes).sort()
-        # indicies for the 3 highest probab classes from unsorted array
         calc_indices = ivy.argsort(output, descending=True)[:3].sort()
         assert np.array_equal(true_indices, calc_indices)
 
-        # 2) calculating probab values for 3 classes from gt and calc output arrays
         true_logits = ivy.array(predicted_logits).sort()
         calc_logits = ivy.take_along_axis(output, calc_indices, 0)
         assert np.allclose(true_logits, calc_logits, rtol=0.5)
