@@ -51,7 +51,7 @@ class _DenseBlock(ivy.Module):
         growth_rate: int,
         drop_rate: float,
     ) -> None:
-        layers = []
+        self.layers = []
         for i in range(num_layers):
             layer = _DenseLayer(
                 num_input_features + i * growth_rate,
@@ -59,15 +59,18 @@ class _DenseBlock(ivy.Module):
                 bn_size=bn_size,
                 drop_rate=drop_rate,
             )
-            layers.append(("denselayer%d" % (i + 1), layer))
-        self.layer = ivy.Sequential(*layers)
+            self.layers.append(("denselayer%d" % (i + 1), layer))
+        # self.layer = ivy.Sequential(*layers)
 
         super().__init__()
 
 
     def _forward(self, init_features):
         features = [init_features]
-        return self.layer(features)
+        for name, layer in self.layers:
+            new_features = layer(features)
+            features.append(new_features)
+        return ivy.concat(features, 1)
     
 
 class _Transition(ivy.Sequential):
@@ -145,7 +148,7 @@ class DenseNet(ivy.Module):
 
     def _forward(self, x):
         features = self.features(x)
-        out = ivy.relu(features, )
+        out = ivy.relu(features)
         out = ivy.adaptive_avg_pool2d(out, (1, 1))
         out = ivy.flatten(out, 1)
         out = self.classifier(out)
@@ -199,7 +202,6 @@ def densenet161(
         )
     return densenet(48, (6, 12, 36, 24), 96, v=w_clean)
 
-ivy.add()
 def densenet169(
         v=None,
         pretrained=True      
@@ -235,5 +237,6 @@ def densenet201(
 
 if __name__ == "__main__":
     ivy.set_torch_backend()
-    model = DenseNet(growth_rate=32, block_config=(6, 12, 24, 16), num_init_features=64, bn_size=4, drop_rate=0, num_classes=1000)
+    # model = DenseNet(growth_rate=32, block_config=(6, 12, 24, 16), num_init_features=64, bn_size=4, drop_rate=0, num_classes=1000)
+    model = densenet121()
     print(model.v)
