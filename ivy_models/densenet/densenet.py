@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from typing import Tuple
+import builtins
 
 from ivy_models.helpers import load_torch_weights
 import ivy
@@ -67,7 +68,7 @@ class _DenseBlock(ivy.Module):
         super().__init__()
 
     def _build(self, *args, **kwargs):
-        self.layers = []
+        self.layers = OrderedDict()
         for i in range(self.num_layers):
             layer = _DenseLayer(
                 self.num_input_features + i * self.growth_rate,
@@ -75,7 +76,8 @@ class _DenseBlock(ivy.Module):
                 bn_size=self.bn_size,
                 drop_rate=self.drop_rate,
             )
-            self.layers.append(("denselayer%d" % (i + 1), layer))
+            self.layers["denselayer%d" % (i + 1)] = layer
+        
 
     def _forward(self, init_features):
         features = [init_features]
@@ -181,8 +183,15 @@ class DenseNet(ivy.Module):
 
 def _densenet_torch_weights_mapping(old_key, new_key):
     new_mapping = new_key
+
     if "features" in old_key:
-        if "conv0/weight" in old_key or "conv/1/weight" in old_key or "conv/2/weight" in old_key:
+        W_KEY = [
+            "conv0/weight",
+            "conv/1/weight",
+            "conv/2/weight",
+            "conv/weight"
+        ]
+        if builtins.any([kc in old_key for kc in W_KEY]) :
             new_mapping = {"key_chain": new_key, "pattern": "b c h w-> h w c b"}
     return new_mapping
 
@@ -262,6 +271,5 @@ def densenet201(
 
 if __name__ == "__main__":
     ivy.set_torch_backend()
-    # model = DenseNet(growth_rate=32, block_config=(6, 12, 24, 16), num_init_features=64, bn_size=4, drop_rate=0, num_classes=1000)
     model = densenet121()
     print(model.v)
