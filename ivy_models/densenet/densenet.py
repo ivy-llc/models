@@ -70,7 +70,7 @@ class _DenseBlock(ivy.Module):
         self.layers = []
         for i in range(self.num_layers):
             layer = _DenseLayer(
-                self.num_input_features + i * growth_rate,
+                self.num_input_features + i * self.growth_rate,
                 growth_rate=self.growth_rate,
                 bn_size=self.bn_size,
                 drop_rate=self.drop_rate,
@@ -82,7 +82,7 @@ class _DenseBlock(ivy.Module):
         for name, layer in self.layers:
             new_features = layer(features)
             features.append(new_features)
-        return ivy.concat(features, 1)
+        return ivy.concat(features, axis=1)
     
 
 class _Transition(ivy.Sequential):
