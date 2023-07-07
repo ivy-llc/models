@@ -9,19 +9,26 @@ class _DenseLayer(ivy.Module):
     def __init__(
         self, num_input_features: int, growth_rate: int, bn_size: int, drop_rate: float
     ) -> None:
-        self.norm1 = ivy.BatchNorm2D(num_input_features)
-        self.relu1 = ivy.ReLU()
-        self.conv1 = ivy.Conv2D(num_input_features, bn_size * growth_rate, [1, 1], 1, 0, with_bias=False, data_format="NCHW")
 
-        self.norm2 = ivy.BatchNorm2D(bn_size * growth_rate)
-        self.relu2 = ivy.ReLU()
-        self.conv2 = ivy.Conv2D(bn_size * growth_rate, growth_rate, [3, 3], 1, 1, with_bias=False, data_format="NCHW")
-
+        self.num_input_features = num_input_features
+        self.growth_rate = growth_rate
+        self.bn_size = bn_size
         self.drop_rate = float(drop_rate)
+
         super().__init__()
 
+    def _build(self, *args, **kwargs):
+
+        self.norm1 = ivy.BatchNorm2D(self.num_input_features)
+        self.relu1 = ivy.ReLU()
+        self.conv1 = ivy.Conv2D(self.num_input_features, self.bn_size * self.growth_rate, [1, 1], 1, 0, with_bias=False, data_format="NCHW")
+
+        self.norm2 = ivy.BatchNorm2D(self.bn_size * self.growth_rate)
+        self.relu2 = ivy.ReLU()
+        self.conv2 = ivy.Conv2D(self.bn_size * self.growth_rate, self.growth_rate, [3, 3], 1, 1, with_bias=False, data_format="NCHW")
+
     def bn_function(self, inputs):
-        concated_features = ivy.concat(inputs, 1)
+        concated_features = ivy.concat(inputs, axis=1)
         bottleneck_output = self.conv1(self.relu1(self.norm1(concated_features)))  # noqa: T484
         return bottleneck_output
 
@@ -51,19 +58,24 @@ class _DenseBlock(ivy.Module):
         growth_rate: int,
         drop_rate: float,
     ) -> None:
-        self.layers = []
-        for i in range(num_layers):
-            layer = _DenseLayer(
-                num_input_features + i * growth_rate,
-                growth_rate=growth_rate,
-                bn_size=bn_size,
-                drop_rate=drop_rate,
-            )
-            self.layers.append(("denselayer%d" % (i + 1), layer))
-        # self.layer = ivy.Sequential(*layers)
+        self.num_layers = num_layers
+        self.num_input_features = num_input_features
+        self.bn_size = bn_size
+        self.growth_rate = growth_rate
+        self.drop_rate = drop_rate
 
         super().__init__()
 
+    def _build(self, *args, **kwargs):
+        self.layers = []
+        for i in range(self.num_layers):
+            layer = _DenseLayer(
+                self.num_input_features + i * growth_rate,
+                growth_rate=self.growth_rate,
+                bn_size=self.bn_size,
+                drop_rate=self.drop_rate,
+            )
+            self.layers.append(("denselayer%d" % (i + 1), layer))
 
     def _forward(self, init_features):
         features = [init_features]
@@ -75,12 +87,17 @@ class _DenseBlock(ivy.Module):
 
 class _Transition(ivy.Sequential):
     def __init__(self, num_input_features: int, num_output_features: int) -> None:
-        super().__init__()
-        self.norm = ivy.BatchNorm2D(num_input_features)
-        self.relu = ivy.ReLU()
-        self.conv = ivy.Conv2D(num_input_features, num_output_features, [1, 1], 1, 0, with_bias=False, data_format="NCHW")
-        self.pool = ivy.AvgPool2D(2, 2, 0)
+        self.num_input_features = num_input_features
+        self.num_output_features = num_output_features
 
+        super().__init__()
+
+    def _build(self, *args, **kwargs):
+        self.norm = ivy.BatchNorm2D(self.num_input_features)
+        self.relu = ivy.ReLU()
+        self.conv = ivy.Conv2D(self.num_input_features, self.num_output_features, [1, 1], 1, 0, with_bias=False, data_format="NCHW")
+        self.pool = ivy.AvgPool2D(2, 2, 0)
+        
 
 class DenseNet(ivy.Module):
     r"""Densenet-BC model class, based on
@@ -108,30 +125,40 @@ class DenseNet(ivy.Module):
         v=None
     ) -> None:
 
+        self.growth_rate = growth_rate
+        self.block_config = block_config
+        self.num_init_features = num_init_features
+        self.bn_size = bn_size
+        self.drop_rate = drop_rate
+        self.num_classes = num_classes
+        
 
+        super().__init__(v=v)
+
+    def _build(self, *args, **kwargs):
         # First convolution
         layers = OrderedDict(
                 [
-                    ("conv0", ivy.Conv2D(3, num_init_features, [7, 7], 2, 3, with_bias=False, data_format="NCHW")),
-                    ("norm0", ivy.BatchNorm2D(num_init_features)),
+                    ("conv0", ivy.Conv2D(3, self.num_init_features, [7, 7], 2, 3, with_bias=False, data_format="NCHW")),
+                    ("norm0", ivy.BatchNorm2D(self.num_init_features)),
                     ("relu0", ivy.ReLU()),
                     ("pool0", ivy.MaxPool2D(3, 2, 1, data_format="NCHW")),
                 ]
             )
 
         # Each denseblock
-        num_features = num_init_features
-        for i, num_layers in enumerate(block_config):
+        num_features = self.num_init_features
+        for i, num_layers in enumerate(self.block_config):
             block = _DenseBlock(
                 num_layers=num_layers,
                 num_input_features=num_features,
-                bn_size=bn_size,
-                growth_rate=growth_rate,
-                drop_rate=drop_rate,
+                bn_size=self.bn_size,
+                growth_rate=self.growth_rate,
+                drop_rate=self.drop_rate,
             )
             layers["denseblock%d" % (i + 1)] = block
-            num_features = num_features + num_layers * growth_rate
-            if i != len(block_config) - 1:
+            num_features = num_features + num_layers * self.growth_rate
+            if i != len(self.block_config) - 1:
                 trans = _Transition(num_input_features=num_features, num_output_features=num_features // 2)
                 layers["transition%d" % (i + 1)] = trans
                 num_features = num_features // 2
@@ -142,15 +169,13 @@ class DenseNet(ivy.Module):
         self.features = ivy.Sequential(layers)
 
         # Linear layer
-        self.classifier = ivy.Linear(num_features, num_classes)
-
-        super().__init__(v=v)
+        self.classifier = ivy.Linear(num_features, self.num_classes)
 
     def _forward(self, x):
         features = self.features(x)
         out = ivy.relu(features)
         out = ivy.adaptive_avg_pool2d(out, (1, 1))
-        out = ivy.flatten(out, 1)
+        out = ivy.flatten(out, axis=1)
         out = self.classifier(out)
         return out
 
