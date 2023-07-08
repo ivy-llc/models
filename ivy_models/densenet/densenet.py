@@ -6,7 +6,7 @@ from ivy_models.helpers import load_torch_weights
 import ivy
 
 
-class _DenseLayer(ivy.Module):
+class DenseNet_DenseLayer(ivy.Module):
     def __init__(
         self, num_input_features: int, growth_rate: int, bn_size: int, drop_rate: float
     ) -> None:
@@ -49,7 +49,7 @@ class _DenseLayer(ivy.Module):
         return new_features
 
 
-class _DenseBlock(ivy.Module):
+class DenseNet_DenseBlock(ivy.Module):
 
     def __init__(
         self,
@@ -70,7 +70,7 @@ class _DenseBlock(ivy.Module):
     def _build(self, *args, **kwargs):
         self.layers = OrderedDict()
         for i in range(self.num_layers):
-            layer = _DenseLayer(
+            layer = DenseNet_DenseLayer(
                 self.num_input_features + i * self.growth_rate,
                 growth_rate=self.growth_rate,
                 bn_size=self.bn_size,
@@ -87,7 +87,7 @@ class _DenseBlock(ivy.Module):
         return ivy.concat(features, axis=1)
     
 
-class _Transition(ivy.Sequential):
+class DenseNet_Transition(ivy.Sequential):
     def __init__(self, num_input_features: int, num_output_features: int) -> None:
         self.num_input_features = num_input_features
         self.num_output_features = num_output_features
@@ -151,7 +151,7 @@ class DenseNet(ivy.Module):
         # Each denseblock
         num_features = self.num_init_features
         for i, num_layers in enumerate(self.block_config):
-            block = _DenseBlock(
+            block = DenseNet_DenseBlock(
                 num_layers=num_layers,
                 num_input_features=num_features,
                 bn_size=self.bn_size,
@@ -161,7 +161,7 @@ class DenseNet(ivy.Module):
             layers["denseblock%d" % (i + 1)] = block
             num_features = num_features + num_layers * self.growth_rate
             if i != len(self.block_config) - 1:
-                trans = _Transition(num_input_features=num_features, num_output_features=num_features // 2)
+                trans = DenseNet_Transition(num_input_features=num_features, num_output_features=num_features // 2)
                 layers["transition%d" % (i + 1)] = trans
                 num_features = num_features // 2
 
