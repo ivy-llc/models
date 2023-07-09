@@ -120,7 +120,7 @@ class Auxiliary(ivy.Module):
 
         self.pool = ivy.AdaptiveAvgPool2d((4, 4))
         self.conv = ivy.Conv2D(
-            in_channels, 128, filter_shape=(1,), strides=1, padding=0
+            in_channels, 128, (1,), 1, 0
         )
         self.activation = ivy.ReLU()
 
