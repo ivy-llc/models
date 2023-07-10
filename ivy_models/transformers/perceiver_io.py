@@ -115,10 +115,12 @@ class PerceiverIO(ivy.Module):
                 num_heads=self._spec.num_cross_att_heads,
                 head_dim=self._spec.cross_head_dim,
                 dropout_rate=self._spec.attn_dropout,
-                context_dim=input_dim,
+                key_dim=input_dim,
+                value_dim=input_dim,
                 device=self._spec.device,
             ),
-            context_dim=input_dim,
+            key_dim=input_dim,
+            value_dim=input_dim,
             eps=1e-5,
             device=self._spec.device,
         )
@@ -161,9 +163,11 @@ class PerceiverIO(ivy.Module):
                 self._spec.queries_dim,
                 num_heads=self._spec.num_cross_att_heads,
                 head_dim=self._spec.latent_dim,
-                context_dim=self._spec.latent_dim,
+                key_dim=self._spec.latent_dim,
+                value_dim=self._spec.latent_dim,
             ),
-            context_dim=self._spec.latent_dim,
+            key_dim=self._spec.latent_dim,
+            value_dim=self._spec.latent_dim,
             eps=1e-5,
         )
 
@@ -252,7 +256,7 @@ class PerceiverIO(ivy.Module):
         # layers
         for layer_dict in self._perceiver_encoder:
             if "cross_att" in layer_dict:
-                x = layer_dict["cross_att"](x, context=data, mask=mask) + x
+                x = layer_dict["cross_att"](x, data, data, attention_mask=mask) + x
             if "cross_fc" in layer_dict:
                 x = layer_dict["cross_fc"](x) + x
 
@@ -278,7 +282,7 @@ class PerceiverIO(ivy.Module):
 
         # cross attend from decoder queries to latents
 
-        latents = self._classification_decoder(queries, context=x)
+        latents = self._decoder_cross_attn(queries, x, x)
 
         # optional decoder feedforward
 
