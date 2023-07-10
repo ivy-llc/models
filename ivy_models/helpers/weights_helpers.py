@@ -8,8 +8,8 @@ def _prune_keys(raw, ref, raw_keys_to_prune=[], ref_keys_to_prune=[]):
     if raw_keys_to_prune:
         raw = raw.cont_prune_keys(raw_keys_to_prune)
     if ref_keys_to_prune:
+        pruned_ref.append(ref.cont_at_keys(ref_keys_to_prune))
         ref = ref.cont_prune_keys(ref_keys_to_prune)
-#             pruned_ref.append(ref.cont_at_keys(kc))
     return raw, ref, pruned_ref
 
 
@@ -62,9 +62,9 @@ def _rename_weights(raw, ref, rename_dict):
         ):
             mapping[old_key] = new_key
 
-        raw = raw.cont_prune_key_from_key_chains(absolute=raw_key)
-        ref = ref.cont_prune_key_from_key_chains(absolute=ref_key)
         renamed_ref.append(old_v.cont_restructure(mapping, keep_orig=False))
+        raw = raw.cont_prune_keys(raw_key)
+        ref = ref.cont_prune_keys(ref_key)
     return raw, ref, renamed_ref
 
 
@@ -76,16 +76,14 @@ def load_jax_weights(
     ref_keys_to_prune=[],
     special_rename={},
 ):
-    import urllib.request
-    import os
     import pickle
 
     ivy.set_backend("jax")
     # todo: refactor this into a url load helper
-    urllib.request.urlretrieve(url, filename="jax_weights.pystate")
+    # urllib.request.urlretrieve(url, filename="jax_weights.pystate")
     with open("jax_weights.pystate", "rb") as f:
         weights = pickle.loads(f.read())
-    os.remove("jax_weights.pystate")
+    # os.remove("jax_weights.pystate")
 
     try:
         weights = {**weights["params"], **weights["state"]}
@@ -93,7 +91,11 @@ def load_jax_weights(
         pass
 
     weights_raw = ivy.to_numpy(ivy.Container(weights))
+    # print(ivy.asarray(ivy.Container(weights)))
+    # return
     weights_ref = ref_model.v
+    # print(weights_ref)
+    # return
     weights_raw, weights_ref, pruned_ref = _prune_keys(
         weights_raw, weights_ref, raw_keys_to_prune, ref_keys_to_prune
     )
@@ -105,6 +107,7 @@ def load_jax_weights(
     mapping = _map_weights(weights_raw, weights_ref, custom_mapping=custom_mapping)
 
     ivy.previous_backend()
+    print(mapping)
     w_clean = weights_raw.cont_restructure(mapping, keep_orig=False)
 
     if special_rename:

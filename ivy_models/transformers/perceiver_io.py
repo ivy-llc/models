@@ -8,7 +8,6 @@ import numpy as np
 from ivy_models.transformers.helpers import (
     PreNorm,
     FeedForward,
-    _perceiver_jax_weights_mapping,
 )
 
 
@@ -308,12 +307,13 @@ def perceiver_io_img_classification(spec, pretrained=True):
         return PerceiverIO(spec)
 
     reference_model = PerceiverIO(spec)
-    url = "https://storage.googleapis.com/perceiver_io/imagenet_conv_preprocessing.pystate"  # noqa
+    url = "https://storage.googleapis.com/perceiver_io/imagenet_learned_position_encoding.pystate"  # noqa
     w_clean = ivy_models.helpers.load_jax_weights(
         url,
         reference_model,
-        custom_mapping=_perceiver_jax_weights_mapping,
-        raw_keys_to_prune=["image_preprocessor"],
+        # custom_mapping=_perceiver_jax_weights_mapping,
+        # raw_keys_to_prune=["image_preprocessor"],
         ref_keys_to_prune=["cross_fc"],
+        special_rename={"mlp": "net", "linear_3": "to_out"},
     )
     return PerceiverIO(spec, v=w_clean)

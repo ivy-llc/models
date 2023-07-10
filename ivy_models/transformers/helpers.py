@@ -14,17 +14,6 @@ class PreNorm(ivy.Module):
             else None
         )
         ivy.Module.__init__(self, v=v, device=device)
-        # if self.v.cont_has_key_chain("attention/to_q/b"):
-        #     self.v = self.v.cont_restructure(
-        #         {
-        #             "attention/to_q/b": "attention/linear/b",
-        #             "attention/to_q/w": "attention/linear/w",
-        #         }
-        #     )
-        # elif self.v.cont_has_key_chain("attention/mlp/submodules/v0/b"):
-        #     self.v = self.v.cont_restructure(
-        #         {"norm/bias": "a_norm/bias", "norm/weight": "a_norm/weight"}
-        #     )
 
     def _forward(self, x, **kwargs):
         x = self._norm(x)
