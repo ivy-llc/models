@@ -26,3 +26,6 @@ from .efficientnet import *
 
 from . import squeezenet
 from .squeezenet import *
+
+from . import densenet
+from .densenet import *
