@@ -2,6 +2,7 @@ from typing import Tuple, Union
 
 import numpy as np
 import ivy
+from ivy.stateful.initializers import Zeros, Ones
 
 from .layers import *
 from .misc import get_model_args, get_ivy_weights, load_clip_state_dict, tokenize, get_processors
@@ -27,51 +28,64 @@ class CLIP(ivy.Module):
                  v=None
                  ):
 
+        self.embed_dim = embed_dim
+        self.image_resolution = image_resolution
+        self.vision_layers = vision_layers
+        self.vision_width = vision_width
+        self.vision_patch_size = vision_patch_size
+
         self.context_length = context_length
-
-        if isinstance(vision_layers, (tuple, list)):
-            vision_heads = vision_width * 32 // 64
-            self.visual = ModifiedResNet(
-                layers=vision_layers,
-                output_dim=embed_dim,
-                heads=vision_heads,
-                input_resolution=image_resolution,
-                width=vision_width
-            )
-        else:
-            vision_heads = vision_width // 64
-            self.visual = VisionTransformer(
-                input_resolution=image_resolution,
-                patch_size=vision_patch_size,
-                width=vision_width,
-                layers=vision_layers,
-                heads=vision_heads,
-                output_dim=embed_dim
-            )
-
-        self.transformer = Transformer(
-            width=transformer_width,
-            layers=transformer_layers,
-            heads=transformer_heads,
-            attn_mask=self.build_attention_mask()
-        )
-
         self.vocab_size = vocab_size
-        self.token_embedding = Embedding(vocab_size, transformer_width)
-        self.positional_embedding = ivy.empty((self.context_length, transformer_width))
-        self.ln_final = ivy.LayerNorm([transformer_width])
+        self.transformer_width = transformer_width
+        self.transformer_heads = transformer_heads
+        self.transformer_layers = transformer_layers
 
-        self.text_projection = ivy.empty((transformer_width, embed_dim))
-        # Casting to float32 because of an issue with avg_pool2d for jax backend when jax_enable_x64 is set to True
-        self.logit_scale = ivy.ones([]) * np.log(1 / 0.07).astype(ivy.float32)
+        self._pos_embed_shape = (self.context_length, self.transformer_width)
+        self._pos_embed_init = Zeros()
+        self._text_proj_shape = (self.transformer_width, self.embed_dim)
+        self._text_proj_init = Zeros()
+        self._scale_init = Ones()
 
         super().__init__(device=device, v=v)
     
+    def _build(self, *args, **kwargs):
+        if isinstance(self.vision_layers, (tuple, list)):
+            vision_heads = self.vision_width * 32 // 64
+            self.visual = ModifiedResNet(
+                layers=self.vision_layers,
+                output_dim=self.embed_dim,
+                heads=vision_heads,
+                input_resolution=self.image_resolution,
+                width=self.vision_width
+            )
+        else:
+            vision_heads = self.vision_width // 64
+            self.visual = VisionTransformer(
+                input_resolution=self.image_resolution,
+                patch_size=self.vision_patch_size,
+                width=self.vision_width,
+                layers=self.vision_layers,
+                heads=vision_heads,
+                output_dim=self.embed_dim
+            )
+
+        self.transformer = Transformer(
+            width=self.transformer_width,
+            layers=self.transformer_layers,
+            heads=self.transformer_heads,
+            attn_mask=self.build_attention_mask()
+        )
+
+        self.token_embedding = Embedding(self.vocab_size, self.transformer_width)
+        self.ln_final = ivy.LayerNorm([self.transformer_width])
+
+
     def _create_variables(self, *, device=None, dtype=None):
         v = {
-            'positional_embedding': self.positional_embedding,
-            'text_projection' : self.text_projection,
-            'logit_scale' : self.logit_scale,
+            'positional_embedding': self._pos_embed_init.create_variables(self._pos_embed_shape, device, dtype=dtype),
+            'text_projection' : self._text_proj_init.create_variables(self._text_proj_shape, device, dtype=dtype),
+            # Casting to float32 because of an issue with avg_pool2d for jax backend when jax_enable_x64 is set to True
+            'logit_scale' : self._scale_init.create_variables([], device, dtype=dtype) * np.log(1 / 0.07).astype(ivy.float32),
         }
         return v
 

@@ -1,6 +1,7 @@
 from typing import Union
 
 import ivy
+from ivy.stateful.initializers import RandomNormal
 
 
 class Identity(ivy.Module):
@@ -16,11 +17,11 @@ class Embedding(ivy.Module):
         self.vocab_size = vocab_size
         self.embed_dim = embed_dim
         self.max_norm = max_norm
-        self.weight = ivy.random_normal(shape=(self.vocab_size, self.embed_dim), device=device, dtype=dtype)
+        self._w_init = RandomNormal(0.0, 1.0, shape=(self.vocab_size, self.embed_dim))
         super(Embedding, self).__init__(device=device, dtype=dtype)
     
     def _create_variables(self, device=None, dtype=None):
-        v = {'weight': self.weight}
+        v = {'weight': self._w_init.create_variables(device=device, dtype=dtype)}
         return v
 
     def _forward(self, x):
@@ -31,32 +32,35 @@ class Bottleneck(ivy.Module):
     expansion = 4
 
     def __init__(self, inplanes, planes, stride=1):
+        self.inplanes = inplanes
+        self.planes = planes
+        self.stride = stride
+        super().__init__()
 
+    def _build(self, *args, **kwargs):
         # all conv layers have stride 1. an avgpool is performed after the second convolution when stride > 1
-        self.conv1 = ivy.Conv2D(inplanes, planes, [1,1], (1,1), 0, with_bias=False, data_format="NCHW")
-        self.bn1 = ivy.BatchNorm2D(planes, data_format="NCS")
+        self.conv1 = ivy.Conv2D(self.inplanes, self.planes, [1,1], (1,1), 0, with_bias=False, data_format="NCHW")
+        self.bn1 = ivy.BatchNorm2D(self.planes, data_format="NCS")
         self.relu1 = ivy.ReLU()
 
-        self.conv2 = ivy.Conv2D(planes, planes, [3, 3], (1, 1), 1, with_bias=False, data_format="NCHW")
-        self.bn2 = ivy.BatchNorm2D(planes, data_format="NCS")
+        self.conv2 = ivy.Conv2D(self.planes, self.planes, [3, 3], (1, 1), 1, with_bias=False, data_format="NCHW")
+        self.bn2 = ivy.BatchNorm2D(self.planes, data_format="NCS")
         self.relu2 = ivy.ReLU()
 
-        self.avgpool = ivy.AvgPool2D(stride, stride, 0, data_format="NCHW") if stride > 1 else Identity()
+        self.avgpool = ivy.AvgPool2D(self.stride, self.stride, 0, data_format="NCHW") if self.stride > 1 else Identity()
 
-        self.conv3 = ivy.Conv2D(planes, planes * self.expansion, [1, 1], (1, 1), 0, with_bias=False, data_format="NCHW")
-        self.bn3 = ivy.BatchNorm2D(planes * self.expansion, data_format="NCS")
+        self.conv3 = ivy.Conv2D(self.planes, self.planes * self.expansion, [1, 1], (1, 1), 0, with_bias=False, data_format="NCHW")
+        self.bn3 = ivy.BatchNorm2D(self.planes * self.expansion, data_format="NCS")
         self.relu3 = ivy.ReLU()
 
         self.downsample = None
-        self.stride = stride
+        self.stride = self.stride
 
-        if stride > 1 or inplanes != planes * Bottleneck.expansion:
+        if self.stride > 1 or self.inplanes != self.planes * Bottleneck.expansion:
             # downsampling layer is prepended with an avgpool, and the subsequent convolution has stride 1
-            self.downsample = ivy.Sequential(*[ivy.AvgPool2D(stride, stride, 0, data_format="NCHW"),
-                                            ivy.Conv2D(inplanes, planes * self.expansion, [1, 1], (1, 1), 0, with_bias=False, data_format="NCHW"),
-                                            ivy.BatchNorm2D(planes * self.expansion, data_format="NCS")])
-
-        super().__init__()
+            self.downsample = ivy.Sequential(*[ivy.AvgPool2D(self.stride, self.stride, 0, data_format="NCHW"),
+                                            ivy.Conv2D(self.inplanes, self.planes * self.expansion, [1, 1], (1, 1), 0, with_bias=False, data_format="NCHW"),
+                                            ivy.BatchNorm2D(self.planes * self.expansion, data_format="NCS")])
 
     def _forward(self, x: ivy.Array):
         identity = x
@@ -76,17 +80,23 @@ class Bottleneck(ivy.Module):
 
 class AttentionPool2d(ivy.Module):
     def __init__(self, spacial_dim: int, embed_dim: int, num_heads: int, output_dim: int = None):
-        self.positional_embedding = ivy.random_normal(shape=(spacial_dim ** 2 + 1, embed_dim)) / embed_dim ** 0.5
-        self.k_proj = ivy.Linear(embed_dim, embed_dim)
-        self.q_proj = ivy.Linear(embed_dim, embed_dim)
-        self.v_proj = ivy.Linear(embed_dim, embed_dim)
-        self.c_proj = ivy.Linear(embed_dim, output_dim or embed_dim)
+        self.embed_dim = embed_dim
         self.num_heads = num_heads
+        self.output_dim = output_dim
         self.dot_prod_scale = 1/ivy.sqrt(embed_dim//self.num_heads)
+        self._pos_embed_init = RandomNormal(0.0, 1.0, shape=(spacial_dim ** 2 + 1, embed_dim))
         super().__init__()
+    
+    def _build(self, *args, **kwargs):
+        self.k_proj = ivy.Linear(self.embed_dim, self.embed_dim)
+        self.q_proj = ivy.Linear(self.embed_dim, self.embed_dim)
+        self.v_proj = ivy.Linear(self.embed_dim, self.embed_dim)
+        self.c_proj = ivy.Linear(self.embed_dim, self.output_dim or self.embed_dim)
 
     def _create_variables(self, device=None, dtype=None):
-        v = {"positional_embedding": self.positional_embedding}
+        v = {
+            "positional_embedding": self._pos_embed_init.create_variables(device=device, dtype=dtype) / self.embed_dim ** 0.5
+            }
         return v
 
     def _forward(self, x):
@@ -114,31 +124,36 @@ class ModifiedResNet(ivy.Module):
     """
 
     def __init__(self, layers, output_dim, heads, input_resolution=224, width=64):
+        self.layers = width
         self.output_dim = output_dim
+        self.heads = heads
         self.input_resolution = input_resolution
+        self.width = width
+        super().__init__()
 
+    def _build(self, *args, **kwargs):
         # the 3-layer stem
-        self.conv1 = ivy.Conv2D(3, width // 2, [3, 3], (2,2), 1, with_bias=False, data_format="NCHW")
-        self.bn1 = ivy.BatchNorm2D(width // 2, data_format="NCS")
+        self.conv1 = ivy.Conv2D(3, self.width // 2, [3, 3], (2,2), 1, with_bias=False, data_format="NCHW")
+        self.bn1 = ivy.BatchNorm2D(self.width // 2, data_format="NCS")
         self.relu1 = ivy.ReLU()
-        self.conv2 = ivy.Conv2D(width // 2, width // 2, [3, 3], (1,1), 1, with_bias=False, data_format="NCHW")
-        self.bn2 = ivy.BatchNorm2D(width // 2, data_format="NCS")
+        self.conv2 = ivy.Conv2D(self.width // 2, self.width // 2, [3, 3], (1,1), 1, with_bias=False, data_format="NCHW")
+        self.bn2 = ivy.BatchNorm2D(self.width // 2, data_format="NCS")
         self.relu2 = ivy.ReLU()
-        self.conv3 = ivy.Conv2D(width // 2, width, [3, 3], (1,1), 1, with_bias=False, data_format="NCHW")
-        self.bn3 = ivy.BatchNorm2D(width, data_format="NCS")
+        self.conv3 = ivy.Conv2D(self.width // 2, self.width, [3, 3], (1,1), 1, with_bias=False, data_format="NCHW")
+        self.bn3 = ivy.BatchNorm2D(self.width, data_format="NCS")
         self.relu3 = ivy.ReLU()
         self.avgpool = ivy.AvgPool2D(2, 2, 0, data_format="NCHW")
 
         # residual layers
-        self._inplanes = width  # this is a *mutable* variable used during construction
-        self.layer1 = self._make_layer(width, layers[0])
-        self.layer2 = self._make_layer(width * 2, layers[1], stride=2)
-        self.layer3 = self._make_layer(width * 4, layers[2], stride=2)
-        self.layer4 = self._make_layer(width * 8, layers[3], stride=2)
+        self._inplanes = self.width  # this is a *mutable* variable used during construction
+        self.layer1 = self._make_layer(self.width, self.layers[0])
+        self.layer2 = self._make_layer(self.width * 2, self.layers[1], stride=2)
+        self.layer3 = self._make_layer(self.width * 4, self.layers[2], stride=2)
+        self.layer4 = self._make_layer(self.width * 8, self.layers[3], stride=2)
 
-        embed_dim = width * 32  # the ResNet feature dimension
-        self.attnpool = AttentionPool2d(input_resolution // 32, embed_dim, heads, output_dim)
-        super().__init__()
+        embed_dim = self.width * 32  # the ResNet feature dimension
+        self.attnpool = AttentionPool2d(self.input_resolution // 32, embed_dim, self.heads, self.output_dim)
+        
 
     def _make_layer(self, planes, blocks, stride=1):
         layers = [Bottleneck(self._inplanes, planes, stride)]
@@ -174,13 +189,17 @@ class QuickGELU(ivy.Module):
 
 class ResidualAttentionBlock(ivy.Module):
     def __init__(self, d_model: int, n_head: int, attn_mask: Union[ivy.Array, ivy.NativeArray] = None):
-        self.attn = ivy.MultiHeadAttention(d_model, num_heads=n_head)
-        self.ln_1 = ivy.LayerNorm([d_model])
-        self.mlp = ivy.Sequential(ivy.Linear(d_model, d_model * 4), QuickGELU(), ivy.Linear(d_model * 4, d_model))
-        self.ln_2 = ivy.LayerNorm([d_model])
+        self.d_model = d_model
+        self.n_head = n_head
         self.attn_mask = attn_mask
-
         super().__init__()
+    
+    def _build(self, *args, **kwargs):
+        self.attn = ivy.MultiHeadAttention(self.d_model, num_heads=self.n_head)
+        self.ln_1 = ivy.LayerNorm([self.d_model])
+        self.mlp = ivy.Sequential(ivy.Linear(self.d_model, self.d_model * 4), QuickGELU(), ivy.Linear(self.d_model * 4, self.d_model))
+        self.ln_2 = ivy.LayerNorm([self.d_model])
+
 
     def attention(self, x: Union[ivy.Array, ivy.NativeArray]):
         if self.attn_mask is not None:
@@ -199,8 +218,12 @@ class Transformer(ivy.Module):
     def __init__(self, width: int, layers: int, heads: int, attn_mask: Union[ivy.Array, ivy.NativeArray] = None):
         self.width = width
         self.layers = layers
-        self.resblocks = ivy.Sequential(*[ResidualAttentionBlock(width, heads, attn_mask) for _ in range(layers)])
+        self.heads = heads
+        self.attn_mask = attn_mask
         super().__init__()
+
+    def _build(self, *args, **kwargs):
+        self.resblocks = ivy.Sequential(*[ResidualAttentionBlock(self.width, self.heads, self.attn_mask) for _ in range(self.layers)])
 
     def _forward(self, x: Union[ivy.Array, ivy.NativeArray]):
         return self.resblocks(x)
@@ -209,25 +232,29 @@ class Transformer(ivy.Module):
 class VisionTransformer(ivy.Module):
     def __init__(self, input_resolution: int, patch_size: int, width: int, layers: int, heads: int, output_dim: int):
         self.input_resolution = input_resolution
+        self.patch_size = patch_size
+        self.width = width
+        self.layers = layers
+        self.heads = heads
         self.output_dim = output_dim
-        self.conv1 = ivy.Conv2D(3, width, [patch_size,]*2, (patch_size,)*2, 0, with_bias=False, data_format="NCHW")
 
-        scale = width ** -0.5
-        self.class_embedding = scale * ivy.random_normal(shape=width)
-        self.positional_embedding = scale * ivy.random_normal(shape=((input_resolution // patch_size) ** 2 + 1, width))
-        self.ln_pre = ivy.LayerNorm([width])
-
-        self.transformer = Transformer(width, layers, heads)
-
-        self.ln_post = ivy.LayerNorm([width])
-        self.proj = scale * ivy.random_normal(shape=(width, output_dim))
+        self._scale = width ** -0.5
+        self._class_embed_init = RandomNormal(0.0, 1.0, shape=width)
+        self._pos_embed_init = RandomNormal(0.0, 1.0, shape=((input_resolution // patch_size) ** 2 + 1, width))
+        self._proj_init = RandomNormal(0.0, 1.0, shape=(width, output_dim))
         super().__init__()
+    
+    def _build(self, *args, **kwargs):
+        self.conv1 = ivy.Conv2D(3, self.width, [self.patch_size,]*2, (self.patch_size,)*2, 0, with_bias=False, data_format="NCHW")
+        self.ln_pre = ivy.LayerNorm([self.width])
+        self.transformer = Transformer(self.width, self.layers, self.heads)
+        self.ln_post = ivy.LayerNorm([self.width])
     
     def _create_variables(self, device=None, dtype=None):
         v = {
-            'class_embedding': self.class_embedding,
-            'positional_embedding': self.positional_embedding,
-            'proj': self.proj,
+            'class_embedding': self._class_embed_init.create_variables(device=device, dtype=dtype) * self._scale,
+            'positional_embedding': self._pos_embed_init.create_variables(device=device, dtype=dtype) * self._scale,
+            'proj': self._proj_init.create_variables(device=device, dtype=dtype) * self._scale,
         }
         return v
 
