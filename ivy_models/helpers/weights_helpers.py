@@ -56,7 +56,6 @@ def _with_mha(raw, name="attention", delimeter="/"):
         merge = ivy.shape(lin_b)[0] == ivy.shape(lin3_b)[0]
 
         in_b = ivy.concat((lin_b, lin1_b, lin2_b))
-        # print("b", in_b.ndim)
         raw = raw.cont_set_at_key_chain(key_start + delimeter + "out_proj_bias", lin3_b)
         raw = raw.cont_set_at_key_chain(
             key_start + delimeter + "out_proj_weights", lin3_w
@@ -66,7 +65,6 @@ def _with_mha(raw, name="attention", delimeter="/"):
         )
         if merge:
             in_w = ivy.concat((lin_w, lin1_w, lin2_w), axis=1)
-            # print(in_w.ndim)
             raw = raw.cont_set_at_key_chain(
                 key_start + delimeter + "in_proj_weights", in_w._data
             )
@@ -120,7 +118,6 @@ def load_jax_weights(
     weights_raw = _with_mha(weights_raw)
     mapping = _map_weights(weights_raw, weights_ref, custom_mapping=custom_mapping)
 
-    # ivy.previous_backend()
     w_clean = weights_raw.cont_restructure(mapping, keep_orig=False)
 
     if ref_keys_to_prune:
@@ -150,7 +147,6 @@ def load_torch_weights(
     )
     mapping = _map_weights(weights_raw, weights_ref, custom_mapping=custom_mapping)
 
-    # ivy.previous_backend()
     w_clean = weights_raw.cont_restructure(mapping, keep_orig=False)
     if ref_keys_to_prune:
         w_clean = ivy.Container.cont_combine(w_clean, pruned_ref)

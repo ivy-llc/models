@@ -318,7 +318,6 @@ def perceiver_io_img_classification(spec, pretrained=True):
         url,
         reference_model,
         custom_mapping=_perceiver_jax_weights_mapping,
-        # ref_keys_to_prune=["cross_fc"],
         special_rename={"mlp": "net"},
     )
     return PerceiverIO(spec, v=w_clean)
