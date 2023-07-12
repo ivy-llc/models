@@ -8,6 +8,7 @@ import numpy as np
 from ivy_models.transformers.helpers import (
     PreNorm,
     FeedForward,
+    _perceiver_jax_weights_mapping,
 )
 
 
@@ -133,6 +134,7 @@ class PerceiverIO(ivy.Module):
                 dropout_rate=self._spec.attn_dropout,
                 device=self._spec.device,
             ),
+            key_dim=input_dim,
             eps=1e-5,
             device=self._spec.device,
         )
@@ -143,7 +145,7 @@ class PerceiverIO(ivy.Module):
                 dropout=self._spec.fc_dropout,
                 device=self._spec.device,
             ),
-            eps=1e-5,
+            eps=None,
             device=self._spec.device,
         )
 
@@ -175,7 +177,7 @@ class PerceiverIO(ivy.Module):
             PreNorm(
                 self._spec.queries_dim,
                 FeedForward(self._spec.queries_dim, device=self._spec.device),
-                eps=1e-5,
+                eps=None,
             )
             if self._spec.with_decoder
             else None
@@ -315,9 +317,8 @@ def perceiver_io_img_classification(spec, pretrained=True):
     w_clean = ivy_models.helpers.load_jax_weights(
         url,
         reference_model,
-        # custom_mapping=_perceiver_jax_weights_mapping,
-        # raw_keys_to_prune=["image_preprocessor"],
-        ref_keys_to_prune=["cross_fc"],
-        special_rename={"mlp": "net", "linear_3": "to_out"},
+        custom_mapping=_perceiver_jax_weights_mapping,
+        # ref_keys_to_prune=["cross_fc"],
+        special_rename={"mlp": "net"},
     )
     return PerceiverIO(spec, v=w_clean)

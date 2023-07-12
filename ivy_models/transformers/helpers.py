@@ -7,7 +7,9 @@ class PreNorm(ivy.Module):
         self, dim, fn, key_dim=None, value_dim=None, eps=1e-05, device=None, v=None
     ):
         self._attention = fn
-        self._norm = ivy.LayerNorm([dim], eps=eps, device=device)
+        self._norm = (
+            ivy.LayerNorm([dim], eps=eps, device=device) if ivy.exists(eps) else None
+        )
         self._norm_key = (
             ivy.LayerNorm([key_dim], eps=eps, device=device)
             if ivy.exists(key_dim)
@@ -45,5 +47,10 @@ class FeedForward(ivy.Module):
         return self._net(x)
 
 
-def _perceiver_jax_weights_mapping():
-    return
+def _perceiver_jax_weights_mapping(old_key, new_key):
+    new_mapping = new_key
+    if "proj_weights" in old_key:
+        new_mapping = {"key_chain": new_key, "pattern": "a b -> b a"}
+        # elif "weight" in old_key:
+        #     new_mapping = {"key_chain": new_key, "pattern": "b c h w-> h w c b"}
+    return new_mapping
