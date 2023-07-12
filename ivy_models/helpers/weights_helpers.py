@@ -61,12 +61,14 @@ def _with_mha(raw, name="attention", delimeter="/"):
         raw = raw.cont_set_at_key_chain(
             key_start + delimeter + "out_proj_weights", lin3_w
         )
-        raw = raw.cont_set_at_key_chain(key_start + delimeter + "in_proj_bias", in_b)
+        raw = raw.cont_set_at_key_chain(
+            key_start + delimeter + "in_proj_bias", in_b._data
+        )
         if merge:
             in_w = ivy.concat((lin_w, lin1_w, lin2_w), axis=1)
             # print(in_w.ndim)
             raw = raw.cont_set_at_key_chain(
-                key_start + delimeter + "in_proj_weights", in_w
+                key_start + delimeter + "in_proj_weights", in_w._data
             )
         else:
             raw = raw.cont_set_at_key_chain(
@@ -117,9 +119,8 @@ def load_jax_weights(
 
     weights_raw = _with_mha(weights_raw)
     mapping = _map_weights(weights_raw, weights_ref, custom_mapping=custom_mapping)
-    # [print(k, "-", v) for k, v in mapping.items()]
 
-    ivy.previous_backend()
+    # ivy.previous_backend()
     w_clean = weights_raw.cont_restructure(mapping, keep_orig=False)
 
     if ref_keys_to_prune:
@@ -127,8 +128,9 @@ def load_jax_weights(
     if special_rename:
         w_clean = ivy.Container.cont_combine(w_clean, *renamed_ref)
 
-    print(ivy.asarray(w_clean))
-    return ivy.asarray(w_clean)
+    w_clean = ivy.asarray(w_clean)
+    ivy.previous_backend()
+    return w_clean
 
 
 def load_torch_weights(
@@ -148,8 +150,11 @@ def load_torch_weights(
     )
     mapping = _map_weights(weights_raw, weights_ref, custom_mapping=custom_mapping)
 
-    ivy.previous_backend()
+    # ivy.previous_backend()
     w_clean = weights_raw.cont_restructure(mapping, keep_orig=False)
     if ref_keys_to_prune:
         w_clean = ivy.Container.cont_combine(w_clean, pruned_ref)
-    return ivy.asarray(w_clean)
+
+    w_clean = ivy.asarray(w_clean)
+    ivy.previous_backend()
+    return w_clean

@@ -121,7 +121,7 @@ class PerceiverIO(ivy.Module):
                 device=self._spec.device,
             ),
             key_dim=input_dim,
-            value_dim=input_dim,
+            value_dim=self._spec.latent_dim,
             eps=1e-5,
             device=self._spec.device,
         )
@@ -134,7 +134,7 @@ class PerceiverIO(ivy.Module):
                 dropout_rate=self._spec.attn_dropout,
                 device=self._spec.device,
             ),
-            key_dim=input_dim,
+            key_dim=self._spec.latent_dim,
             eps=1e-5,
             device=self._spec.device,
         )
