@@ -2,31 +2,71 @@ from typing import Tuple, Union
 
 import numpy as np
 import ivy
-from ivy.stateful.initializers import Zeros, Ones
+from ivy.stateful.initializers import Ones
 
 from .layers import *
-from .misc import get_model_args, get_ivy_weights, load_clip_state_dict, tokenize, get_processors
+import ivy_models
+from .misc import (
+    get_model_args,
+    get_clip_weights_url,
+    load_clip_state_dict,
+    tokenize,
+    get_processors,
+)
 
 __all__ = ["CLIP", "load_clip", "tokenize", "get_processors"]
 
+
 class CLIP(ivy.Module):
-    def __init__(self,
-                 embed_dim: int,
-                 # vision
-                 image_resolution: int,
-                 vision_layers: Union[Tuple[int, int, int, int], int],
-                 vision_width: int,
-                 vision_patch_size: int,
-                 # text
-                 context_length: int,
-                 vocab_size: int,
-                 transformer_width: int,
-                 transformer_heads: int,
-                 transformer_layers: int,
-                 #ivy
-                 device=None,
-                 v=None
-                 ):
+    def __init__(
+        self,
+        embed_dim: int,
+        # vision
+        image_resolution: int,
+        vision_layers: Union[Tuple[int, int, int, int], int],
+        vision_width: int,
+        vision_patch_size: int,
+        # text
+        context_length: int,
+        vocab_size: int,
+        transformer_width: int,
+        transformer_heads: int,
+        transformer_layers: int,
+        # ivy
+        device=None,
+        v=None,
+    ):
+        """
+        An ivy implementation of the CLIP model in fp32.
+        The image encoders from the original implementation can be one of the following
+        - Modified resnet variants (RN50, RN101, RN50x4, RN50x16, RNx64)
+        - ViT variants: (ViT-B/32, ViT-B/16, ViT-L/14, ViT-l/14@336px)
+
+        Parameters
+        ----------
+        embed_dim :
+            Feature dimension that the text and image encoders will be projected to.
+        image_resolution :
+            Input image's resolution expected by the image encoder. (e.g. for 'RN101' it's 224)
+        vision layers :
+            For the ViT image encoders it's an integer that represents the number of residual attention block.
+            For the modified Resnets it's a tuple of four integers that represent the number of residual block in each of the four residual layers.
+        vision_width :
+            For the Resnets it's the number of channels in the first residual layer. For the ViT it's the transformer's feature dimension.
+            (.i.e. In both cases the final visual features are projected to embed_dim.)
+        vision_patch_size:
+            The patch size of the ViT encoder. Not application to the Resnets.
+        context_length :
+            The context length of the text encoder
+        vocab_size :
+            The size of the vocabulary. Used in the embedding layer.
+        transformer_width :
+            The feature dimension of the text encoder. (e.i. It's later projected to embed_dim)
+        transformer_heads :
+            Number of attention head per residual attention block for the text encoder.
+        transformer_layers :
+            Number of residual attention block in the text encoder.
+        """
 
         self.embed_dim = embed_dim
         self.image_resolution = image_resolution
@@ -41,13 +81,11 @@ class CLIP(ivy.Module):
         self.transformer_layers = transformer_layers
 
         self._pos_embed_shape = (self.context_length, self.transformer_width)
-        self._pos_embed_init = Zeros()
         self._text_proj_shape = (self.transformer_width, self.embed_dim)
-        self._text_proj_init = Zeros()
         self._scale_init = Ones()
 
         super().__init__(device=device, v=v)
-    
+
     def _build(self, *args, **kwargs):
         if isinstance(self.vision_layers, (tuple, list)):
             vision_heads = self.vision_width * 32 // 64
@@ -56,7 +94,7 @@ class CLIP(ivy.Module):
                 output_dim=self.embed_dim,
                 heads=vision_heads,
                 input_resolution=self.image_resolution,
-                width=self.vision_width
+                width=self.vision_width,
             )
         else:
             vision_heads = self.vision_width // 64
@@ -66,26 +104,30 @@ class CLIP(ivy.Module):
                 width=self.vision_width,
                 layers=self.vision_layers,
                 heads=vision_heads,
-                output_dim=self.embed_dim
+                output_dim=self.embed_dim,
             )
 
         self.transformer = Transformer(
             width=self.transformer_width,
             layers=self.transformer_layers,
             heads=self.transformer_heads,
-            attn_mask=self.build_attention_mask()
+            attn_mask=self.build_attention_mask(),
         )
 
         self.token_embedding = Embedding(self.vocab_size, self.transformer_width)
         self.ln_final = ivy.LayerNorm([self.transformer_width])
 
-
     def _create_variables(self, *, device=None, dtype=None):
         v = {
-            'positional_embedding': self._pos_embed_init.create_variables(self._pos_embed_shape, device, dtype=dtype),
-            'text_projection' : self._text_proj_init.create_variables(self._text_proj_shape, device, dtype=dtype),
+            "positional_embedding": ivy.empty(
+                self._pos_embed_shape, dtype=dtype, device=device
+            ),
+            "text_projection": ivy.empty(
+                self._text_proj_shape, dtype=dtype, device=device
+            ),
             # Casting to float32 because of an issue with avg_pool2d for jax backend when jax_enable_x64 is set to True
-            'logit_scale' : self._scale_init.create_variables([], device, dtype=dtype) * np.log(1 / 0.07).astype(ivy.float32),
+            "logit_scale": self._scale_init.create_variables([], device, dtype=dtype)
+            * np.log(1 / 0.07).astype(ivy.float32),
         }
         return v
 
@@ -118,12 +160,18 @@ class CLIP(ivy.Module):
 
         return x
 
-    def _forward(self, image: Union[ivy.Array, ivy.NativeArray], text: Union[ivy.Array, ivy.NativeArray]):
+    def _forward(
+        self,
+        image: Union[ivy.Array, ivy.NativeArray],
+        text: Union[ivy.Array, ivy.NativeArray],
+    ):
         image_features = self.encode_image(image)
         text_features = self.encode_text(text)
 
         # normalized features
-        image_features = image_features / image_features.vector_norm(axis=1, keepdims=True)
+        image_features = image_features / image_features.vector_norm(
+            axis=1, keepdims=True
+        )
         text_features = text_features / text_features.vector_norm(axis=1, keepdims=True)
 
         # cosine similarity as logits
@@ -135,25 +183,55 @@ class CLIP(ivy.Module):
         return logits_per_image, logits_per_text
 
 
+def _clip_torch_mapping(old_key, new_key):
+    new_mapping = new_key
+
+    if "conv" in old_key:
+        if "/weight" in old_key:
+            new_mapping = {"key_chain": new_key, "pattern": "o c h w -> h w c o "}
+    if "downsample" in old_key:
+        if "/0/weight" in old_key:
+            new_mapping = {"key_chain": new_key, "pattern": "o c h w -> h w c o "}
+
+    return new_mapping
+
+
 def load_clip(name: str, pretrained=True):
-    """Load a CLIP model
+    """
+    Load a CLIP model
 
     Parameters
     ----------
     name : str
-        A model name listed by `clip.available_models()`, or the path to a model checkpoint containing the state_dict
+        A model name listed in `clip.available_models()`.
+        One in this list ['RN50', 'RN101', 'RN50x4', 'RN50x16', 'RN50x64', 'ViT-B/32', 'ViT-B/16', 'ViT-L/14', 'ViT-L/14@336px']
+
     Returns
     -------
     model : ivy.Module
         The CLIP model
     """
-    state_dict = load_clip_state_dict(name)
+    url = get_clip_weights_url(name)
+    state_dict = load_clip_state_dict(url)
     args = get_model_args(state_dict)
     model = CLIP(*args)
 
     if not pretrained:
         return model
-    
-    clean_weights = get_ivy_weights(model.v, state_dict)
+
+    raw_keys_to_prune = [
+        "context_length",
+        "input_resolution",
+        "vocab_size",
+        "num_batches_tracked",
+    ]
+    clean_weights = ivy_models.helpers.load_torch_weights(
+        url,
+        model,
+        raw_keys_to_prune=raw_keys_to_prune,
+        custom_mapping=_clip_torch_mapping,
+        jit=True,
+        data_type=ivy.float32,
+    )
     model = CLIP(*args, v=clean_weights)
     return model
