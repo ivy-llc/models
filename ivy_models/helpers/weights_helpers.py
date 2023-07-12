@@ -118,16 +118,13 @@ def load_jax_weights(
     weights_raw = _with_mha(weights_raw)
     mapping = _map_weights(weights_raw, weights_ref, custom_mapping=custom_mapping)
 
+    ivy.previous_backend()
     w_clean = weights_raw.cont_restructure(mapping, keep_orig=False)
-
     if ref_keys_to_prune:
         w_clean = ivy.Container.cont_combine(w_clean, pruned_ref)
     if special_rename:
         w_clean = ivy.Container.cont_combine(w_clean, *renamed_ref)
-
-    ivy.previous_backend()
-    w_clean = ivy.asarray(w_clean)
-    return w_clean
+    return ivy.asarray(w_clean)
 
 
 def load_torch_weights(
@@ -147,10 +144,8 @@ def load_torch_weights(
     )
     mapping = _map_weights(weights_raw, weights_ref, custom_mapping=custom_mapping)
 
+    ivy.previous_backend()
     w_clean = weights_raw.cont_restructure(mapping, keep_orig=False)
     if ref_keys_to_prune:
         w_clean = ivy.Container.cont_combine(w_clean, pruned_ref)
-
-    ivy.previous_backend()
-    w_clean = ivy.asarray(w_clean)
-    return w_clean
+    return ivy.asarray(w_clean)
