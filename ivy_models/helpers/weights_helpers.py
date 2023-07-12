@@ -22,8 +22,6 @@ def _map_weights(raw, ref, custom_mapping=None):
         new_mapping = new_key
         if custom_mapping is not None:
             new_mapping = custom_mapping(old_key, new_key)
-            if new_mapping is None:
-                continue
         mapping[old_key] = new_mapping
     return mapping
 
