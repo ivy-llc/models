@@ -51,6 +51,6 @@ def _perceiver_jax_weights_mapping(old_key, new_key):
     new_mapping = new_key
     if "proj_weights" in old_key:
         new_mapping = {"key_chain": new_key, "pattern": "a b -> b a"}
-        # elif "weight" in old_key:
-        #     new_mapping = {"key_chain": new_key, "pattern": "b c h w-> h w c b"}
+    elif "decoder_logits/w" in old_key:
+        new_mapping = {"key_chain": new_key, "pattern": "a b -> b a"}
     return new_mapping

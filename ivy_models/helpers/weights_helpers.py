@@ -117,7 +117,7 @@ def load_jax_weights(
 
     weights_raw = _with_mha(weights_raw)
     mapping = _map_weights(weights_raw, weights_ref, custom_mapping=custom_mapping)
-    [print(k, "-", v) for k, v in mapping.items()]
+    # [print(k, "-", v) for k, v in mapping.items()]
 
     ivy.previous_backend()
     w_clean = weights_raw.cont_restructure(mapping, keep_orig=False)
@@ -127,7 +127,7 @@ def load_jax_weights(
     if special_rename:
         w_clean = ivy.Container.cont_combine(w_clean, *renamed_ref)
 
-    # print(ivy.asarray(w_clean))
+    print(ivy.asarray(w_clean))
     return ivy.asarray(w_clean)
 
 
