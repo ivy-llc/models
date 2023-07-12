@@ -125,8 +125,8 @@ def load_jax_weights(
     if special_rename:
         w_clean = ivy.Container.cont_combine(w_clean, *renamed_ref)
 
-    w_clean = ivy.asarray(w_clean)
     ivy.previous_backend()
+    w_clean = ivy.asarray(w_clean)
     return w_clean
 
 
@@ -151,6 +151,6 @@ def load_torch_weights(
     if ref_keys_to_prune:
         w_clean = ivy.Container.cont_combine(w_clean, pruned_ref)
 
-    w_clean = ivy.asarray(w_clean)
     ivy.previous_backend()
+    w_clean = ivy.asarray(w_clean)
     return w_clean
