@@ -2,12 +2,22 @@
 import builtins
 import ivy
 import ivy_models
-
+import numpy as np
 
 # Building the initial Convolutional Block
 class ConvBlock(ivy.Module):
     def __init__(self, in_chaivyels, out_chaivyels, kernel_size, stride, padding):
         super(ConvBlock, self).__init__()
+
+        # print(f"Sarvesh says in_chaivyels, out_chaivyels and kernel_size is: {in_chaivyels, out_chaivyels, kernel_size}")
+        # print(f"kernel_size shape: {ivy.shape(kernel_size)}")
+        # shape = (1, 3, 4, 5)
+        # kernel_size = np.random.random(shape) 
+
+        if len(ivy.shape(kernel_size)) == 1:
+            kernel_size = [kernel_size[0], kernel_size[0]]
+        # kernel_size = [1, 1]
+        # print(f"Sarvesh says in_chaivyels, out_chaivyels and kernel_size is: {in_chaivyels, out_chaivyels, kernel_size}")
 
         self.conv = ivy.Conv2D(
             in_chaivyels, out_chaivyels, kernel_size, stride, padding
@@ -111,7 +121,12 @@ class Inception(ivy.Module):
         block3 = self.block3(x)
         block4 = self.block4(x)
 
-        return ivy.concat([block1, block2, block3, block4], axis=1)
+        print(f"Sarvesh says shapes of [block1, block2, block3, block4] are: {ivy.shape(block1), ivy.shape(block2), ivy.shape(block3), ivy.shape(block4)}")
+        print(f"block1 : \n{ivy.shape(block1)}\n")
+        print(f"block2 : \n{ivy.shape(block2)}\n")
+        print(f"block3 : \n{ivy.shape(block3)}\n")
+        print(f"block4 : \n{ivy.shape(block4)}\n")
+        return ivy.concat([block1, block2, block3, block4], axis=3)
 
 
 class Auxiliary(ivy.Module):
@@ -120,8 +135,10 @@ class Auxiliary(ivy.Module):
 
         self.pool = ivy.AdaptiveAvgPool2d((4, 4))
         self.conv = ivy.Conv2D(
-            in_channels, 128, (1,), 1, 0
-        )
+            in_channels, 128, [1,1], 1, 0 # understand this convolution operation from scaler  
+        ) # no_ofchannels in input image, no_of_kernels, kernel_size, stride, padding
+        
+        # TODO: covn2d() func input me kya leta hai uska analogy/cvp
         self.activation = ivy.ReLU()
 
         self.fc1 = ivy.Linear(2048, 1024)
@@ -304,7 +321,7 @@ class GoogLeNet(ivy.Module):
         out = self.fc(out)
 
         # we need all 3 because loss func of inceptionNet
-        # is weighted avg of these 3 out, aux1, and aux2
+        # is weighted avg of these 3 (out, aux1, and aux2)
         return out, aux1, aux2
 
 

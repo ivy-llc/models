@@ -34,5 +34,8 @@ from .efficientnet import *
 from . import squeezenet
 from .squeezenet import *
 
-from . import densenet
-from .densenet import *
+from . import googlenet
+from .googlenet import *
+
+# from . import resnet
+# from .my_resnet import *
