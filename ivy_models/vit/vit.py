@@ -159,14 +159,14 @@ class MLP(ivy.Sequential):
         layers = []
         in_dim = in_channels
         for hidden_dim in hidden_channels[:-1]:
-            layers.append(ivy.Linear(in_dim, hidden_dim, bias=bias))
+            layers.append(ivy.Linear(in_dim, hidden_dim, with_bias=bias))
             if norm_layer is not None:
                 layers.append(norm_layer(hidden_dim))
             layers.append(activation_layer(**params))
             layers.append(ivy.Dropout(dropout, **params))
             in_dim = hidden_dim
 
-        layers.append(ivy.Linear(in_dim, hidden_channels[-1], bias=bias))
+        layers.append(ivy.Linear(in_dim, hidden_channels[-1], with_bias=bias))
         layers.append(ivy.Dropout(dropout, **params))
 
         super().__init__(*layers)
@@ -202,7 +202,7 @@ class EncoderBlock(ivy.Module):
 
         # Attention block
         self.ln_1 = norm_layer(hidden_dim)
-        self.self_attention = ivy.MultiHeadAttention(hidden_dim, num_heads=num_heads, dropout_rate=attention_dropout, batch_first=True)
+        self.self_attention = ivy.MultiHeadAttention(hidden_dim, num_heads=num_heads, dropout_rate=attention_dropout)
         self.dropout = ivy.Dropout(dropout)
 
         # MLP block
@@ -277,6 +277,7 @@ class VisionTransformer(ivy.Module):
         representation_size: Optional[int] = None,
         norm_layer: Callable[..., ivy.Module] = partial(ivy.LayerNorm, eps=1e-6),
         conv_stem_configs: Optional[List[ConvStemConfig]] = None,
+        v=None
     ):
         ivy.utils.assertions.check_true(image_size % patch_size == 0, "Input shape indivisible by patch size!")
         self.image_size = image_size
@@ -337,7 +338,7 @@ class VisionTransformer(ivy.Module):
             heads_layers["head"] = ivy.Linear(representation_size, num_classes)
 
         self.heads = ivy.Sequential(heads_layers)
-        super().__init__()
+        super().__init__(v=v)
 
 
     def _process_input(self, x):
@@ -380,6 +381,163 @@ class VisionTransformer(ivy.Module):
         return x
 
 
+def _vision_transformer(
+    patch_size: int,
+    num_layers: int,
+    num_heads: int,
+    hidden_dim: int,
+    mlp_dim: int,
+    v=None
+) -> VisionTransformer:
+    
+    model = VisionTransformer(
+        image_size=224,
+        patch_size=patch_size,
+        num_layers=num_layers,
+        num_heads=num_heads,
+        hidden_dim=hidden_dim,
+        mlp_dim=mlp_dim,
+        v=v,
+    )
+
+    return model
+
+
+def vit_b_16(v=None, pretrained=True) -> VisionTransformer:
+    ref_model = _vision_transformer(
+        patch_size=16,
+        num_layers=12,
+        num_heads=12,
+        hidden_dim=768,
+        mlp_dim=3072
+    )
+    if pretrained:
+        url = 'https://download.pytorch.org/models/vit_b_16-c867db91.pth'
+        w_clean = load_torch_weights(
+            url,
+            ref_model,
+            raw_keys_to_prune=["num_batches_tracked"],
+            custom_mapping=None,
+        )
+        
+    return _vision_transformer(
+        patch_size=16,
+        num_layers=12,
+        num_heads=12,
+        hidden_dim=768,
+        mlp_dim=3072,
+        v=w_clean,
+    )
+
+def vit_b_32(v=None, pretrained=True) -> VisionTransformer:
+    ref_model = _vision_transformer(
+        patch_size=32,
+        num_layers=12,
+        num_heads=12,
+        hidden_dim=768,
+        mlp_dim=3072
+    )
+    if pretrained:
+        url = 'https://download.pytorch.org/models/vit_b_32-d86f8d99.pth'
+        w_clean = load_torch_weights(
+            url,
+            ref_model,
+            raw_keys_to_prune=["num_batches_tracked"],
+            custom_mapping=None,
+        )
+        
+    return _vision_transformer(
+        patch_size=32,
+        num_layers=12,
+        num_heads=12,
+        hidden_dim=768,
+        mlp_dim=3072,
+        v=w_clean,
+    )
+    
+
+def vit_l_16(v=None, pretrained=True) -> VisionTransformer:
+    ref_model = _vision_transformer(
+        patch_size=16,
+        num_layers=24,
+        num_heads=16,
+        hidden_dim=1024,
+        mlp_dim=4096
+    )
+    if pretrained:
+        url = 'https://download.pytorch.org/models/vit_l_16-852ce7e3.pth'
+        w_clean = load_torch_weights(
+            url,
+            ref_model,
+            raw_keys_to_prune=["num_batches_tracked"],
+            custom_mapping=None,
+        )
+        
+    return _vision_transformer(
+        patch_size=16,
+        num_layers=24,
+        num_heads=16,
+        hidden_dim=1024,
+        mlp_dim=4096,
+        v=w_clean,
+    )
+    
+
+def vit_l_32(v=None, pretrained=True) -> VisionTransformer:
+    ref_model = _vision_transformer(
+        patch_size=32,
+        num_layers=24,
+        num_heads=16,
+        hidden_dim=1024,
+        mlp_dim=4096
+    )
+    if pretrained:
+        url = 'https://download.pytorch.org/models/vit_l_32-c7638314.pth'
+        w_clean = load_torch_weights(
+            url,
+            ref_model,
+            raw_keys_to_prune=["num_batches_tracked"],
+            custom_mapping=None,
+        )
+        
+    return _vision_transformer(
+        patch_size=32,
+        num_layers=24,
+        num_heads=16,
+        hidden_dim=1024,
+        mlp_dim=4096,
+        v=w_clean,
+    )
+
+def vit_h_14(v=None, pretrained=True) -> VisionTransformer:
+    ref_model = _vision_transformer(
+        patch_size=14,
+        num_layers=12,
+        num_heads=14,
+        hidden_dim=768,
+        mlp_dim=3072
+    )
+    if pretrained:
+        url = 'https://download.pytorch.org/models/vit_h_14_swag-80465313.pth'
+        w_clean = load_torch_weights(
+            url,
+            ref_model,
+            raw_keys_to_prune=["num_batches_tracked"],
+            custom_mapping=None,
+        )
+        
+    return _vision_transformer(
+        patch_size=14,
+        num_layers=12,
+        num_heads=14,
+        hidden_dim=768,
+        mlp_dim=3072,
+        v=w_clean,
+    )
+
+
 if __name__ == '__main__':
     ivy.set_torch_backend()
-    model = VisionTransformer(image_size=224, patch_size=16, num_layers=12, num_heads=12,hidden_dim=768, mlp_dim=3072)
+    # model = VisionTransformer(image_size=224, patch_size=16, num_layers=12, num_heads=12,hidden_dim=768, mlp_dim=3072)
+    model = vit_b_16()
+    print(model.v)
