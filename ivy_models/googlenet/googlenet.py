@@ -6,23 +6,17 @@ import numpy as np
 
 # Building the initial Convolutional Block
 class ConvBlock(ivy.Module):
-    def __init__(self, in_chaivyels, out_chaivyels, kernel_size, stride, padding):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, padding):
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.padding = padding
         super(ConvBlock, self).__init__()
 
-        # print(f"Sarvesh says in_chaivyels, out_chaivyels and kernel_size is: {in_chaivyels, out_chaivyels, kernel_size}")
-        # print(f"kernel_size shape: {ivy.shape(kernel_size)}")
-        # shape = (1, 3, 4, 5)
-        # kernel_size = np.random.random(shape) 
-
-        if len(ivy.shape(kernel_size)) == 1:
-            kernel_size = [kernel_size[0], kernel_size[0]]
-        # kernel_size = [1, 1]
-        # print(f"Sarvesh says in_chaivyels, out_chaivyels and kernel_size is: {in_chaivyels, out_chaivyels, kernel_size}")
-
-        self.conv = ivy.Conv2D(
-            in_chaivyels, out_chaivyels, kernel_size, stride, padding
-        )
-        self.bn = ivy.BatchNorm2D(out_chaivyels)
+    def _build(self, *args, **kwargs):
+        self.conv = ivy.Conv2D(self.in_channels, self.out_channels, self.kernel_size, self.stride, self.padding, with_bias=False)
+        self.bn = ivy.BatchNorm2D(self.out_channels)
         self.activation = ivy.ReLU()
 
     def _forward(self, x):
@@ -30,7 +24,7 @@ class ConvBlock(ivy.Module):
         x = self.bn(x)
         x = self.activation(x)
         return x
-
+    
 
 class Inception(ivy.Module):
     def __init__(
@@ -43,254 +37,102 @@ class Inception(ivy.Module):
         num5x5,
         pool_proj,
     ):
+        self.in_channels = in_channels
+        self.num1x1 = num1x1
+        self.num3x3_reduce = num3x3_reduce
+        self.num3x3 = num3x3
+        self.num5x5_reduce = num5x5_reduce
+        self.num5x5 = num5x5
+        self.pool_proj = pool_proj
         super(Inception, self).__init__()
-
-        # Four output channel for each parallel block of network
-        # Note, within Inception the individual blocks are running parallely
-        # NOT sequentially.
-        self.block1 = ivy.Sequential(
-            ConvBlock(
-                in_channels,
-                num1x1,
-                kernel_size=[
-                    1,
-                ],
-                stride=1,
-                padding=0,
-            )
-        )
-
-        self.block2 = ivy.Sequential(
-            ConvBlock(
-                in_channels,
-                num3x3_reduce,
-                kernel_size=[
-                    1,
-                ],
-                stride=1,
-                padding=0,
-            ),
-            ConvBlock(
-                num3x3_reduce,
-                num3x3,
-                kernel_size=[
-                    3,
-                ],
-                stride=1,
-                padding=1,
-            ),
-        )
-
-        self.block3 = ivy.Sequential(
-            ConvBlock(
-                in_channels,
-                num5x5_reduce,
-                kernel_size=[
-                    1,
-                ],
-                stride=1,
-                padding=0,
-            ),
-            ConvBlock(
-                num5x5_reduce,
-                num5x5,
-                kernel_size=[
-                    5,
-                ],
-                stride=1,
-                padding=2,
-            ),
-        )
-
-        self.block4 = ivy.Sequential(
-            ivy.MaxPool2D(3, 1, 1),  # ceil_mode=True
-            ConvBlock(
-                in_channels,
-                pool_proj,
-                kernel_size=[
-                    1,
-                ],
-                stride=1,
-                padding=0,
-            ),
-        )
-
+    
+    def _build(self, *args, **kwargs):
+        self.block1 = ivy.Sequential(ConvBlock(self.in_channels, self.num1x1, kernel_size=[1, 1], stride=1, padding=0)
+                                     )
+        self.block2 = ivy.Sequential(ConvBlock(self.in_channels, self.num3x3_reduce, kernel_size=[1, 1], stride=1, padding=0),
+                                    ConvBlock(self.num3x3_reduce, self.num3x3, kernel_size=[3, 3], stride=1, padding=1)
+                                    )
+        self.block3 = ivy.Sequential(ConvBlock(self.in_channels, self.num5x5_reduce, kernel_size=[1, 1], stride=1, padding=0),
+                                    ConvBlock(self.num5x5_reduce, self.num5x5, kernel_size=[5, 5], stride=1, padding=2)
+                                    )
+        self.block4 = ivy.Sequential(ivy.MaxPool2D(3, 1, 1),
+                                    ConvBlock(self.in_channels, self.pool_proj, kernel_size=[1, 1], stride=1, padding=0)
+                                    )
+        
     def _forward(self, x):
         block1 = self.block1(x)
         block2 = self.block2(x)
         block3 = self.block3(x)
         block4 = self.block4(x)
 
-        print(f"Sarvesh says shapes of [block1, block2, block3, block4] are: {ivy.shape(block1), ivy.shape(block2), ivy.shape(block3), ivy.shape(block4)}")
-        print(f"block1 : \n{ivy.shape(block1)}\n")
-        print(f"block2 : \n{ivy.shape(block2)}\n")
-        print(f"block3 : \n{ivy.shape(block3)}\n")
-        print(f"block4 : \n{ivy.shape(block4)}\n")
         return ivy.concat([block1, block2, block3, block4], axis=3)
-
+    
 
 class Auxiliary(ivy.Module):
     def __init__(self, in_channels, num_classes):
+        self.in_channels = in_channels
+        self.num_classes = num_classes
         super(Auxiliary, self).__init__()
 
-        self.pool = ivy.AdaptiveAvgPool2d((4, 4))
-        self.conv = ivy.Conv2D(
-            in_channels, 128, [1,1], 1, 0 # understand this convolution operation from scaler  
-        ) # no_ofchannels in input image, no_of_kernels, kernel_size, stride, padding
-        
-        # TODO: covn2d() func input me kya leta hai uska analogy/cvp
+    def _build(self, *args, **kwargs):
+        self.pool = ivy.AvgPool2D((5, 5), 3, 0)  # ivy.Shape(1, 4, 4, 512)
+        self.conv = ivy.Conv2D(self.in_channels, 128, [1,1], 1, 0, with_bias=False)
         self.activation = ivy.ReLU()
-
         self.fc1 = ivy.Linear(2048, 1024)
         self.dropout = ivy.Dropout(0.7)
-        self.fc2 = ivy.Linear(1024, num_classes)
+        self.fc2 = ivy.Linear(1024, self.num_classes)
 
     def _forward(self, x):
         out = self.pool(x)
-
         out = self.conv(out)
         out = self.activation(out)
-        print("out shape is  ", out.shape)
-        # out shape is  torch.Size([2, 128, 4, 4])
-
-        out = ivy.flatten(1, out=out)
-
+        out = ivy.flatten(out, start_dim=1)
         out = self.fc1(out)
         out = self.activation(out)
         out = self.dropout(out)
-
         out = self.fc2(out)
-
         return out
-
+    
 
 class GoogLeNet(ivy.Module):
-    def __init__(self, num_classes=1000, v=None):
-        super(GoogLeNet, self).__init__()
+    def __init__(self, num_classes=1000, v: ivy.Container = None,):
         if v is not None:
             self.v = v
-        self.conv1 = ConvBlock(
-            3,
-            64,
-            kernel_size=[
-                7,
-            ],
-            stride=2,
-            padding=3,
-        )
-        self.pool1 = ivy.MaxPool2D(3, 2, 0)
-        self.conv2 = ConvBlock(
-            64,
-            64,
-            kernel_size=[
-                1,
-            ],
-            stride=1,
-            padding=0,
-        )
-        self.conv3 = ConvBlock(
-            64,
-            192,
-            kernel_size=[
-                3,
-            ],
-            stride=1,
-            padding=1,
-        )
-        self.pool3 = ivy.MaxPool2D(3, 2, 0)
+        self.num_classes = num_classes
+        super(GoogLeNet, self).__init__(v=v)
 
-        self.inception3A = Inception(
-            in_channels=192,
-            num1x1=64,
-            num3x3_reduce=96,
-            num3x3=128,
-            num5x5_reduce=16,
-            num5x5=32,
-            pool_proj=32,
-        )
-        self.inception3B = Inception(
-            in_channels=256,
-            num1x1=128,
-            num3x3_reduce=128,
-            num3x3=192,
-            num5x5_reduce=32,
-            num5x5=96,
-            pool_proj=64,
-        )
-        self.pool4 = ivy.MaxPool2D(3, 2, 0)
+    def _build(self, *args, **kwargs):
+        self.conv1 = ConvBlock(3, 64, [7,7], 2, 3)
+        self.pool1 = ivy.MaxPool2D([3,3], 2, 1)
+        self.conv2 = ConvBlock(64, 64, [1,1], 1, 0,)
+        self.conv3 = ConvBlock(64, 192, [3,3], 1, 1)
+        self.pool3 = ivy.MaxPool2D(3, 2, 1)
+        self.inception3A = Inception(192, 64, 96, 128, 16, 32, 32)
+        self.inception3B = Inception(256, 128, 128, 192, 32, 96, 64)
+        self.pool4 = ivy.MaxPool2D(3, 2, 1)
 
-        self.inception4A = Inception(
-            in_channels=480,
-            num1x1=192,
-            num3x3_reduce=96,
-            num3x3=208,
-            num5x5_reduce=16,
-            num5x5=48,
-            pool_proj=64,
-        )
-        self.inception4B = Inception(
-            in_channels=512,
-            num1x1=160,
-            num3x3_reduce=112,
-            num3x3=224,
-            num5x5_reduce=24,
-            num5x5=64,
-            pool_proj=64,
-        )
-        self.inception4C = Inception(
-            in_channels=512,
-            num1x1=128,
-            num3x3_reduce=128,
-            num3x3=256,
-            num5x5_reduce=24,
-            num5x5=64,
-            pool_proj=64,
-        )
-        self.inception4D = Inception(
-            in_channels=512,
-            num1x1=112,
-            num3x3_reduce=144,
-            num3x3=288,
-            num5x5_reduce=32,
-            num5x5=64,
-            pool_proj=64,
-        )
-        self.inception4E = Inception(
-            in_channels=528,
-            num1x1=256,
-            num3x3_reduce=160,
-            num3x3=320,
-            num5x5_reduce=32,
-            num5x5=128,
-            pool_proj=128,
-        )
-        self.pool5 = ivy.MaxPool2D(3, 2, 0)
+        self.inception4A = Inception(480, 192, 96, 208, 16, 48, 64)
 
-        self.inception5A = Inception(
-            in_channels=832,
-            num1x1=256,
-            num3x3_reduce=160,
-            num3x3=320,
-            num5x5_reduce=32,
-            num5x5=128,
-            pool_proj=128,
-        )
-        self.inception5B = Inception(
-            in_channels=832,
-            num1x1=384,
-            num3x3_reduce=192,
-            num3x3=384,
-            num5x5_reduce=48,
-            num5x5=128,
-            pool_proj=128,
-        )
-        self.pool6 = ivy.AdaptiveAvgPool2d((1, 1))
+        # ivy.flatten()
+        self.aux4A = Auxiliary(512, self.num_classes)
 
+        self.inception4B = Inception(512, 160, 112, 224, 24, 64, 64)
+        self.inception4C = Inception(512, 128, 128, 256, 24, 64, 64)
+        self.inception4D = Inception(512, 112, 144, 288, 32, 64, 64)
+
+        self.aux4D = Auxiliary(528, self.num_classes)
+
+        self.inception4E = Inception(528, 256, 160, 320, 32, 128, 128)
+        self.pool5 = ivy.MaxPool2D(3, 2, 1)
+
+        self.inception5A = Inception(832, 256, 160, 320, 32, 128, 128)
+        self.inception5B = Inception(832, 384, 192, 384, 48, 128,128)
+        self.pool6 = ivy.AvgPool2D((7,7), 1, 0) # ((1, 1))
+
+        # ivy.flatten()
         self.dropout = ivy.Dropout(0.4)
-        self.fc = ivy.Linear(1024, num_classes)
+        self.fc = ivy.Linear(1024, self.num_classes)
 
-        self.aux4A = Auxiliary(512, num_classes)
-        self.aux4D = Auxiliary(528, num_classes)
 
     def _forward(self, x):
         out = self.conv1(x)
@@ -316,21 +158,21 @@ class GoogLeNet(ivy.Module):
         out = self.inception5A(out)
         out = self.inception5B(out)
         out = self.pool6(out)
-        out = ivy.flatten(1, out=out)
+        out = ivy.flatten(out, start_dim=1)
         out = self.dropout(out)
         out = self.fc(out)
 
-        # we need all 3 because loss func of inceptionNet
-        # is weighted avg of these 3 (out, aux1, and aux2)
         return out, aux1, aux2
 
 
+
 def _inceptionNet_torch_weights_mapping(old_key, new_key):
-    W_KEY = ["conv1/weight", "conv2/weight", "downsample/0/weight"]
+    W_KEY = ["conv/weight"]
     new_mapping = new_key
-    if builtins.any([kc in old_key for kc in W_KEY]):
+    if any([kc in old_key for kc in W_KEY]):
         new_mapping = {"key_chain": new_key, "pattern": "b c h w -> h w c b"}
     return new_mapping
+
 
 
 def inceptionNet_v1(pretrained=True):
@@ -345,5 +187,6 @@ def inceptionNet_v1(pretrained=True):
         reference_model,
         raw_keys_to_prune=["num_batches_tracked"],
         custom_mapping=_inceptionNet_torch_weights_mapping,
-    )
+        )
     return GoogLeNet(v=w_clean)
+
