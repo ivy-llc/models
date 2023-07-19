@@ -7,9 +7,7 @@ class PreNorm(ivy.Module):
         self, dim, fn, key_dim=None, value_dim=None, eps=1e-05, device=None, v=None
     ):
         self._attention = fn
-        self._norm = (
-            ivy.LayerNorm([dim], eps=eps, device=device) if ivy.exists(eps) else None
-        )
+        self._norm = ivy.LayerNorm([dim], eps=eps, device=device)
         self._norm_key = (
             ivy.LayerNorm([key_dim], eps=eps, device=device)
             if ivy.exists(key_dim)

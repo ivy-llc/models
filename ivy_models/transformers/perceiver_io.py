@@ -121,7 +121,6 @@ class PerceiverIO(ivy.Module):
                 device=self._spec.device,
             ),
             key_dim=input_dim,
-            value_dim=self._spec.latent_dim,
             eps=1e-5,
             device=self._spec.device,
         )
@@ -134,7 +133,6 @@ class PerceiverIO(ivy.Module):
                 dropout_rate=self._spec.attn_dropout,
                 device=self._spec.device,
             ),
-            key_dim=self._spec.latent_dim,
             eps=1e-5,
             device=self._spec.device,
         )
@@ -145,7 +143,7 @@ class PerceiverIO(ivy.Module):
                 dropout=self._spec.fc_dropout,
                 device=self._spec.device,
             ),
-            eps=None,
+            eps=1e-5,
             device=self._spec.device,
         )
 
@@ -169,7 +167,6 @@ class PerceiverIO(ivy.Module):
                 value_dim=self._spec.latent_dim,
             ),
             key_dim=self._spec.latent_dim,
-            value_dim=self._spec.latent_dim,
             eps=1e-5,
         )
 
@@ -177,7 +174,7 @@ class PerceiverIO(ivy.Module):
             PreNorm(
                 self._spec.queries_dim,
                 FeedForward(self._spec.queries_dim, device=self._spec.device),
-                eps=None,
+                eps=1e-5,
             )
             if self._spec.with_decoder
             else None
@@ -258,7 +255,7 @@ class PerceiverIO(ivy.Module):
         # layers
         for layer_dict in self._perceiver_encoder:
             if "cross_att" in layer_dict:
-                x = layer_dict["cross_att"](x, data, data, attention_mask=mask) + x
+                x = layer_dict["cross_att"](x, data, attention_mask=mask) + x
             if "cross_fc" in layer_dict:
                 x = layer_dict["cross_fc"](x) + x
 
