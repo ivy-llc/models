@@ -318,4 +318,5 @@ def perceiver_io_img_classification(spec, pretrained=True):
         special_rename={"mlp": "net"},
         with_mha=True,
     )
-    return PerceiverIO(spec, v=w_clean)
+    reference_model.v = w_clean
+    return reference_model
