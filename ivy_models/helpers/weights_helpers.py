@@ -1,6 +1,8 @@
 # global
 import ivy
 import torch
+import urllib
+import os
 
 
 def _prune_keys(raw, ref, raw_keys_to_prune=[], ref_keys_to_prune=[]):
@@ -94,10 +96,10 @@ def load_jax_weights(
 
     ivy.set_backend("jax")
     # todo: refactor this into a url load helper
-    # urllib.request.urlretrieve(url, filename="jax_weights.pystate")
+    urllib.request.urlretrieve(url, filename="jax_weights.pystate")
     with open("jax_weights.pystate", "rb") as f:
         weights = pickle.loads(f.read())
-    # os.remove("jax_weights.pystate")
+    os.remove("jax_weights.pystate")
 
     try:
         weights = {**weights["params"], **weights["state"]}
