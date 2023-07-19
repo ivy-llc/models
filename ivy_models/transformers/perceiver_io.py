@@ -255,7 +255,7 @@ class PerceiverIO(ivy.Module):
         # layers
         for layer_dict in self._perceiver_encoder:
             if "cross_att" in layer_dict:
-                x = layer_dict["cross_att"](x, data, attention_mask=mask) + x
+                x = layer_dict["cross_att"](x, data, data, attention_mask=mask) + x
             if "cross_fc" in layer_dict:
                 x = layer_dict["cross_fc"](x) + x
 
@@ -281,7 +281,7 @@ class PerceiverIO(ivy.Module):
 
         # cross attend from decoder queries to latents
 
-        latents = self._decoder_cross_attn(queries, x, x)
+        latents = self._classification_decoder(queries, x, x)
 
         # optional decoder feedforward
 
@@ -316,5 +316,6 @@ def perceiver_io_img_classification(spec, pretrained=True):
         reference_model,
         custom_mapping=_perceiver_jax_weights_mapping,
         special_rename={"mlp": "net"},
+        with_mha=True,
     )
     return PerceiverIO(spec, v=w_clean)

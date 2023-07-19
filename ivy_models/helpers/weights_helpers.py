@@ -88,6 +88,7 @@ def load_jax_weights(
     raw_keys_to_prune=[],
     ref_keys_to_prune=[],
     special_rename={},
+    with_mha=False,
 ):
     import pickle
 
@@ -114,8 +115,8 @@ def load_jax_weights(
         weights_raw, weights_ref, renamed_ref = _rename_weights(
             weights_raw, weights_ref, special_rename
         )
-
-    weights_raw = _with_mha(weights_raw)
+    if with_mha:
+        weights_raw = _with_mha(weights_raw)
     mapping = _map_weights(weights_raw, weights_ref, custom_mapping=custom_mapping)
 
     ivy.previous_backend()
