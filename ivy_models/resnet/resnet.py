@@ -157,7 +157,8 @@ def resnet_18(pretrained=True):
         raw_keys_to_prune=["num_batches_tracked"],
         custom_mapping=_resnet_torch_weights_mapping,
     )
-    return ResNet(BasicBlock, [2, 2, 2, 2], v=w_clean)
+    reference_model.v = w_clean
+    return reference_model
 
 
 def resnet_34(pretrained=True):
@@ -173,7 +174,8 @@ def resnet_34(pretrained=True):
         raw_keys_to_prune=["num_batches_tracked"],
         custom_mapping=_resnet_torch_weights_mapping,
     )
-    return ResNet(BasicBlock, [3, 4, 6, 3], v=w_clean)
+    reference_model.v = w_clean
+    return reference_model
 
 
 def resnet_50(pretrained=True):
@@ -189,7 +191,8 @@ def resnet_50(pretrained=True):
         raw_keys_to_prune=["num_batches_tracked"],
         custom_mapping=_resnet_torch_weights_mapping,
     )
-    return ResNet(Bottleneck, [3, 4, 6, 3], v=w_clean)
+    reference_model.v = w_clean
+    return reference_model
 
 
 def resnet_101(pretrained=True):
@@ -205,7 +208,8 @@ def resnet_101(pretrained=True):
         raw_keys_to_prune=["num_batches_tracked"],
         custom_mapping=_resnet_torch_weights_mapping,
     )
-    return ResNet(Bottleneck, [3, 4, 23, 3], v=w_clean)
+    reference_model.v = w_clean
+    return reference_model
 
 
 def resnet_152(pretrained=True):
@@ -221,4 +225,5 @@ def resnet_152(pretrained=True):
         raw_keys_to_prune=["num_batches_tracked"],
         custom_mapping=_resnet_torch_weights_mapping,
     )
-    return ResNet(Bottleneck, [3, 8, 36, 3], v=w_clean)
+    reference_model.v = w_clean
+    return reference_model
