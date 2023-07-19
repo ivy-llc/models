@@ -8,7 +8,11 @@ from hypothesis import given, strategies as st
 # Enable x64 support in JAX
 jax.config.update("jax_enable_x64", True)
 from ivy_models_tests import helpers
-from ivy_models.resnet import resnet_18, resnet_34, resnet_50
+from ivy_models.resnet import (
+    resnet_18,
+    resnet_34,
+    resnet_50,
+)  # , resnet_152, resnet_101
 
 
 VARIANTS = {
