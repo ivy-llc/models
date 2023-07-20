@@ -34,7 +34,8 @@ def generate_gt_inference_for(test_image_path):
 
     # Get the predicted class labels and logits
     _, predicted_indices = torch.topk(output, k=3, dim=1)
-    predicted_logits = output[0, predicted_indices[0]]
+    predicted_logits = output[0, predicted_indices[0]] # picking only the main layer outputs
+    # leaving the aux1 and aux2 layer outputs.
 
     # Convert tensors to Python lists
     predicted_classes = predicted_indices[0].tolist()
@@ -62,7 +63,7 @@ def test_inception_v1_img_classification(device, f, fw, batch_shape, load_weight
 
     # Create model
     model = inceptionNet_v1(pretrained=load_weights)
-
+    
     # Perform inference
     output = model(img)
 

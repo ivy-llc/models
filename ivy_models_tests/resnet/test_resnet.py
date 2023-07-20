@@ -56,7 +56,10 @@ def test_resnet_img_classification(device, f, fw):
         ),
     )
 
-    model.v = ivy.asarray(v)
+    # Create model
+    model = resnet_18(pretrained=load_weights)
+    
+    # Perform inference
     output = model(img)
 
     # Cardinality test

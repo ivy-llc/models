@@ -4,7 +4,7 @@ import builtins
 
 import ivy
 import ivy_models
-from .layers import conv1x1, BasicBlock, Bottleneck
+from layers import conv1x1, BasicBlock, Bottleneck
 
 
 class ResNet(ivy.Module):
