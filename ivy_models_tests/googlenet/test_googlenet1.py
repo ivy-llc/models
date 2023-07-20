@@ -23,11 +23,8 @@ def test_inception_v1_img_classification(device, f, fw, batch_shape, load_weight
     # )
 
     # Load and preprocess the image
-    from PIL import Image
     image_path = "/models/images/cat.jpg"
-    image = Image.open(image_path)
-    input_tensor = helpers.load_and_preprocess_img(image)
-    img = input_tensor.unsqueeze(0)
+    input_tensor = ivy.asarray(helpers.load_and_preprocess_img(image_path, 256, 224))
 
     
 
@@ -36,7 +33,7 @@ def test_inception_v1_img_classification(device, f, fw, batch_shape, load_weight
     model = inceptionNet_v1(pretrained=load_weights)
     
     # Perform inference
-    output = model(img)
+    output, _, _ = model(input_tensor)
 
     assert output.shape == tuple([ivy.to_scalar(batch_shape), num_classes])
 
