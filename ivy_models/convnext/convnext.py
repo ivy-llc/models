@@ -67,7 +67,7 @@ class ConvNeXt(ivy.Module):
             self.stages.append(stage)
             cur += self.depths[i]
 
-        self.norm = ivy.LayerNorm([self.dims[-1]], eps=1e-6)
+        self.norm = ivy.LayerNorm(self.dims[-1], eps=1e-6)
         self.head = ivy.Linear(self.dims[-1], self.num_classes)
 
     def _forward(self, x):

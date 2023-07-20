@@ -7,14 +7,14 @@ class PreNorm(ivy.Module):
         self, dim, fn, key_dim=None, value_dim=None, eps=1e-05, device=None, v=None
     ):
         self._fn = fn
-        self._norm = ivy.LayerNorm([dim], eps=eps, device=device)
+        self._norm = ivy.LayerNorm(dim, eps=eps, device=device)
         self._norm_key = (
-            ivy.LayerNorm([key_dim], eps=eps, device=device)
+            ivy.LayerNorm(key_dim, eps=eps, device=device)
             if ivy.exists(key_dim)
             else None
         )
         self._norm_value = (
-            ivy.LayerNorm([value_dim], eps=eps, device=device)
+            ivy.LayerNorm(value_dim, eps=eps, device=device)
             if ivy.exists(value_dim)
             else None
         )

@@ -199,16 +199,24 @@ class EncoderBlock(ivy.Module):
         norm_layer: Callable[..., ivy.Module] = partial(ivy.LayerNorm, eps=1e-6),
     ):
         self.num_heads = num_heads
+        self.hidden_dim = hidden_dim
+        self.mlp_dim = mlp_dim
+        self.dropout = dropout
+        self.attention_dropout = attention_dropout
+        self.norm_layer = norm_layer
 
+        
+        super().__init__()
+
+    def _build(self, *args, **kwargs) -> bool:
         # Attention block
-        self.ln_1 = norm_layer(hidden_dim)
-        self.self_attention = ivy.MultiHeadAttention(hidden_dim, num_heads=num_heads, dropout_rate=attention_dropout)
-        self.dropout = ivy.Dropout(dropout)
+        self.ln_1 = self.norm_layer(self.hidden_dim)
+        self.self_attention = ivy.MultiHeadAttention(self.hidden_dim, num_heads=self.num_heads, dropout_rate=self.attention_dropout)
+        self.dropout = ivy.Dropout(self.dropout)
 
         # MLP block
-        self.ln_2 = norm_layer(hidden_dim)
-        self.mlp = MLPBlock(hidden_dim, mlp_dim, dropout)
-        super().__init__()
+        self.ln_2 = self.norm_layer(self.hidden_dim)
+        self.mlp = MLPBlock(self.hidden_dim, self.mlp_dim, self.dropout)
 
     def _forward(self, input):
         ivy.utils.assertions.check_true(input.dim() == 3, f"Expected (batch_size, seq_length, hidden_dim) got {input.shape}")
@@ -283,18 +291,24 @@ class VisionTransformer(ivy.Module):
         self.image_size = image_size
         self.patch_size = patch_size
         self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+        self.num_heads = num_heads
         self.mlp_dim = mlp_dim
         self.attention_dropout = attention_dropout
         self.dropout = dropout
         self.num_classes = num_classes
         self.representation_size = representation_size
         self.norm_layer = norm_layer
+        self.conv_stem_configs = conv_stem_configs
+        
+        super().__init__(v=v)
 
-        if conv_stem_configs is not None:
+    def _build(self, *args, **kwargs):
+        if self.conv_stem_configs is not None:
             # As per https://arxiv.org/abs/2106.14881
             seq_proj = OrderedDict()
             prev_channels = 3
-            for i, conv_stem_layer_config in enumerate(conv_stem_configs):
+            for i, conv_stem_layer_config in enumerate(self.conv_stem_configs):
                 seq_proj[f"conv_bn_relu_{i}"] = Conv2dNormActivation(
                         in_channels=prev_channels,
                         out_channels=conv_stem_layer_config.out_channels,
@@ -304,42 +318,40 @@ class VisionTransformer(ivy.Module):
                         activation_layer=conv_stem_layer_config.activation_layer,
                     )
                 prev_channels = conv_stem_layer_config.out_channels
-            seq_proj["conv_last"] = ivy.Conv2D(prev_channels, hidden_dim, [1, 1], 1, 0)
+            seq_proj["conv_last"] = ivy.Conv2D(prev_channels, self.hidden_dim, [1, 1], 1, 0)
             self.conv_proj: ivy.Module = ivy.Sequential(seq_proj)
         else:
             self.conv_proj = ivy.Conv2D(
-                3, hidden_dim, [patch_size, patch_size], patch_size, 0
+                3, self.hidden_dim, [self.patch_size, self.patch_size], self.patch_size, 0
             )
 
-        seq_length = (image_size // patch_size) ** 2
+        seq_length = (self.image_size // self.patch_size) ** 2
 
         # Add a class token
-        self.class_token = ivy.zeros(shape=(1, 1, hidden_dim))
+        self.class_token = ivy.zeros(shape=(1, 1, self.hidden_dim))
         seq_length += 1
 
         self.encoder = Encoder(
             seq_length,
-            num_layers,
-            num_heads,
-            hidden_dim,
-            mlp_dim,
-            dropout,
-            attention_dropout,
-            norm_layer,
+            self.num_layers,
+            self.num_heads,
+            self.hidden_dim,
+            self.mlp_dim,
+            self.dropout,
+            self.attention_dropout,
+            self.norm_layer,
         )
         self.seq_length = seq_length
 
         heads_layers: OrderedDict[str, ivy.Module] = OrderedDict()
-        if representation_size is None:
-            heads_layers["head"] = ivy.Linear(hidden_dim, num_classes)
+        if self.representation_size is None:
+            heads_layers["head"] = ivy.Linear(self.hidden_dim, self.num_classes)
         else:
-            heads_layers["pre_logits"] = ivy.Linear(hidden_dim, representation_size)
+            heads_layers["pre_logits"] = ivy.Linear(self.hidden_dim, self.representation_size)
             heads_layers["act"] = ivy.tanh()
-            heads_layers["head"] = ivy.Linear(representation_size, num_classes)
+            heads_layers["head"] = ivy.Linear(self.representation_size, self.num_classes)
 
         self.heads = ivy.Sequential(heads_layers)
-        super().__init__(v=v)
-
 
     def _process_input(self, x):
         n, c, h, w = x.shape
@@ -349,12 +361,12 @@ class VisionTransformer(ivy.Module):
         n_h = h // p
         n_w = w // p
 
-        # (n, c, h, w) -> (n, hidden_dim, n_h, n_w)
+        # (n, c, h, w) -> (n, self.hidden_dim, n_h, n_w)
         x = self.conv_proj(x)
-        # (n, hidden_dim, n_h, n_w) -> (n, hidden_dim, (n_h * n_w))
-        x = x.reshape(n, self.hidden_dim, n_h * n_w)
+        # (n, self.hidden_dim, n_h, n_w) -> (n, self.hidden_dim, (n_h * n_w))
+        x = x.reshape(n, self.self.hidden_dim, n_h * n_w)
 
-        # (n, hidden_dim, (n_h * n_w)) -> (n, (n_h * n_w), hidden_dim)
+        # (n, self.hidden_dim, (n_h * n_w)) -> (n, (n_h * n_w), self.hidden_dim)
         # The self attention layer expects inputs in the format (N, S, E)
         # where S is the source sequence length, N is the batch size, E is the
         # embedding dimension
@@ -419,7 +431,6 @@ def vit_b_16(v=None, pretrained=True) -> VisionTransformer:
             raw_keys_to_prune=["num_batches_tracked"],
             custom_mapping=None,
         )
-        
     return _vision_transformer(
         patch_size=16,
         num_layers=12,
@@ -538,6 +549,6 @@ def vit_h_14(v=None, pretrained=True) -> VisionTransformer:
 
 if __name__ == '__main__':
     ivy.set_torch_backend()
-    # model = VisionTransformer(image_size=224, patch_size=16, num_layers=12, num_heads=12,hidden_dim=768, mlp_dim=3072)
-    model = vit_b_16()
+    model = VisionTransformer(image_size=224, patch_size=16, num_layers=12, num_heads=12,hidden_dim=768, mlp_dim=3072)
+    # model = vit_b_16()
     print(model.v)
