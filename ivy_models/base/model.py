@@ -1,118 +1,159 @@
 import ivy
-from ivy_models.base.spec import BaseSpec
 import os
-from typing import Union, Optional
+from typing import Optional
+
+
+class abstractclassmethod(classmethod):
+    __isabstractmethod__ = True
+
+    def __init__(self, callable):
+        callable.__isabstractmethod__ = True
+        super(abstractclassmethod, self).__init__(callable)
 
 
 class BaseModel(ivy.Module):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, *kwargs)
+        super(BaseModel, self).__init__(*args, **kwargs)
 
-    def _get_hf_model(
+    @abstractclassmethod
+    def get_spec_class(self):
+        raise NotImplementedError()
+
+    def _hf_verify_or_login(self):
+        from huggingface_hub import login, HfFolder
+
+        folder = HfFolder()
+        if folder.get_token() is None:
+            login()
+
+    def push_to_huggingface(
         self,
-        backend: str = "torch",
-    ):
-        from transformers import (
-            PretrainedConfig,
-            PreTrainedModel,
-            TFPreTrainedModel,
-            FlaxPreTrainedModel,
-        )
-
-        hf_config = PretrainedConfig(**self._spec.__dict__)
-
-        if backend in ["jax", "flax"]:
-
-            class IvyHfModel(FlaxPreTrainedModel):
-                def __init__(cls):
-                    ivy.set_backend("jax")
-                    # todo: check input shape with config var
-                    model = ivy.transpile(
-                        self,
-                        to="flax",
-                        # todo: fix the arg!
-                        args=(ivy.random_uniform(shape=(1, 3, 224, 224)),),
-                    )
-                    super().__init__(hf_config, model)
-
-                def forward(cls, *args, **kwargs):
-                    return cls.model(*args, **kwargs)
-
-        elif backend in ["torch", "tensorflow", "keras"]:
-            if backend == "keras":
-                backend = "tensorflow"
-            HF_MODELS = {
-                "torch": PreTrainedModel,
-                "tensorflow": TFPreTrainedModel,
-            }
-
-            class IvyHfModel(HF_MODELS[backend]):
-                def __init__(cls):
-                    super().__init__(hf_config)
-                    ivy.set_backend(backend)
-                    # todo: check input shape with config var
-                    cls.model = ivy.transpile(
-                        self,
-                        to=backend,
-                        args=(
-                            ivy.random_uniform(shape=(1, 224, 224, hf_config.input_dim))
-                        ),
-                    )
-
-                def forward(cls, *args, **kwargs):
-                    return cls.model(*args, **kwargs)
-
-        else:
-            raise ivy.exceptions.IvyException(
-                "backend: {} must be in [torch, tensorflow, keras, jax, flax]".format(
-                    backend
-                )
-            )
-
-        return IvyHfModel()
-
-    def push_to_hf_hub(
-        self,
-        hf_repo_id: str,
-        backend: str = "torch",
-        use_temp_dir: Optional[bool] = None,
+        repo_id: str,
+        config_path: str = "config.json",
+        model_path: str = "model.pkl",
+        weights_path: str = "weights.hdf5",
+        repo_type: str = "model",
+        token: Optional[str] = None,
+        private: bool = False,
+        revision: Optional[str] = None,
         commit_message: Optional[str] = None,
-        private: Optional[bool] = None,
-        use_auth_token: Optional[Union[bool, str]] = None,
-        max_shard_size: Optional[Union[int, str]] = "10GB",
+        commit_description: Optional[str] = None,
         create_pr: bool = False,
         safe_serialization: bool = False,
+        push_config: bool = True,
+        push_model: bool = True,
+        push_weights: bool = True,
     ):
-        hf_model = self._get_hf_model(backend)
+        from huggingface_hub import HfApi
 
-        print("Pushing {} model to Hugging Face: {}", backend, hf_repo_id)
-        hf_model.push_to_hub(
-            repo_id=hf_repo_id,
-            use_temp_dir=use_temp_dir,
-            commit_message=commit_message,
-            private=private,
-            use_auth_token=use_auth_token,
-            max_shard_size=max_shard_size,
-            create_pr=create_pr,
-            safe_serialization=safe_serialization,
+        self._hf_verify_or_login()
+
+        api = HfApi()
+        api.create_repo(
+            repo_id, token=token, private=private, repo_type=repo_type, exist_ok=True
         )
+
+        if push_config:
+            print("Pushing config to Hugging Face...")
+            self.spec.to_json_file()
+            api.upload_file(
+                path_or_fileobj=config_path,
+                repo_id=repo_id,
+                path_in_repo=config_path,
+                repo_type=repo_type,
+            )
+            os.remove(config_path)
+
+        if push_model:
+            print("Pushing model object to Hugging Face...")
+            self.save(model_path)
+            api.upload_file(
+                path_or_fileobj=model_path,
+                repo_id=repo_id,
+                path_in_repo=model_path,
+                repo_type=repo_type,
+            )
+            os.remove(model_path)
+
+        if push_weights:
+            print("Pushing model weights to Hugging Face...")
+            self.v.cont_to_disk_as_hdf5(weights_path)
+            api.upload_file(
+                path_or_fileobj=weights_path,
+                repo_id=repo_id,
+                path_in_repo=weights_path,
+                repo_type=repo_type,
+            )
+            os.remove(weights_path)
+
         print("Successful!")
 
-    def save_pretrained(self):
-        return
+    def save_pretrained(
+        self,
+        config_path: str = "config.json",
+        model_path: str = "model.pkl",
+        weights_path: str = "weights.hdf5",
+        save_config: bool = True,
+        save_model: bool = True,
+        save_weights: bool = True,
+    ):
+        if save_config:
+            print("Saving config...")
+            self.spec.to_json_file()
+
+        if save_model:
+            print("Saving model object...")
+            self.save(model_path)
+
+        if save_weights:
+            print("Saving model weights...")
+            self.v.cont_to_disk_as_hdf5(weights_path)
+
+        print("Successful!")
 
     @classmethod
-    def from_pretrained(
+    def load_from_huggingface(
         self,
-        pretrained_model_name_or_path: Optional[Union[str, os.PathLike]],
-        *model_args,
-        config: Optional[Union[BaseSpec, str, os.PathLike]] = None,
-        cache_dir: Optional[Union[str, os.PathLike]] = None,
-        ignore_mismatched_sizes: bool = False,
-        force_download: bool = False,
-        local_files_only: bool = False,
-        token: Optional[Union[str, bool]] = None,
-        revision: str = "main",
-        **kwargs,
+        repo_id: str,
+        config_path: str = "config.json",
+        model_path: str = "model.pkl",
+        weights_path: str = "weights.hdf5",
+        repo_type: str = "model",
+        token: Optional[str] = None,
+        revision: Optional[str] = None,
+        safe_serialization: bool = False,
+        load_model_object: bool = False,
     ):
-        return
+        from huggingface_hub import hf_hub_download
+
+        if load_model_object:
+            hf_hub_download(
+                filename=model_path,
+                repo_id=repo_id,
+                repo_type="model",
+                local_dir=".",
+            )
+            obj = self.load(model_path)
+            os.remove(model_path)
+            return obj
+
+        else:
+            hf_hub_download(
+                filename=weights_path,
+                repo_id=repo_id,
+                repo_type="model",
+                local_dir=".",
+            )
+            weights = ivy.Container.cont_from_disk_as_hdf5(weights_path)
+            os.remove(weights_path)
+
+            hf_hub_download(
+                filename=config_path,
+                repo_id=repo_id,
+                repo_type="model",
+                local_dir=".",
+            )
+            spec = self.get_spec_class().from_json_file(config_path)
+            os.remove(config_path)
+
+            return self(spec=spec, v=weights)
