@@ -14,9 +14,10 @@ from . import efficientnet
 from .transformers import perceiver_io
 from .transformers.perceiver_io import *
 
-from . import resnet
-from .resnet import *
-from .googlenet import *
+# from . import resnet
+# from .resnet import *
+
+from . import vgg
 from .vgg import *
 
 from . import convnext

@@ -1,6 +1,8 @@
 # global
+import builtins
 import ivy
 import ivy_models
+import numpy as np
 
 # Building the initial Convolutional Block
 class ConvBlock(ivy.Module):
@@ -22,6 +24,7 @@ class ConvBlock(ivy.Module):
         x = self.bn(x)
         x = self.activation(x)
         return x
+    
 
 class Inception(ivy.Module):
     def __init__(
@@ -50,7 +53,7 @@ class Inception(ivy.Module):
                                     ConvBlock(self.num3x3_reduce, self.num3x3, kernel_size=[3, 3], stride=1, padding=1)
                                     )
         self.block3 = ivy.Sequential(ConvBlock(self.in_channels, self.num5x5_reduce, kernel_size=[1, 1], stride=1, padding=0),
-                                    ConvBlock(self.num5x5_reduce, self.num5x5, kernel_size=[3, 3], stride=1, padding=1)
+                                    ConvBlock(self.num5x5_reduce, self.num5x5, kernel_size=[5, 5], stride=1, padding=2)
                                     )
         self.block4 = ivy.Sequential(ivy.MaxPool2D(3, 1, 1),
                                     ConvBlock(self.in_channels, self.pool_proj, kernel_size=[1, 1], stride=1, padding=0)
@@ -63,6 +66,7 @@ class Inception(ivy.Module):
         block4 = self.block4(x)
 
         return ivy.concat([block1, block2, block3, block4], axis=3)
+    
 
 class Auxiliary(ivy.Module):
     def __init__(self, in_channels, num_classes):
@@ -72,7 +76,6 @@ class Auxiliary(ivy.Module):
 
     def _build(self, *args, **kwargs):
         self.pool = ivy.AvgPool2D((5, 5), 3, 0)  # ivy.Shape(1, 4, 4, 512)
-        self.bn = ivy.BatchNorm2D(128)
         self.conv = ivy.Conv2D(self.in_channels, 128, [1,1], 1, 0, with_bias=False)
         self.activation = ivy.ReLU()
         self.fc1 = ivy.Linear(2048, 1024)
@@ -81,14 +84,15 @@ class Auxiliary(ivy.Module):
 
     def _forward(self, x):
         out = self.pool(x)
-        out = self.conv(out) # contains weights
+        out = self.conv(out)
         out = self.activation(out)
         out = ivy.flatten(out, start_dim=1)
-        out = self.fc1(out) # contains weights
+        out = self.fc1(out)
         out = self.activation(out)
         out = self.dropout(out)
-        out = self.fc2(out) # contains weights
+        out = self.fc2(out)
         return out
+    
 
 class GoogLeNet(ivy.Module):
     def __init__(self, num_classes=1000, v: ivy.Container = None,):
@@ -161,12 +165,14 @@ class GoogLeNet(ivy.Module):
         return out, aux1, aux2
 
 
+
 def _inceptionNet_torch_weights_mapping(old_key, new_key):
     W_KEY = ["conv/weight"]
     new_mapping = new_key
     if any([kc in old_key for kc in W_KEY]):
         new_mapping = {"key_chain": new_key, "pattern": "b c h w -> h w c b"}
     return new_mapping
+
 
 
 def inceptionNet_v1(pretrained=True):
