@@ -11,12 +11,12 @@ class AlexNetSpec(BaseSpec):
 class AlexNet(BaseModel):
     """An Ivy native implementation of AlexNet"""
 
-    def __init__(self, spec=None, num_classes=1000, dropout=0, v=None):
+    def __init__(self, num_classes=1000, dropout=0, spec=None, v=None):
         self.spec = (
-            spec if spec else AlexNetSpec(num_classes=num_classes, dropout=dropout)
+            spec
+            if spec and isinstance(spec, AlexNetSpec)
+            else AlexNetSpec(num_classes=num_classes, dropout=dropout)
         )
-        self.num_classes = num_classes
-        self.dropout = dropout
         super(AlexNet, self).__init__(v=v)
 
     def _build(self, *args, **kwargs):
@@ -37,13 +37,13 @@ class AlexNet(BaseModel):
         )
         self.avgpool = ivy.AdaptiveAvgPool2d((6, 6))
         self.classifier = ivy.Sequential(
-            ivy.Dropout(prob=self.dropout),
+            ivy.Dropout(prob=self.spec.dropout),
             ivy.Linear(256 * 6 * 6, 4096),
             ivy.ReLU(),
-            ivy.Dropout(prob=self.dropout),
+            ivy.Dropout(prob=self.spec.dropout),
             ivy.Linear(4096, 4096),
             ivy.ReLU(),
-            ivy.Linear(4096, self.num_classes),
+            ivy.Linear(4096, self.spec.num_classes),
         )
 
     @classmethod
