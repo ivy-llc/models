@@ -306,7 +306,12 @@ def get_idx_from_map(module_list, name):
     return mapping[name]
 
 
-def unflatten_set_module(module, flattened_name, to_set, split_on="__",):
+def unflatten_set_module(
+    module,
+    flattened_name,
+    to_set,
+    split_on="__",
+):
     """
     Set the flattened_name parameter to a certain value while keeping the structure.
     Parameters:
