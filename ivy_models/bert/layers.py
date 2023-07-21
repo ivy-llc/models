@@ -131,7 +131,8 @@ class BertSelfAttention(ivy.Module):
     ):
         if hidden_size % num_attention_heads != 0:
             raise ValueError(
-                f"The hidden size ({hidden_size}) is not a multiple of the number of attention "
+                f"The hidden size ({hidden_size})"
+                f" is not a multiple of the number of attention "
                 f"heads ({num_attention_heads})"
             )
 
@@ -156,7 +157,8 @@ class BertSelfAttention(ivy.Module):
         self.dropout = ivy.Dropout(self.attn_drop_rate)
 
     def transpose_for_scores(self, x: ivy.Array):
-        # transpose the hidden_states from (bs, seq_len, hidden_size)- > (bs, seq_len, num_heads, head_size)
+        # transpose the hidden_states from (bs, seq_len, hidden_size)
+        # - > (bs, seq_len, num_heads, head_size)
         new_x_shape = x.shape[:-1] + (
             self.num_attention_heads,
             self.attention_head_size,

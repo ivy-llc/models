@@ -82,13 +82,6 @@ def apply_chunking_to_forward(
                     f"All input tenors have to be of the same shape: {tensor_shape}, "
                     f"found shape {input_tensor.shape[chunk_dim]}"
                 )
-
-        if input_tensors[0].shape[chunk_dim] % chunk_size != 0:
-            raise ValueError(
-                f"The dimension to be chunked {input_tensors[0].shape[chunk_dim]} has to be a multiple of the chunk "
-                f"size {chunk_size}"
-            )
-
         num_chunks = input_tensors[0].shape[chunk_dim] // chunk_size
 
         # chunk input tensor into tuples
