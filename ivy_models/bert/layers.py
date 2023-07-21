@@ -200,7 +200,8 @@ class BertSelfAttention(ivy.Module):
         if self.is_decoder:
             past_key_value = (key_layer, value_layer)
         # scaled Dot product
-        # Take the dot product between "query" and "key" to get the raw attention scores.
+        # Take the dot product between "query" and "key"
+        # to get the raw attention scores.
         attention_scores = ivy.matmul(query_layer, key_layer.permute_dims((0, 1, 3, 2)))
         attention_scores = attention_scores / math.sqrt(self.attention_head_size)
         # Masking
