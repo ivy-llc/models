@@ -8,23 +8,27 @@ import jax
 jax.config.update("jax_enable_x64", True)
 from ivy_models_tests import helpers
 from ivy_models.resnet import (
+    resnet_18,
+    resnet_34,
+    resnet_50,
+    resnet_101,
     resnet_152,
-)  # resnet_18, resnet_34, resnet_50, resnet_152, resnet_101
+)
 
 
 VARIANTS = {
-    # "r18": resnet_18,
-    # "r34": resnet_34,
-    # "r50": resnet_50,
-    # "r101": resnet_101,
+    "r18": resnet_18,
+    "r34": resnet_34,
+    "r50": resnet_50,
+    "r101": resnet_101,
     "r152": resnet_152,
 }
 
 LOGITS = {
-    # "r18": np.array([0.7069, 0.2663, 0.0231]),
-    # "r34": np.array([0.8507, 0.1351, 0.0069]),
-    # "r50": np.array([0.3429, 0.0408, 0.0121]),
-    # "r101": np.array([0.7834, 0.0229, 0.0112]),
+    "r18": np.array([0.7069, 0.2663, 0.0231]),
+    "r34": np.array([0.8507, 0.1351, 0.0069]),
+    "r50": np.array([0.3429, 0.0408, 0.0121]),
+    "r101": np.array([0.7834, 0.0229, 0.0112]),
     "r152": np.array([0.8051, 0.0473, 0.0094]),
 }
 
