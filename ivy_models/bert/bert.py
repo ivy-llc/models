@@ -41,9 +41,9 @@ class BertConfig:
         return self.get(
             "hidden_size",
             "intermediate_size",
-            'hidden_act',
-            'ffd_drop',
-            "layer_norm_eps"
+            "hidden_act",
+            "ffd_drop",
+            "layer_norm_eps",
         )
 
     def get_attn_attrs(self):
@@ -55,7 +55,7 @@ class BertConfig:
             "attn_drop_rate",
             "hidden_dropout",
             "layer_norm_eps",
-            "is_decoder"
+            "is_decoder",
         )
 
     def get_embd_attrs(self):
@@ -67,7 +67,7 @@ class BertConfig:
             "pad_token_id",
             "embd_drop_rate",
             "layer_norm_eps",
-            "position_embedding_type"
+            "position_embedding_type",
         )
 
 
@@ -97,11 +97,13 @@ def apply_chunking_to_forward(
 
         # chunk input tensor into tuples
         input_tensors_chunks = tuple(
-            ivy.split(input_tensor, num_or_size_splits=num_chunks, axis=chunk_dim) for input_tensor in input_tensors
+            ivy.split(input_tensor, num_or_size_splits=num_chunks, axis=chunk_dim)
+            for input_tensor in input_tensors
         )
         # apply forward fn to every tuple
         output_chunks = tuple(
-            feed_forward_module(*input_tensors_chunk) for input_tensors_chunk in zip(*input_tensors_chunks)
+            feed_forward_module(*input_tensors_chunk)
+            for input_tensors_chunk in zip(*input_tensors_chunks)
         )
         # concatenate output at same dimension
         return ivy.concat(output_chunks, axis=chunk_dim)
@@ -127,7 +129,7 @@ class BertLayer(ivy.Module):
         encoder_hidden_states=None,
         encoder_attention_mask=None,
         past_key_value=None,
-        output_attentions=False
+        output_attentions=False,
     ):
         outputs = self.attention(
             hidden_states,
@@ -135,7 +137,7 @@ class BertLayer(ivy.Module):
             encoder_hidden_states,
             encoder_attention_mask,
             past_key_value,
-            output_attentions
+            output_attentions,
         )
 
         ffd_out = apply_chunking_to_forward(self.ffd, self.chunk_size, 1, outputs[0])
@@ -160,7 +162,7 @@ class BertEncoder(ivy.Module):
         encoder_attention_mask=None,
         past_key_values=None,
         use_cache=None,
-        output_attentions=False
+        output_attentions=False,
     ):
         all_self_attentions = () if output_attentions else None
         next_decoder_cache = () if use_cache else None
@@ -223,7 +225,7 @@ class BertModel(ivy.Module):
         encoder_attention_mask=None,
         past_key_values=None,
         use_cache=None,
-        output_attentions=None
+        output_attentions=None,
     ):
         if self.config.is_decoder:
             use_cache = use_cache if use_cache is not None else self.config.use_cache
@@ -254,11 +256,12 @@ class BertModel(ivy.Module):
             pooler_out = self.pooler(encoder_outs[0])
         else:
             pooler_out = None
-        return {'pooled_output': pooler_out,
-                "last_hidden_state": encoder_outs[0],
-                "attention_probs": encoder_outs[1],
-                "next_decoder_cache": encoder_outs[2]
-                }
+        return {
+            "pooled_output": pooler_out,
+            "last_hidden_state": encoder_outs[0],
+            "attention_probs": encoder_outs[1],
+            "next_decoder_cache": encoder_outs[2]
+        }
 
 
 # Mapping and loading section
@@ -266,28 +269,28 @@ class BertModel(ivy.Module):
 
 def custom_map(name):
     key_map = [
-            ("__v0__", "__0__"),
-            ("__v1__", "__1__"),
-            ("__v10__", "__2__"),
-            ("__v11__", "__3__"),
+       ("__v0__", "__0__"),
+       ("__v1__", "__1__"),
+       ("__v10__", "__2__"),
+       ("__v11__", "__3__"),
     ]
     key_map = key_map + [
-                (f"__v{i}", f".{j}") for i, j in zip(range(2, 10), range(4, 12))
+       (f"__v{i}", f".{j}") for i, j in zip(range(2, 10), range(4, 12))
     ]
     key_map = key_map + [
-            ("attention__dense", "attention.output.dense"),
-            ("attention__LayerNorm", "attention.output.LayerNorm"),
+       ("attention__dense", "attention.output.dense"),
+       ("attention__LayerNorm", "attention.output.LayerNorm"),
     ]
     key_map = key_map + [
-            ("ffd__dense1", "intermediate.dense"),
-            ("ffd__dense2", "output.dense"),
-            ("ffd__LayerNorm", "output.LayerNorm"),
+       ("ffd__dense1", "intermediate.dense"),
+       ("ffd__dense2", "output.dense"),
+       ("ffd__LayerNorm", "output.LayerNorm"),
     ]
     name = name.replace("__w", ".weight").replace("__b", ".bias")
     name = (
-         name.replace("biasias", "bias")
-         .replace("weighteight", "weight")
-         .replace(".weightord", ".word")
+        name.replace("biasias", "bias")
+        .replace("weighteight", "weight")
+        .replace(".weightord", ".word")
     )
     for ref, new in key_map:
         name = name.replace(ref, new)
@@ -303,7 +306,9 @@ def get_idx_from_map(module_list, name):
     return mapping[name]
 
 
-def unflatten_set_module(module, flattened_name, to_set, split_on="__"):
+def unflatten_set_module(
+        module, flattened_name, to_set, split_on="__"
+):
     """
     Set the flattened_name parameter to a certain value while keeping the structure.
     Parameters:
@@ -365,7 +370,7 @@ def bert_base_uncased(pretrained=True):
         num_hidden_layers=12,
         num_attention_heads=12,
         intermediate_size=3072,
-        hidden_act='gelu',
+        hidden_act="gelu",
         hidden_dropout=0.0,
         attn_drop_rate=0.0,
         max_position_embeddings=512,

@@ -15,7 +15,7 @@ def test_bert(device, f, fw, batch_shape, load_weights):
 
     inputs = tokenizer("hello, my cat is cute.", return_tensor="pt")
     inputs = (
-               {k: v.to(device) for k, v in inputs.items()} if device is not None else inputs
+        {k: v.to(device) for k, v in inputs.items()} if device is not None else inputs
     )
     ref_model = AutoModel.from_pretrained("bert-base-uncased")
     model = bert_base_uncased(load_weights)

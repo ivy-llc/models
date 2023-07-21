@@ -12,7 +12,7 @@ class Embedding(ivy.Module):
         padding_idx=None,
         max_norm=None,
         initializer=None,
-        v=None
+        v=None,
     ):
         self.num_embedding = num_embedding
         self.embedding_dim = embedding_dim
@@ -58,7 +58,7 @@ class BertEmbedding(ivy.Module):
         pad_token_id=None,
         embd_drop_rate=0.1,
         layer_norm_eps=1e-5,
-        position_embedding_type='absolute',
+        position_embedding_type="absolute",
         v=None,
     ):
         self.vocab_size = vocab_size
@@ -87,7 +87,7 @@ class BertEmbedding(ivy.Module):
         input_ids,
         token_type_ids=None,
         position_ids=None,
-        past_key_values_length: int = 0
+        past_key_values_length: int = 0,
     ):
         input_shape = input_ids.shape
         seq_length = input_shape[1]
@@ -95,7 +95,7 @@ class BertEmbedding(ivy.Module):
         if position_ids is None:
             pos_ids = ivy.expand_dims(ivy.arange(self.max_position_embeddings), axis=0)
             position_ids = pos_ids[
-                    :, past_key_values_length: seq_length + past_key_values_length
+               :, past_key_values_length: seq_length + past_key_values_length
             ]
 
         if token_type_ids is None:
@@ -129,7 +129,7 @@ class BertSelfAttention(ivy.Module):
         position_embedding_type=None,
         attn_drop_rate=0.1,
         is_decoder=False,
-        v=None
+        v=None,
     ):
         if hidden_size % num_attention_heads != 0:
             raise ValueError(
@@ -143,7 +143,9 @@ class BertSelfAttention(ivy.Module):
         self.hidden_size = hidden_size
         self.attn_drop_rate = attn_drop_rate
         self.position_type_embd = (
-            position_embedding_type if position_embedding_type is not None else 'absolute'
+            position_embedding_type
+            if position_embedding_type is not None
+            else 'absolute'
         )
         self.is_decoder = is_decoder
         self.max_position_embeddings = max_position_embeddings
@@ -154,13 +156,12 @@ class BertSelfAttention(ivy.Module):
         self.key = ivy.Linear(self.hidden_size, self.all_head_size)
         self.value = ivy.Linear(self.hidden_size, self.all_head_size)
         self.dropout = ivy.Dropout(self.attn_drop_rate)
-        # if self.position_type_embd == "relative_key" or self.position_type_embd == "relative_key_query":
-        #   self.distance_embedding = Embedding(2 * self.max_position_embeddings - 1, self.attention_head_size)
 
     def transpose_for_scores(self, x: ivy.Array):
         # transpose the hidden_states from (bs, seq_len, hidden_size)- > (bs, seq_len, num_heads, head_size)
         new_x_shape = x.shape[:-1] + (
-            self.num_attention_heads, self.attention_head_size
+            self.num_attention_heads,
+            self.attention_head_size,
         )
         x = x.reshape(new_x_shape)
         return x.permute_dims((0, 2, 1, 3))
@@ -174,7 +175,6 @@ class BertSelfAttention(ivy.Module):
         past_key_value=None,
         output_attentions=False,
     ):
-
         mixed_query_layer = self.query(hidden_states)
         is_cross_attention = encoder_hidden_states is not None
 
@@ -246,12 +246,14 @@ class BertAttention(ivy.Module):
         hidden_dropout=0.1,
         layer_norm_eps=1e-5,
         is_decoder=False,
-        v=None
+        v=None,
     ):
         self.hidden_size = hidden_size
         self.attn_drop_rate = attn_drop_rate
         self.position_type_embd = (
-            position_embedding_type if position_embedding_type is not None else "absolute"
+            position_embedding_type
+            if position_embedding_type is not None
+            else "absolute"
         )
         self.hidden_dropout = hidden_dropout
         self.is_decoder = is_decoder
@@ -288,7 +290,7 @@ class BertAttention(ivy.Module):
             encoder_hidden_states,
             encoder_attention_mask,
             past_key_value,
-            output_attentions
+            output_attentions,
         )
 
         out = self.dense(outputs[0])
@@ -305,7 +307,7 @@ class BertFeedForward(ivy.Module):
         hidden_act,
         layer_norm_eps=1e-5,
         ffd_drop=0.1,
-        v=None
+        v=None,
     ):
         self.hidden_size = hidden_size
         self.intermediate_size = intermediate_size
