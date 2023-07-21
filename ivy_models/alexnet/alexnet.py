@@ -4,18 +4,24 @@ from ivy_models.base import BaseSpec, BaseModel
 
 
 class AlexNetSpec(BaseSpec):
-    def __init__(self, num_classes=1000, dropout=0):
-        super(AlexNetSpec, self).__init__(num_classes=num_classes, dropout=dropout)
+    def __init__(self, num_classes=1000, dropout=0, data_format="NCHW"):
+        super(AlexNetSpec, self).__init__(
+            num_classes=num_classes, dropout=dropout, data_format=data_format
+        )
 
 
 class AlexNet(BaseModel):
     """An Ivy native implementation of AlexNet"""
 
-    def __init__(self, num_classes=1000, dropout=0, spec=None, v=None):
+    def __init__(
+        self, num_classes=1000, dropout=0, data_format="NCHW", spec=None, v=None
+    ):
         self.spec = (
             spec
             if spec and isinstance(spec, AlexNetSpec)
-            else AlexNetSpec(num_classes=num_classes, dropout=dropout)
+            else AlexNetSpec(
+                num_classes=num_classes, dropout=dropout, data_format=data_format
+            )
         )
         super(AlexNet, self).__init__(v=v)
 
@@ -50,7 +56,10 @@ class AlexNet(BaseModel):
     def get_spec_class(self):
         return AlexNetSpec
 
-    def _forward(self, x):
+    def _forward(self, x, data_format=None):
+        data_format = data_format if data_format else self.spec.data_format
+        if data_format == "NHWC":
+            x = ivy.permute_dims(x, (0, 3, 1, 2))
         x = self.features(x)
         x = self.avgpool(x)
         x = ivy.reshape(x, (x.shape[0], -1))
@@ -68,14 +77,13 @@ def _alexnet_torch_weights_mapping(old_key, new_key):
     return new_mapping
 
 
-def alexnet(pretrained=True, num_classes=1000, dropout=0):
+def alexnet(pretrained=True, num_classes=1000, dropout=0, data_format="NHWC"):
     """Ivy AlexNet model"""
-    if not pretrained:
-        return AlexNet(num_classes=num_classes, dropout=dropout)
-
-    reference_model = AlexNet(num_classes=1000)
-    url = "https://download.pytorch.org/models/alexnet-owt-7be5be79.pth"
-    w_clean = ivy_models.helpers.load_torch_weights(
-        url, reference_model, custom_mapping=_alexnet_torch_weights_mapping
-    )
-    return AlexNet(num_classes=1000, v=w_clean)
+    model = AlexNet(num_classes=num_classes, dropout=dropout, data_format=data_format)
+    if pretrained:
+        url = "https://download.pytorch.org/models/alexnet-owt-7be5be79.pth"
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url, model, custom_mapping=_alexnet_torch_weights_mapping
+        )
+        model.v = w_clean
+    return model

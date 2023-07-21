@@ -28,7 +28,13 @@ def crop_center(img, new_x, new_y):
 
 
 def load_and_preprocess_img(
-    path, new_size, crop, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+    path,
+    new_size,
+    crop,
+    mean=[0.485, 0.456, 0.406],
+    std=[0.229, 0.224, 0.225],
+    data_format="NHWC",
+    to_ivy=False,
 ):
     img = Image.open(path)
     compose = transforms.Compose(
@@ -40,5 +46,7 @@ def load_and_preprocess_img(
         ]
     )
     img = compose(img)
-    img = img.unsqueeze(0).permute((0, 2, 3, 1))
-    return img.numpy()
+    img = img.unsqueeze(0)
+    if data_format == "NHWC":
+        img = img.permute((0, 2, 3, 1))
+    return ivy.array(img.numpy()) if to_ivy else img.numpy()
