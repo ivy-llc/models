@@ -74,10 +74,6 @@ class BertConfig:
 def apply_chunking_to_forward(
     feed_forward_module, chunk_size: int, chunk_dim: int, *input_tensors
 ):
-    """
-    This function chunks the `input_tensors` into smaller input tensor parts of size `chunk_size` over the dimension
-    `chunk_dim`. It then applies a layer `forward_fn` to each chunk independently to save memory.
-    """
     if chunk_size is not None and chunk_size > 0:
         tensor_shape = input_tensors[0].shape[chunk_dim]
         for input_tensor in input_tensors:
@@ -312,16 +308,6 @@ def unflatten_set_module(
     to_set,
     split_on="__",
 ):
-    """
-    Set the flattened_name parameter to a certain value while keeping the structure.
-    Parameters:
-        module: ivy.Module or ivy.Container
-        flattened_name: ivy.Container must be flattened like encoder__layer__v0
-        to_set: ivy.Module or ivy.Container the value we want to set
-        split_on: str the split string between the flattened name
-    return
-         ivy.Module or ivy.Container with certain modified parameter
-    """
     splits = flattened_name.split(split_on)
     cont = module
     for idx, sp in enumerate(splits[:-1]):
@@ -339,17 +325,6 @@ def unflatten_set_module(
 def load_transformers_weights(
     model, map_fn, model_name="bert-base-uncased", split_on="__"
 ):
-    """
-    This method for mapping torch weights from transformers library to ivy weights
-    parameters:
-        model :ivy.Module your model
-        map_fn:Callable mapping function that maps names from torch to ivy
-        model_name:str model name from transformers
-        set_model:bool whether to change model weights inplace or not
-        split_on:str name split that split certain  name to a list of names
-    return
-         model with the downloaded weights  or ivy.Container that contains the mapped weights
-    """
     base = AutoModel.from_pretrained(model_name)
     ref_weights = base.state_dict()
     ref_weights = ivy.to_numpy(ivy.Container(ref_weights))
