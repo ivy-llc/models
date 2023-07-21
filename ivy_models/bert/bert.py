@@ -260,7 +260,7 @@ class BertModel(ivy.Module):
             "pooled_output": pooler_out,
             "last_hidden_state": encoder_outs[0],
             "attention_probs": encoder_outs[1],
-            "next_decoder_cache": encoder_outs[2]
+            "next_decoder_cache": encoder_outs[2],
         }
 
 
@@ -269,22 +269,22 @@ class BertModel(ivy.Module):
 
 def custom_map(name):
     key_map = [
-       ("__v0__", "__0__"),
-       ("__v1__", "__1__"),
-       ("__v10__", "__2__"),
-       ("__v11__", "__3__"),
+        ("__v0__", "__0__"),
+        ("__v1__", "__1__"),
+        ("__v10__", "__2__"),
+        ("__v11__", "__3__"),
     ]
     key_map = key_map + [
-       (f"__v{i}", f".{j}") for i, j in zip(range(2, 10), range(4, 12))
+        (f"__v{i}", f".{j}") for i, j in zip(range(2, 10), range(4, 12))
     ]
     key_map = key_map + [
-       ("attention__dense", "attention.output.dense"),
-       ("attention__LayerNorm", "attention.output.LayerNorm"),
+        ("attention__dense", "attention.output.dense"),
+        ("attention__LayerNorm", "attention.output.LayerNorm"),
     ]
     key_map = key_map + [
-       ("ffd__dense1", "intermediate.dense"),
-       ("ffd__dense2", "output.dense"),
-       ("ffd__LayerNorm", "output.LayerNorm"),
+        ("ffd__dense1", "intermediate.dense"),
+        ("ffd__dense2", "output.dense"),
+        ("ffd__LayerNorm", "output.LayerNorm"),
     ]
     name = name.replace("__w", ".weight").replace("__b", ".bias")
     name = (
@@ -306,9 +306,7 @@ def get_idx_from_map(module_list, name):
     return mapping[name]
 
 
-def unflatten_set_module(
-        module, flattened_name, to_set, split_on="__"
-):
+def unflatten_set_module(module, flattened_name, to_set, split_on="__",):
     """
     Set the flattened_name parameter to a certain value while keeping the structure.
     Parameters:
@@ -333,7 +331,7 @@ def unflatten_set_module(
     setattr(cont, splits[-1], to_set)
 
 def load_transformers_weights(
-        model, map_fn, model_name="bert-base-uncased", split_on="__"
+    model, map_fn, model_name="bert-base-uncased", split_on="__"
 ):
     """
     This method for mapping torch weights from transformers library to ivy weights

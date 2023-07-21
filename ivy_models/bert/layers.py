@@ -95,7 +95,7 @@ class BertEmbedding(ivy.Module):
         if position_ids is None:
             pos_ids = ivy.expand_dims(ivy.arange(self.max_position_embeddings), axis=0)
             position_ids = pos_ids[
-               :, past_key_values_length: seq_length + past_key_values_length
+                :, past_key_values_length: seq_length + past_key_values_length
             ]
 
         if token_type_ids is None:
@@ -145,7 +145,7 @@ class BertSelfAttention(ivy.Module):
         self.position_type_embd = (
             position_embedding_type
             if position_embedding_type is not None
-            else 'absolute'
+            else "absolute"
         )
         self.is_decoder = is_decoder
         self.max_position_embeddings = max_position_embeddings
