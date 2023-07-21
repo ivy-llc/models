@@ -1,4 +1,5 @@
 import os
+import random
 import ivy
 import pytest
 import numpy as np
@@ -10,22 +11,29 @@ import jax
 
 jax.config.update("jax_enable_x64", False)
 
+load_weights = random.choice([False, True])
+model = alexnet(pretrained=load_weights)
+v = ivy.to_numpy(model.v)
 
-@pytest.mark.parametrize("batch_shape", [[1]])
-@pytest.mark.parametrize("load_weights", [False, True])
-def test_alexnet_tiny_img_classification(device, f, fw, batch_shape, load_weights):
+
+@pytest.mark.parametrize("data_format", ["NHWC", "NCHW"])
+def test_alexnet_tiny_img_classification(device, f, fw, data_format):
     """Test AlexNet image classification."""
     num_classes = 1000
+    batch_shape = [1]
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # Load image
     img = helpers.load_and_preprocess_img(
-        os.path.join(this_dir, "..", "..", "images", "cat.jpg"), 256, 224
+        os.path.join(this_dir, "..", "..", "images", "cat.jpg"),
+        256,
+        224,
+        data_format=data_format,
+        to_ivy=True,
     )
-    img = ivy.permute_dims(img, (0, 3, 1, 2))
 
-    model = alexnet(pretrained=load_weights)
-    logits = model(img)
+    model.v = ivy.asarray(v)
+    logits = model(img, data_format=data_format)
 
     # Cardinality test
     assert logits.shape == tuple([ivy.to_scalar(batch_shape), num_classes])
