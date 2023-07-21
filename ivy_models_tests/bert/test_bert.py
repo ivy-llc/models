@@ -25,6 +25,4 @@ def test_bert(device, f, fw, batch_shape, load_weights):
     logits = model(**inputs)["pooled_output"]
 
     assert logits.shape == tuple([ivy.to_scaler(batch_shape), num_dims])
-
     assert np.allclose(ref_logits, logits, rtol=0.005, atol=0.0005)
-
