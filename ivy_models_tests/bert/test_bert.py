@@ -28,6 +28,3 @@ def test_bert(device, f, fw, batch_shape, load_weights):
 
     assert np.allclose(ref_logits, logits, rtol=0.005, atol=0.0005)
 
-
-
-
