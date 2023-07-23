@@ -1,10 +1,16 @@
 # global
 import ivy
 import ivy_models
+import ivy_models
 import string
 import numpy as np
 
 # local
+from ivy_models.transformers.helpers import (
+    PreNorm,
+    FeedForward,
+    _perceiver_jax_weights_mapping,
+)
 from ivy_models.transformers.helpers import (
     PreNorm,
     FeedForward,
@@ -119,11 +125,7 @@ class PerceiverIO(ivy.Module):
                 context_dim=input_dim,
                 device=self._spec.device,
             ),
-<<<<<<< HEAD
             key_dim=input_dim,
-=======
-            context_dim=input_dim,
->>>>>>> 1d929d5 (back to init)
             eps=1e-5,
             device=self._spec.device,
         )
@@ -151,6 +153,7 @@ class PerceiverIO(ivy.Module):
         )
 
         self._perceiver_encoder = list()
+        self._perceiver_encoder = list()
         if self._spec.weight_tie_layers:
             self._create_latent_layer = ivy.cache_fn(self._create_latent_layer)
             self._create_cross_layer = ivy.cache_fn(self._create_cross_layer)
@@ -159,7 +162,9 @@ class PerceiverIO(ivy.Module):
             if i == 0 or self._spec.cross_attend_in_every_layer:
                 layer = {**layer, **self._create_cross_layer()}
             self._perceiver_encoder.append(layer)
+            self._perceiver_encoder.append(layer)
 
+        self._classification_decoder = PreNorm(
         self._classification_decoder = PreNorm(
             self._spec.queries_dim,
             ivy.MultiHeadAttention(
@@ -168,13 +173,10 @@ class PerceiverIO(ivy.Module):
                 head_dim=self._spec.latent_dim,
                 context_dim=self._spec.latent_dim,
             ),
-<<<<<<< HEAD
             key_dim=self._spec.latent_dim,
-=======
-            context_dim=self._spec.latent_dim,
->>>>>>> 1d929d5 (back to init)
             eps=1e-5,
         )
+
 
         self._decoder = (
             PreNorm(
@@ -186,6 +188,7 @@ class PerceiverIO(ivy.Module):
             else None
         )
 
+        self._decoder_logits = (
         self._decoder_logits = (
             ivy.Linear(
                 self._spec.queries_dim, self._spec.output_dim, device=self._spec.device
@@ -204,6 +207,7 @@ class PerceiverIO(ivy.Module):
             if self._spec.learn_query
             else None
         )
+        return {"z_latents": latents, "decoder_queries": decoder_queries}
         return {"z_latents": latents, "decoder_queries": decoder_queries}
 
     def _forward(self, data, mask=None, queries=None):
@@ -257,8 +261,10 @@ class PerceiverIO(ivy.Module):
 
         # batchify latents
         x = ivy.einops_repeat(self.v.z_latents, "n d -> b n d", b=flat_batch_size)
+        x = ivy.einops_repeat(self.v.z_latents, "n d -> b n d", b=flat_batch_size)
 
         # layers
+        for layer_dict in self._perceiver_encoder:
         for layer_dict in self._perceiver_encoder:
             if "cross_att" in layer_dict:
                 x = layer_dict["cross_att"](x, context=data, mask=mask) + x
@@ -287,11 +293,7 @@ class PerceiverIO(ivy.Module):
 
         # cross attend from decoder queries to latents
 
-<<<<<<< HEAD
         latents = self._classification_decoder(queries, x, x)
-=======
-        latents = self._decoder_cross_attn(queries, context=x)
->>>>>>> 1d929d5 (back to init)
 
         # optional decoder feedforward
 
@@ -300,6 +302,7 @@ class PerceiverIO(ivy.Module):
 
         # final linear out
 
+        ret_flat = self._decoder_logits(latents)
         ret_flat = self._decoder_logits(latents)
 
         # reshape to correct number of axes
@@ -313,6 +316,23 @@ class PerceiverIO(ivy.Module):
                 **batch_shape_dict
             )
         return ret_flat[0]
+
+
+def perceiver_io_img_classification(spec, pretrained=True):
+    if not pretrained:
+        return PerceiverIO(spec)
+
+    reference_model = PerceiverIO(spec)
+    url = "https://storage.googleapis.com/perceiver_io/imagenet_learned_position_encoding.pystate"  # noqa
+    w_clean = ivy_models.helpers.load_jax_weights(
+        url,
+        reference_model,
+        custom_mapping=_perceiver_jax_weights_mapping,
+        special_rename={"mlp": "net"},
+        with_mha=True,
+    )
+    reference_model.v = w_clean
+    return reference_model
 
 
 def perceiver_io_img_classification(spec, pretrained=True):
