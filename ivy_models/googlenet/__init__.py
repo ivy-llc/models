@@ -1,2 +1,2 @@
-from . import googlenet
-from .googlenet import *
+from . import pytorch_official_googlenet
+from .pytorch_official_googlenet import *

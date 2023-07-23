@@ -26,11 +26,11 @@ def test_feedforward(device, f, fw):
 
 def test_prenorm(device, f, fw):
     ivy.seed(seed_value=0)
-    att = ivy.MultiHeadAttention(16, device=device)
-    prenorm = PreNorm(16, att, device=device)
-    x = ivy.random_uniform(shape=(1, 3, 16), device=device)
+    att = ivy.MultiHeadAttention(4, device=device)
+    prenorm = PreNorm(4, att, device=device)
+    x = ivy.random_uniform(shape=(1, 3, 4), device=device)
     ret = prenorm(x)
-    assert list(ret.shape) == [1, 3, 16]
+    assert list(ret.shape) == [1, 3, 4]
 
 
 # Perceiver IO #
