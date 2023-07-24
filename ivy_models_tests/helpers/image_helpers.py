@@ -33,17 +33,20 @@ def load_and_preprocess_img(
     crop,
     mean=[0.485, 0.456, 0.406],
     std=[0.229, 0.224, 0.225],
-    interpolation=transforms.InterpolationMode.BILINEAR,
+    data_format="NHWC",
+    to_ivy=False,
 ):
     img = Image.open(path)
     compose = transforms.Compose(
         [
-            transforms.Resize(new_size, interpolation=interpolation),
+            transforms.Resize(new_size),
             transforms.CenterCrop(crop),
             transforms.ToTensor(),
             transforms.Normalize(mean=mean, std=std),
         ]
     )
     img = compose(img)
-    img = img.unsqueeze(0).permute((0, 2, 3, 1))
-    return img.numpy()
+    img = img.unsqueeze(0)
+    if data_format == "NHWC":
+        img = img.permute((0, 2, 3, 1))
+    return ivy.array(img.numpy()) if to_ivy else img.numpy()

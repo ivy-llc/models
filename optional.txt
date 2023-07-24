@@ -2,8 +2,6 @@ matplotlib
 numpy
 torchvision
 Pillow # mod_name=PIL
-transformers
 huggingface_hub
-pytest
 ftfy
 regex
