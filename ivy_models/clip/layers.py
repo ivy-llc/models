@@ -1,9 +1,9 @@
 from typing import Union
 
 import ivy
-from ivy.stateful.initializers import RandomNormal
 
 
+# TODO: Refactor once the layer is added to ivy's API. It's a generic layer.
 class Identity(ivy.Module):
     def __init__(self):
         super(Identity, self).__init__()
@@ -12,12 +12,15 @@ class Identity(ivy.Module):
         return x
 
 
+# TODO: Refactor once the layer is added to ivy's API. It's a generic layer.
 class Embedding(ivy.Module):
     def __init__(self, vocab_size, embed_dim, max_norm=None, device=None, dtype=None):
         self.vocab_size = vocab_size
         self.embed_dim = embed_dim
         self.max_norm = max_norm
-        self._w_init = RandomNormal(0.0, 1.0, shape=(self.vocab_size, self.embed_dim))
+        self._w_init = ivy.RandomNormal(
+            0.0, 1.0, shape=(self.vocab_size, self.embed_dim)
+        )
         super(Embedding, self).__init__(device=device, dtype=dtype)
 
     def _create_variables(self, device=None, dtype=None):
@@ -28,7 +31,7 @@ class Embedding(ivy.Module):
         return ivy.embedding(self.v.weight, x, max_norm=self.max_norm)
 
 
-class Bottleneck(ivy.Module):
+class CLIPBottleneck(ivy.Module):
     expansion = 4
 
     def __init__(self, inplanes, planes, stride=1):
@@ -38,7 +41,8 @@ class Bottleneck(ivy.Module):
         super().__init__()
 
     def _build(self, *args, **kwargs):
-        # all conv layers have stride 1. an avgpool is performed after the second convolution when stride > 1
+        # all conv layers have stride 1.
+        # An avgpool is performed after the second convolution when stride > 1
         self.conv1 = ivy.Conv2D(
             self.inplanes,
             self.planes,
@@ -83,8 +87,9 @@ class Bottleneck(ivy.Module):
 
         self.downsample = None
 
-        if self.stride > 1 or self.inplanes != self.planes * Bottleneck.expansion:
-            # downsampling layer is prepended with an avgpool, and the subsequent convolution has stride 1
+        if self.stride > 1 or self.inplanes != self.planes * CLIPBottleneck.expansion:
+            # downsampling layer is prepended with an avgpool
+            # and the subsequent conv has stride 1
             self.downsample = ivy.Sequential(
                 *[
                     ivy.AvgPool2D(self.stride, self.stride, 0, data_format="NCHW"),
@@ -117,7 +122,7 @@ class Bottleneck(ivy.Module):
         return out
 
 
-class AttentionPool2d(ivy.Module):
+class CLIPAttentionPool2d(ivy.Module):
     def __init__(
         self, spacial_dim: int, embed_dim: int, num_heads: int, output_dim: int = None
     ):
@@ -125,7 +130,7 @@ class AttentionPool2d(ivy.Module):
         self.num_heads = num_heads
         self.output_dim = output_dim
         self.dot_prod_scale = (embed_dim // self.num_heads) ** -0.5
-        self._pos_embed_init = RandomNormal(
+        self._pos_embed_init = ivy.RandomNormal(
             0.0, 1.0, shape=(spacial_dim**2 + 1, embed_dim)
         )
         super().__init__()
@@ -169,11 +174,11 @@ class AttentionPool2d(ivy.Module):
         return x.squeeze(axis=1)  # N1E -> NE
 
 
-class ModifiedResNet(ivy.Module):
+class CLIPModifiedResNet(ivy.Module):
     """
     A ResNet class that is similar to torchvision's but contains the following changes:
-    - There are now 3 "stem" convolutions as opposed to 1, with an average pool instead of a max pool.
-    - Performs anti-aliasing strided convolutions, where an avgpool is prepended to convolutions with stride > 1
+    - Now we have 3 "stem" convs as opposed to 1, with an avgpool instead of a max pool.
+    - Anti-aliasing strided convs, where an avgpool is prepended to convs with stride>1
     - The final pooling layer is a QKV attention instead of an average pool
     """
 
@@ -226,16 +231,16 @@ class ModifiedResNet(ivy.Module):
         self.layer4 = self._make_layer(self.width * 8, self.layers[3], stride=2)
 
         embed_dim = self.width * 32  # the ResNet feature dimension
-        self.attnpool = AttentionPool2d(
+        self.attnpool = CLIPAttentionPool2d(
             self.input_resolution // 32, embed_dim, self.heads, self.output_dim
         )
 
     def _make_layer(self, planes, blocks, stride=1):
-        layers = [Bottleneck(self._inplanes, planes, stride)]
+        layers = [CLIPBottleneck(self._inplanes, planes, stride)]
 
-        self._inplanes = planes * Bottleneck.expansion
+        self._inplanes = planes * CLIPBottleneck.expansion
         for _ in range(1, blocks):
-            layers.append(Bottleneck(self._inplanes, planes))
+            layers.append(CLIPBottleneck(self._inplanes, planes))
 
         return ivy.Sequential(*layers)
 
@@ -257,12 +262,12 @@ class ModifiedResNet(ivy.Module):
         return x
 
 
-class QuickGELU(ivy.Module):
+class CLIPQuickGELU(ivy.Module):
     def _forward(self, x: Union[ivy.Array, ivy.NativeArray]):
         return x * ivy.sigmoid(1.702 * x)
 
 
-class ResidualAttentionBlock(ivy.Module):
+class CLIPResidualAttentionBlock(ivy.Module):
     def __init__(
         self,
         d_model: int,
@@ -279,7 +284,7 @@ class ResidualAttentionBlock(ivy.Module):
         self.ln_1 = ivy.LayerNorm([self.d_model])
         self.mlp = ivy.Sequential(
             ivy.Linear(self.d_model, self.d_model * 4),
-            QuickGELU(),
+            CLIPQuickGELU(),
             ivy.Linear(self.d_model * 4, self.d_model),
         )
         self.ln_2 = ivy.LayerNorm([self.d_model])
@@ -299,7 +304,7 @@ class ResidualAttentionBlock(ivy.Module):
         return x
 
 
-class Transformer(ivy.Module):
+class CLIPTransformer(ivy.Module):
     def __init__(
         self,
         width: int,
@@ -316,7 +321,7 @@ class Transformer(ivy.Module):
     def _build(self, *args, **kwargs):
         self.resblocks = ivy.Sequential(
             *[
-                ResidualAttentionBlock(self.width, self.heads, self.attn_mask)
+                CLIPResidualAttentionBlock(self.width, self.heads, self.attn_mask)
                 for _ in range(self.layers)
             ]
         )
@@ -325,7 +330,7 @@ class Transformer(ivy.Module):
         return self.resblocks(x)
 
 
-class VisionTransformer(ivy.Module):
+class CLIPVisionTransformer(ivy.Module):
     def __init__(
         self,
         input_resolution: int,
@@ -343,11 +348,11 @@ class VisionTransformer(ivy.Module):
         self.output_dim = output_dim
 
         self._scale = width**-0.5
-        self._class_embed_init = RandomNormal(0.0, 1.0, shape=width)
-        self._pos_embed_init = RandomNormal(
+        self._class_embed_init = ivy.RandomNormal(0.0, 1.0, shape=width)
+        self._pos_embed_init = ivy.RandomNormal(
             0.0, 1.0, shape=((input_resolution // patch_size) ** 2 + 1, width)
         )
-        self._proj_init = RandomNormal(0.0, 1.0, shape=(width, output_dim))
+        self._proj_init = ivy.RandomNormal(0.0, 1.0, shape=(width, output_dim))
         super().__init__()
 
     def _build(self, *args, **kwargs):
@@ -364,7 +369,7 @@ class VisionTransformer(ivy.Module):
             data_format="NCHW",
         )
         self.ln_pre = ivy.LayerNorm([self.width])
-        self.transformer = Transformer(self.width, self.layers, self.heads)
+        self.transformer = CLIPTransformer(self.width, self.layers, self.heads)
         self.ln_post = ivy.LayerNorm([self.width])
 
     def _create_variables(self, device=None, dtype=None):

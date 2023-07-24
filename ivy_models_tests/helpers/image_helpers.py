@@ -28,12 +28,17 @@ def crop_center(img, new_x, new_y):
 
 
 def load_and_preprocess_img(
-    path, new_size, crop, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+    path,
+    new_size,
+    crop,
+    mean=[0.485, 0.456, 0.406],
+    std=[0.229, 0.224, 0.225],
+    interpolation=transforms.InterpolationMode.BILINEAR,
 ):
     img = Image.open(path)
     compose = transforms.Compose(
         [
-            transforms.Resize(new_size),
+            transforms.Resize(new_size, interpolation=interpolation),
             transforms.CenterCrop(crop),
             transforms.ToTensor(),
             transforms.Normalize(mean=mean, std=std),

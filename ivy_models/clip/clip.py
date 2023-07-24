@@ -4,7 +4,12 @@ import numpy as np
 import ivy
 from ivy.stateful.initializers import Ones
 
-from .layers import *
+from .layers import (
+    CLIPModifiedResNet,
+    CLIPTransformer,
+    CLIPVisionTransformer,
+    Embedding,
+)
 import ivy_models
 from .misc import (
     get_model_args,
@@ -14,7 +19,7 @@ from .misc import (
     get_processors,
 )
 
-__all__ = ["CLIP", "load_clip", "tokenize", "get_processors"]
+__all__ = ["CLIP", "clip", "tokenize", "get_processors"]
 
 
 class CLIP(ivy.Module):
@@ -47,12 +52,14 @@ class CLIP(ivy.Module):
         embed_dim :
             Feature dimension that the text and image encoders will be projected to.
         image_resolution :
-            Input image's resolution expected by the image encoder. (e.g. for 'RN101' it's 224)
+            Input image's resolution expected by the image encoder. (e.g. 224)
         vision layers :
-            For the ViT image encoders it's an integer that represents the number of residual attention block.
-            For the modified Resnets it's a tuple of four integers that represent the number of residual block in each of the four residual layers.
+            For the ViT image encoders it's the number of residual attention block.
+            For the modified Resnets it's a tuple of four integers that represent the
+            number of residual block in each of the four residual layers.
         vision_width :
-            For the Resnets it's the number of channels in the first residual layer. For the ViT it's the transformer's feature dimension.
+            For the Resnets it's the number of channels in the first residual layer.
+            For the ViT it's the transformer's feature dimension.
             (.i.e. In both cases the final visual features are projected to embed_dim.)
         vision_patch_size:
             The patch size of the ViT encoder. Not application to the Resnets.
@@ -61,13 +68,13 @@ class CLIP(ivy.Module):
         vocab_size :
             The size of the vocabulary. Used in the embedding layer.
         transformer_width :
-            The feature dimension of the text encoder. (e.i. It's later projected to embed_dim)
+            The feature dimension of the text encoder.
+            (e.i. It's later projected to embed_dim)
         transformer_heads :
             Number of attention head per residual attention block for the text encoder.
         transformer_layers :
             Number of residual attention block in the text encoder.
         """
-
         self.embed_dim = embed_dim
         self.image_resolution = image_resolution
         self.vision_layers = vision_layers
@@ -89,7 +96,7 @@ class CLIP(ivy.Module):
     def _build(self, *args, **kwargs):
         if isinstance(self.vision_layers, (tuple, list)):
             vision_heads = self.vision_width * 32 // 64
-            self.visual = ModifiedResNet(
+            self.visual = CLIPModifiedResNet(
                 layers=self.vision_layers,
                 output_dim=self.embed_dim,
                 heads=vision_heads,
@@ -98,7 +105,7 @@ class CLIP(ivy.Module):
             )
         else:
             vision_heads = self.vision_width // 64
-            self.visual = VisionTransformer(
+            self.visual = CLIPVisionTransformer(
                 input_resolution=self.image_resolution,
                 patch_size=self.vision_patch_size,
                 width=self.vision_width,
@@ -107,7 +114,7 @@ class CLIP(ivy.Module):
                 output_dim=self.embed_dim,
             )
 
-        self.transformer = Transformer(
+        self.transformer = CLIPTransformer(
             width=self.transformer_width,
             layers=self.transformer_layers,
             heads=self.transformer_heads,
@@ -125,16 +132,16 @@ class CLIP(ivy.Module):
             "text_projection": ivy.empty(
                 self._text_proj_shape, dtype=dtype, device=device
             ),
-            # Casting to float32 because of an issue with avg_pool2d for jax backend when jax_enable_x64 is set to True
+            # Casting to float32 because of an issue with avg_pool2d for jax backend
+            # when jax_enable_x64 is set to True
             "logit_scale": self._scale_init.create_variables([], device, dtype=dtype)
             * np.log(1 / 0.07).astype(ivy.float32),
         }
         return v
 
     def build_attention_mask(self):
-        # lazily create causal attention mask, with full attention between the vision tokens
-        # pytorch uses additive attention mask; but ivy expect a boolean mask (it's converted to a boolean mask)
-        # IVY: Made changes to the mask cause ivy's behavior for float masks is different compared to torch
+        # Create causal attention mask, with full attention between the vision tokens
+        # pytorch uses additive attention mask for floats; but ivy expect a boolean mask
         mask = ivy.ones((self.context_length, self.context_length))
         mask = mask.tril(k=0)
         return mask
@@ -155,7 +162,8 @@ class CLIP(ivy.Module):
         x = x.permute_dims((1, 0, 2))  # LND -> NLD
 
         # x.shape = [batch_size, n_ctx, transformer.width]
-        # take features from the eot embedding (eot_token is the highest number in each sequence)
+        # take features from the eot embedding
+        # (eot_token is the highest number in each sequence)
         x = x[ivy.arange(x.shape[0]), text.argmax(axis=-1)] @ self.v.text_projection
 
         return x
@@ -196,20 +204,22 @@ def _clip_torch_mapping(old_key, new_key):
     return new_mapping
 
 
-def load_clip(name: str, pretrained=True):
+def clip(name: str, pretrained=True):
     """
-    Load a CLIP model
+    Load a pretrained CLIP model variant.
 
     Parameters
     ----------
     name : str
         A model name listed in `clip.available_models()`.
-        One in this list ['RN50', 'RN101', 'RN50x4', 'RN50x16', 'RN50x64', 'ViT-B/32', 'ViT-B/16', 'ViT-L/14', 'ViT-L/14@336px']
+        It's actually the pretrained image encoder that'll be used in the model.
+        One in this list ['RN50', 'RN101', 'RN50x4', 'RN50x16', 'RN50x64', 'ViT-B/32',
+        'ViT-B/16', 'ViT-L/14', 'ViT-L/14@336px']
 
     Returns
     -------
     model : ivy.Module
-        The CLIP model
+        The pretrained CLIP model
     """
     url = get_clip_weights_url(name)
     state_dict = load_clip_state_dict(url)

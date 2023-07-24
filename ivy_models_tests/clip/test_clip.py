@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 from PIL import Image
 
-from ivy_models.clip import load_clip, get_processors
+from ivy_models import clip, get_processors
 
 
 @pytest.mark.parametrize(
@@ -45,7 +45,7 @@ def test_all_clip_img_classification(
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # Create model
-    model = load_clip(image_encoder)
+    model = clip(image_encoder)
 
     # Load image and processors
     tokenize, im_tfms = get_processors(model)
@@ -59,10 +59,8 @@ def test_all_clip_img_classification(
     true_probs = true_logits[image_encoder].softmax()
 
     # Cardinality test
-    print("Cardinality: ", logits_per_image.shape)
     assert logits_per_image.shape == tuple([ivy.to_scalar(batch_shape), num_classes])
 
     # Value test
-    # using probs instead of logits because the original torch model is in fp16, but in float32 in ivy
-    print("Calc logits : ", calc_probs)
+    # Probs instead of logits because the raw weights are in fp16 and we used float32.
     assert np.allclose(true_probs, calc_probs, atol=1e-3)
