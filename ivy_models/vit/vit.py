@@ -1,3 +1,4 @@
+import builtins
 import math
 from collections import OrderedDict
 from functools import partial
@@ -393,6 +394,20 @@ class VisionTransformer(ivy.Module):
         return x
 
 
+def _vit_torch_weights_mapping(old_key, new_key):
+    new_mapping = new_key
+
+    if "features" in old_key:
+        W_KEY = ["conv_proj/weight"]
+        B_KEY = ["conv_proj/bias"]
+        if builtins.any([kc in old_key for kc in W_KEY]):
+            new_mapping = {"key_chain": new_key, "pattern": "b c h w-> h w c b"}
+        elif builtins.any([kc in old_key for kc in B_KEY]):
+            new_mapping = {"key_chain": new_key, "pattern": "h -> 1 1 1 h"}
+
+    return new_mapping
+
+
 def _vision_transformer(
     patch_size: int,
     num_layers: int,
@@ -429,7 +444,7 @@ def vit_b_16(v=None, pretrained=True) -> VisionTransformer:
             url,
             ref_model,
             raw_keys_to_prune=["num_batches_tracked"],
-            custom_mapping=None,
+            custom_mapping=_vit_torch_weights_mapping,
         )
     return _vision_transformer(
         patch_size=16,
@@ -454,7 +469,7 @@ def vit_b_32(v=None, pretrained=True) -> VisionTransformer:
             url,
             ref_model,
             raw_keys_to_prune=["num_batches_tracked"],
-            custom_mapping=None,
+            custom_mapping=_vit_torch_weights_mapping,
         )
         
     return _vision_transformer(
@@ -481,7 +496,7 @@ def vit_l_16(v=None, pretrained=True) -> VisionTransformer:
             url,
             ref_model,
             raw_keys_to_prune=["num_batches_tracked"],
-            custom_mapping=None,
+            custom_mapping=_vit_torch_weights_mapping,
         )
         
     return _vision_transformer(
@@ -508,7 +523,7 @@ def vit_l_32(v=None, pretrained=True) -> VisionTransformer:
             url,
             ref_model,
             raw_keys_to_prune=["num_batches_tracked"],
-            custom_mapping=None,
+            custom_mapping=_vit_torch_weights_mapping,
         )
         
     return _vision_transformer(
@@ -534,7 +549,7 @@ def vit_h_14(v=None, pretrained=True) -> VisionTransformer:
             url,
             ref_model,
             raw_keys_to_prune=["num_batches_tracked"],
-            custom_mapping=None,
+            custom_mapping=_vit_torch_weights_mapping,
         )
         
     return _vision_transformer(
@@ -549,6 +564,6 @@ def vit_h_14(v=None, pretrained=True) -> VisionTransformer:
 
 if __name__ == '__main__':
     ivy.set_torch_backend()
-    model = VisionTransformer(image_size=224, patch_size=16, num_layers=12, num_heads=12,hidden_dim=768, mlp_dim=3072)
-    # model = vit_b_16()
+    # model = VisionTransformer(image_size=224, patch_size=16, num_layers=12, num_heads=12,hidden_dim=768, mlp_dim=3072)
+    model = vit_b_16()
     print(model.v)
