@@ -8,7 +8,7 @@ import torch
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 from PIL import Image
 
-from .simple_tokenizer import CLIPTokenizer as _Tokenizer
+from .simple_tokenizer import CLIPTokenizer
 
 try:
     from torchvision.transforms import InterpolationMode
@@ -22,7 +22,7 @@ if packaging.version.parse(torch.__version__) < packaging.version.parse("1.7.1")
     warnings.warn("PyTorch version 1.7.1 or higher is recommended")
 
 
-_tokenizer = _Tokenizer()
+_tokenizer = CLIPTokenizer()
 
 _MODELS = {
     "RN50": "https://openaipublic.azureedge.net/clip/models/afeb0e10f9e5a86da6080e35cf09123aca3b358a0c3e3b6c78a7b63bc04b6762/RN50.pt",  # noqa
