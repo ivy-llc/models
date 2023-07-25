@@ -4,6 +4,7 @@ from collections import OrderedDict
 from functools import partial
 from typing import Any, Callable, List, NamedTuple, Optional, Tuple, Union, Sequence
 import collections
+from ivy.stateful.initializers import Zeros
 from itertools import repeat
 
 
@@ -247,7 +248,8 @@ class Encoder(ivy.Module):
     ):
         # Note that batch_size is on the first dim because
         # we have batch_first=True in nn.MultiAttention() by default
-        self.pos_embedding = ivy.empty((1, seq_length, hidden_dim))  # from BERT
+        self._pos_embedding_shape = (1, seq_length, hidden_dim)
+        self.pos_embedding = Zeros()  # from BERT
         self.dropout = ivy.Dropout(dropout)
         layers: OrderedDict[str, ivy.Module] = OrderedDict()
         for i in range(num_layers):
@@ -262,6 +264,14 @@ class Encoder(ivy.Module):
         self.layers = ivy.Sequential(layers)
         self.ln = norm_layer(hidden_dim)
         super().__init__()
+
+    def _create_variables(self, device, dtype=None):
+        return {
+            "pos_embeddin": self.pos_embedding.create_variables(
+                self._pos_embedding_shape, device, dtype=dtype
+            )
+        }
+
 
     def _forward(self, input):
         ivy.utils.assertions.check_true(input.dim() == 3, f"Expected (batch_size, seq_length, hidden_dim) got {input.shape}")
@@ -329,7 +339,8 @@ class VisionTransformer(ivy.Module):
         seq_length = (self.image_size // self.patch_size) ** 2
 
         # Add a class token
-        self.class_token = ivy.zeros(shape=(1, 1, self.hidden_dim))
+        self._class_token_shape = (1, 1, self.hidden_dim)
+        self.class_token = Zeros()
         seq_length += 1
 
         self.encoder = Encoder(
@@ -353,6 +364,13 @@ class VisionTransformer(ivy.Module):
             heads_layers["head"] = ivy.Linear(self.representation_size, self.num_classes)
 
         self.heads = ivy.Sequential(heads_layers)
+
+    def _create_variables(self, device, dtype=None):
+        return {
+            "class_token": self.class_token.create_variables(
+                self._class_token_shape, device, dtype=dtype
+            )
+        }
 
     def _process_input(self, x):
         n, c, h, w = x.shape
@@ -397,13 +415,10 @@ class VisionTransformer(ivy.Module):
 def _vit_torch_weights_mapping(old_key, new_key):
     new_mapping = new_key
 
-    if "features" in old_key:
-        W_KEY = ["conv_proj/weight"]
-        B_KEY = ["conv_proj/bias"]
-        if builtins.any([kc in old_key for kc in W_KEY]):
-            new_mapping = {"key_chain": new_key, "pattern": "b c h w-> h w c b"}
-        elif builtins.any([kc in old_key for kc in B_KEY]):
-            new_mapping = {"key_chain": new_key, "pattern": "h -> 1 1 1 h"}
+    if "conv_proj/weight" in old_key:
+        new_mapping = {"key_chain": new_key, "pattern": "b c h w -> h w c b"}
+    elif "conv_proj/bias" in old_key:
+        new_mapping = {"key_chain": new_key, "pattern": "h -> 1 1 1 h"}
 
     return new_mapping
 
@@ -564,6 +579,5 @@ def vit_h_14(v=None, pretrained=True) -> VisionTransformer:
 
 if __name__ == '__main__':
     ivy.set_torch_backend()
-    # model = VisionTransformer(image_size=224, patch_size=16, num_layers=12, num_heads=12,hidden_dim=768, mlp_dim=3072)
     model = vit_b_16()
     print(model.v)
