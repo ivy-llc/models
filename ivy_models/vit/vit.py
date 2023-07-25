@@ -182,13 +182,13 @@ class ConvStemConfig(NamedTuple):
     activation_layer: Callable[..., ivy.Module] = ivy.ReLU
 
 
-class MLPBlock(MLP):
+class VIT_MLPBlock(MLP):
     """Transformer MLP block."""
     def __init__(self, in_dim: int, mlp_dim: int, dropout: float):
         super().__init__(in_dim, [mlp_dim, in_dim], activation_layer=ivy.GELU, inplace=None, dropout=dropout)
 
 
-class EncoderBlock(ivy.Module):
+class VIT_EncoderBlock(ivy.Module):
     """Transformer encoder block."""
 
     def __init__(
@@ -218,7 +218,7 @@ class EncoderBlock(ivy.Module):
 
         # MLP block
         self.ln_2 = self.norm_layer(self.hidden_dim)
-        self.mlp = MLPBlock(self.hidden_dim, self.mlp_dim, self.dropout)
+        self.mlp = VIT_MLPBlock(self.hidden_dim, self.mlp_dim, self.dropout)
 
     def _forward(self, input):
         ivy.utils.assertions.check_true(input.dim() == 3, f"Expected (batch_size, seq_length, hidden_dim) got {input.shape}")
@@ -232,7 +232,7 @@ class EncoderBlock(ivy.Module):
         return x + y
 
 
-class Encoder(ivy.Module):
+class VIT_Encoder(ivy.Module):
     """Transformer Model Encoder for sequence to sequence translation."""
 
     def __init__(
@@ -253,7 +253,7 @@ class Encoder(ivy.Module):
         self.dropout = ivy.Dropout(dropout)
         layers: OrderedDict[str, ivy.Module] = OrderedDict()
         for i in range(num_layers):
-            layers[f"encoder_layer_{i}"] = EncoderBlock(
+            layers[f"encoder_layer_{i}"] = VIT_EncoderBlock(
                 num_heads,
                 hidden_dim,
                 mlp_dim,
@@ -343,7 +343,7 @@ class VisionTransformer(ivy.Module):
         self.class_token = Zeros()
         seq_length += 1
 
-        self.encoder = Encoder(
+        self.encoder = VIT_Encoder(
             seq_length,
             self.num_layers,
             self.num_heads,
