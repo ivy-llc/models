@@ -156,7 +156,7 @@ def load_torch_weights(
     return ivy.asarray(w_clean)
 
 
-def unflatten_set(container, name, to_set, split_on='__'):
+def unflatten_set(container, name, to_set, split_on="__"):
     splits = name.split(split_on)
     cont = container
     for idx, sp in enumerate(splits[:-1]):
