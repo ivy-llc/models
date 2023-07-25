@@ -253,9 +253,7 @@ class BertModel(BaseModel):
 
 def _bert_weights_mapping(name):
 
-    key_map = [
-        (f"__v{i}__", f"__{j}__") for i, j in zip(range(12), range(12))
-    ]
+    key_map = [(f"__v{i}__", f"__{j}__") for i, j in zip(range(12), range(12))]
     key_map = key_map + [
         ("attention__dense", "attention.output.dense"),
         ("attention__LayerNorm", "attention.output.LayerNorm"),
