@@ -15,6 +15,11 @@ class BaseModel(ivy.Module):
     def __init__(self, *args, **kwargs):
         super(BaseModel, self).__init__(*args, **kwargs)
 
+    def __setattr__(self, key, value):
+        if key == "v" and hasattr(self, "v") and self.v is not None:
+            ivy.Container.cont_assert_identical_structure([self.v, value])
+        self.__dict__[key] = value
+
     @abstractclassmethod
     def get_spec_class(self):
         raise NotImplementedError()
