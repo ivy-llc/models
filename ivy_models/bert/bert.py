@@ -1,13 +1,11 @@
 import ivy
-from transformers import AutoModel
-import copy
-from dataclasses import dataclass, asdict
+from ivy_models.base import BaseModel, BaseSpec
+from ivy_mdoels.helpers import load_transformers_weights
 from .layers import BertAttention, BertFeedForward, BertEmbedding
 
 
 # BertConfig
-@dataclass
-class BertConfig:
+class BertConfig(BaseSpec):
     vocab_size: int
     hidden_size: int
     num_attention_heads: int
@@ -33,9 +31,6 @@ class BertConfig:
         for name in attr_names:
             new_dict[name] = getattr(self, name)
         return new_dict
-
-    def dict(self):
-        return asdict(self)
 
     def get_ffd_attrs(self):
         return self.get(
@@ -186,14 +181,14 @@ class BertPooler(ivy.Module):
 
     def _forward(self, hidden_states):
         # We "pool" the model by simply taking the hidden state corresponding
-        # to the first token.
+        # to the first token [CLS].
         first_token_tensor = hidden_states[:, 0]
         pooled_output = self.dense(first_token_tensor)
         pooled_output = self.activation(pooled_output)
         return pooled_output
 
 
-class BertModel(ivy.Module):
+class BertModel(BaseModel):
     def __init__(self, config: BertConfig, pooler_out=False, v=None):
         self.config = config
         self.pooler_out = pooler_out
@@ -246,7 +241,7 @@ class BertModel(ivy.Module):
         else:
             pooler_out = None
         return {
-            "pooled_output": pooler_out,
+            "pooler_output": pooler_out,
             "last_hidden_state": encoder_outs[0],
             "attention_probs": encoder_outs[1],
             "next_decoder_cache": encoder_outs[2],
@@ -256,15 +251,10 @@ class BertModel(ivy.Module):
 # Mapping and loading section
 
 
-def custom_map(name):
+def _bert_weights_mapping(name):
+
     key_map = [
-        ("__v0__", "__0__"),
-        ("__v1__", "__1__"),
-        ("__v10__", "__2__"),
-        ("__v11__", "__3__"),
-    ]
-    key_map = key_map + [
-        (f"__v{i}", f".{j}") for i, j in zip(range(2, 10), range(4, 12))
+        (f"__v{i}__", f"__{j}__") for i, j in zip(range(12), range(12))
     ]
     key_map = key_map + [
         ("attention__dense", "attention.output.dense"),
@@ -287,52 +277,6 @@ def custom_map(name):
     return name
 
 
-def get_idx_from_map(module_list, name):
-    names = ["v0", "v1", "v10", "v11"] + [
-        f"v{i}" for i in range(2, len(module_list) - 2)
-    ]
-    mapping = dict(zip(names, range(len(names))))
-    return mapping[name]
-
-
-def unflatten_set_module(
-    module,
-    flattened_name,
-    to_set,
-    split_on="__",
-):
-    splits = flattened_name.split(split_on)
-    cont = module
-    for idx, sp in enumerate(splits[:-1]):
-        cont = getattr(cont, sp)
-        if isinstance(cont, list):  # map the list structure to indices
-            mapped_idx = get_idx_from_map(cont, splits[idx + 1])
-            cont = cont[mapped_idx]
-            for s in splits[idx + 2 : -1]:
-                cont = getattr(cont, s)
-            break
-    cont = getattr(cont, "v")  # set the parameter variable to the wanted value
-    setattr(cont, splits[-1], to_set)
-
-
-def load_transformers_weights(
-    model, map_fn, model_name="bert-base-uncased", split_on="__"
-):
-    base = AutoModel.from_pretrained(model_name)
-    ref_weights = base.state_dict()
-    ref_weights = ivy.to_numpy(ivy.Container(ref_weights))
-    ivy.set_backend("torch")
-    old_mapping = copy.deepcopy(model.v)
-    param_names = old_mapping.cont_flatten_key_chains().keys()
-    mapping_list = map(lambda x: map_fn(x), param_names)
-    mapping = dict(zip(param_names, mapping_list))
-    ivy.previous_backend()
-    for old_name, ref_name in mapping.items():
-        to_set = ivy.asarray(ref_weights[ref_name])
-        unflatten_set_module(model, old_name, to_set, split_on)
-    return model
-
-
 def bert_base_uncased(pretrained=True):
     # instantiate the hyperparameters same as bert
     # set the dropout rate to 0.0 to avoid stochasticity in the output
@@ -349,5 +293,6 @@ def bert_base_uncased(pretrained=True):
     )
     model = BertModel(config, pooler_out=True)
     if pretrained:
-        model = load_transformers_weights(model, custom_map)
+        mapping = load_transformers_weights(model, _bert_weights_mapping)
+        model = BertModel(config, True, v=mapping)
     return model
