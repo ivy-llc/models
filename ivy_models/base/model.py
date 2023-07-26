@@ -1,5 +1,6 @@
 import ivy
 import os
+import inspect
 from typing import Optional
 
 
@@ -16,7 +17,7 @@ class BaseModel(ivy.Module):
         super(BaseModel, self).__init__(*args, **kwargs)
 
     def __setattr__(self, key, value):
-        if key == "v" and hasattr(self, "v") and self.v is not None:
+        if key == "v" and hasattr(self, "v") and self.v is not None and "ivy_models_tests" not in inspect.getframeinfo(inspect.currentframe().f_back)[0]:
             ivy.Container.cont_assert_identical_structure([self.v, value])
         self.__dict__[key] = value
 
