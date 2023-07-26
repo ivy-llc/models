@@ -33,7 +33,7 @@ class ConvNeXtSpec(BaseSpec):
         )
 
 
-class ConvNeXt(ivy.Module):
+class ConvNeXt(BaseModel):
     def __init__(
         self,
         version=1,
