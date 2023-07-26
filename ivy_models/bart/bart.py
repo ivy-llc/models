@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 class BartPretrainedModel(BaseModel):
     config_class = BartConfig
     base_model_prefix = "model"
-    supports_gradient_checkpointing = True
     _keys_to_ignore_on_load_unexpected = ["encoder.version", "decoder.version"]
     _no_split_modules = [r"BartEncoderLayer", r"BartDecoderLayer"]
     _skip_keys_device_placement = "past_key_values"
@@ -31,11 +30,7 @@ class BartPretrainedModel(BaseModel):
             if module.padding_idx is not None:
                 module.weight.data[module.padding_idx].zero_()
 
-    def _set_gradient_checkpointing(self, module, value=False):
-        if isinstance(module, (BartDecoder, BartEncoder)):
-            module.gradient_checkpointing = value
-    
-    
+
     @property
     def dummy_inputs(self):
         pad_token = self.config.pad_token_id
@@ -89,7 +84,6 @@ class BartEncoder(BartPretrainedModel):
         self.layers = [BartEncoderLayer(config) for _ in range(config.encoder_layers)] # TODO: Do we need ModuleList class like in PyTorch?
         self.layernorm_embedding = ivy.LayerNorm(embed_dim)
 
-        self.gradient_checkpointing = False
         # Initialize weights and apply final processing
         self.post_init()
 
@@ -194,34 +188,19 @@ class BartEncoder(BartPretrainedModel):
             # add LayerDrop (see https://arxiv.org/abs/1909.11556 for description)
             to_drop = False
             if self.training:
-                dropout_probability = ivy.random_uniform([])
+                dropout_probability = ivy.random_uniform(low=0, high=1)
                 if dropout_probability < self.layerdrop:  # skip the layer
                     to_drop = True
 
             if to_drop:
                 layer_outputs = (None, None)
             else:
-                if self.gradient_checkpointing and self.training:
-
-                    def create_custom_forward(module):
-                        def custom_forward(*inputs):
-                            return module(*inputs, output_attentions)
-
-                        return custom_forward
-                    
-                    layer_outputs = ivy.utils.checkpoint.checkpoint( # TODO: Ivy doesn't have a checkpoint....
-                        create_custom_forward(encoder_layer),
-                        hidden_states,
-                        attention_mask,
-                        (head_mask[idx] if head_mask is not None else None),
-                    )
-                else:
-                    layer_outputs = encoder_layer(
-                        hidden_states,
-                        attention_mask,
-                        layer_head_mask=(head_mask[idx] if head_mask is not None else None),
-                        output_attentions=output_attentions,
-                    )
+                layer_outputs = encoder_layer(
+                    hidden_states,
+                    attention_mask,
+                    layer_head_mask=(head_mask[idx] if head_mask is not None else None),
+                    output_attentions=output_attentions,
+                )
 
                 hidden_states = layer_outputs[0]
 
@@ -267,7 +246,6 @@ class BartDecoder(BartPretrainedModel):
         self.layers = [BartDecoderLayer(config) for _ in range(config.decoder_layers)]
         self.layernorm_embedding = ivy.LayerNorm(config.d_model)
 
-        self.gradient_checkpointing = False
         # Initialize weights and apply final processing
         self.post_init()
 
@@ -424,13 +402,6 @@ class BartDecoder(BartPretrainedModel):
 
         hidden_states = ivy.dropout(hidden_states, p=self.dropout, training=self.training)
 
-        if self.gradient_checkpointing and self.training:
-            if use_cache:
-                logger.warning(
-                    "`use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`..."
-                )
-                use_cache = False
-
         # decoder layers
         all_hidden_states = () if output_hidden_states else None
         all_self_attns = () if output_attentions else None
@@ -457,39 +428,20 @@ class BartDecoder(BartPretrainedModel):
 
             past_key_value = past_key_values[idx] if past_key_values is not None else None
 
-            if self.gradient_checkpointing and self.training:
-
-                def create_custom_forward(module):
-                    def custom_forward(*inputs):
-                        # None for past_key_value
-                        return module(*inputs, output_attentions, use_cache)
-
-                    return custom_forward
-
-                layer_outputs = ivy.utils.checkpoint.checkpoint( # TODO: Ivy doesn't have a checkpoint....
-                    create_custom_forward(decoder_layer),
-                    hidden_states,
-                    attention_mask,
-                    encoder_hidden_states,
-                    encoder_attention_mask,
-                    head_mask[idx] if head_mask is not None else None,
-                    cross_attn_head_mask[idx] if cross_attn_head_mask is not None else None,
-                    None,
-                )
-            else:
-                layer_outputs = decoder_layer(
-                    hidden_states,
-                    attention_mask=attention_mask,
-                    encoder_hidden_states=encoder_hidden_states,
-                    encoder_attention_mask=encoder_attention_mask,
-                    layer_head_mask=(head_mask[idx] if head_mask is not None else None),
-                    cross_attn_layer_head_mask=(
-                        cross_attn_head_mask[idx] if cross_attn_head_mask is not None else None
-                    ),
-                    past_key_value=past_key_value,
-                    output_attentions=output_attentions,
-                    use_cache=use_cache,
-                )
+            layer_outputs = decoder_layer(
+                hidden_states,
+                attention_mask=attention_mask,
+                encoder_hidden_states=encoder_hidden_states,
+                encoder_attention_mask=encoder_attention_mask,
+                layer_head_mask=(head_mask[idx] if head_mask is not None else None),
+                cross_attn_layer_head_mask=(
+                    cross_attn_head_mask[idx] if cross_attn_head_mask is not None else None
+                ),
+                past_key_value=past_key_value,
+                output_attentions=output_attentions,
+                use_cache=use_cache,
+            )
+            
             hidden_states = layer_outputs[0]
 
             if use_cache:
