@@ -1,22 +1,23 @@
 import ivy
-import ivy_models
+from ivy_models.convnext.layers import ConvNeXtBlock, ConvNeXtV2Block, ConvNeXtLayerNorm
+
 from ivy_models.base import BaseModel, BaseSpec
-from .layers import ConvNeXtBlock, ConvNeXtV2Block, ConvNeXtLayerNorm
+from ivy_models.helpers import load_torch_weights
 
 
 class ConvNeXtSpec(BaseSpec):
     def __init__(self,
-        version=1,
-        in_channels=3,
-        num_classes=1000,
-        depths=[3, 3, 9, 3],
-        dims=[96, 192, 384, 768],
-        drop_path_rate=0.0,
-        layer_scale_init_value=1e-6,
-        head_init_scale=1.0,
-        device=None,
-        training=False,
-    ):
+                 version=1,
+                 in_channels=3,
+                 num_classes=1000,
+                 depths=[3, 3, 9, 3],
+                 dims=[96, 192, 384, 768],
+                 drop_path_rate=0.0,
+                 layer_scale_init_value=1e-6,
+                 head_init_scale=1.0,
+                 device=None,
+                 training=False,
+                 ):
         super(ConvNeXtSpec, self).__init__(
             version=version,
             in_channels=in_channels,
@@ -72,12 +73,14 @@ class ConvNeXt(ivy.Module):
             ivy.Conv2D(
                 self.spec.in_channels, self.spec.dims[0], [4, 4], (4, 4), 0, data_format="NCHW"
             ),
-            ConvNeXtLayerNorm(self.spec.dims[0], eps=1e-6, data_format="channels_first"),
+            ConvNeXtLayerNorm(self.spec.dims[0], eps=1e-6,
+                              data_format="channels_first"),
         )
         self.downsample_layers.append(stem)
         for i in range(3):
             downsample_layer = ivy.Sequential(
-                ConvNeXtLayerNorm(self.spec.dims[i], eps=1e-6, data_format="channels_first"),
+                ConvNeXtLayerNorm(
+                    self.spec.dims[i], eps=1e-6, data_format="channels_first"),
                 ivy.Conv2D(
                     self.spec.dims[i],
                     self.spec.dims[i + 1],
@@ -90,7 +93,8 @@ class ConvNeXt(ivy.Module):
             self.downsample_layers.append(downsample_layer)
 
         self.stages = []
-        dp_rates = [x for x in ivy.linspace(0, self.spec.drop_path_rate, sum(self.depths))]
+        dp_rates = [x for x in ivy.linspace(
+            0, self.spec.drop_path_rate, sum(self.spec.depths))]
         cur = 0
         for i in range(4):
             stage = ivy.Sequential(
@@ -98,19 +102,19 @@ class ConvNeXt(ivy.Module):
                     ConvNeXtBlock(
                         dim=self.spec.dims[i],
                         drop_path=dp_rates[cur + j],
-                        layer_scale_init_value=self.sepc.layer_scale_init_value,
+                        layer_scale_init_value=self.spec.layer_scale_init_value,
                     )
-                    if self.version == 1
+                    if self.spec.version == 1
                     else ConvNeXtV2Block(
                         dim=self.spec.dims[i],
                         drop_path=dp_rates[cur + j],
                         layer_scale_init_value=self.spec.layer_scale_init_value,
                     )
-                    for j in range(self.depths[i])
+                    for j in range(self.spec.depths[i])
                 ]
             )
             self.stages.append(stage)
-            cur += self.depths[i]
+            cur += self.spec.depths[i]
 
         self.norm = ivy.LayerNorm([self.spec.dims[-1]], eps=1e-6)
         self.head = ivy.Linear(self.spec.dims[-1], self.spec.num_classes)
@@ -149,62 +153,103 @@ def _convnext_torch_weights_mapping(old_key, new_key):
     return new_mapping
 
 
-def convnext(size: str, pretrained=True):
+def convnext_tiny(pretrained=True):
     """Loads a ConvNeXt with specified size, optionally pretrained."""
-    size_dict = {
-        "tiny": ([3, 3, 9, 3], [96, 192, 384, 768]),
-        "small": ([3, 3, 27, 3], [96, 192, 384, 768]),
-        "base": ([3, 3, 27, 3], [128, 256, 512, 1024]),
-        "large": ([3, 3, 27, 3], [192, 384, 768, 1536]),
-    }
-    try:
-        depths, dims = size_dict[size]
-    except KeyError:
-        raise Exception("Enter a valid model size: tiny/small/base/large")
+    depths, dims = ([3, 3, 9, 3], [96, 192, 384, 768])
 
     if not pretrained:
         return ConvNeXt(version=1, depths=depths, dims=dims)
 
-    weight_dl = {
-        "tiny": "https://dl.fbaipublicfiles.com/convnext/convnext_tiny_1k_224_ema.pth",  # noqa
-        "small": "https://dl.fbaipublicfiles.com/convnext/convnext_small_1k_224_ema.pth",  # noqa
-        "base": "https://dl.fbaipublicfiles.com/convnext/convnext_base_1k_224_ema.pth",  # noqa
-        "large": "https://dl.fbaipublicfiles.com/convnext/convnext_large_1k_224_ema.pth",  # noqa
-    }
+    weight_url = "https://dl.fbaipublicfiles.com/convnext/convnext_tiny_1k_224_ema.pth"
 
-    reference_model = ConvNeXt(version=1, depths=depths, dims=dims)
-    w_clean = ivy_models.helpers.load_torch_weights(
-        weight_dl[size], reference_model, custom_mapping=_convnext_torch_weights_mapping
+    model = ConvNeXt(version=1, depths=depths, dims=dims)
+    w_clean = load_torch_weights(
+        weight_url, model, custom_mapping=_convnext_torch_weights_mapping
     )
+
     return ConvNeXt(version=1, depths=depths, dims=dims, v=w_clean)
 
 
-def convnextv2(size: str, pretrained=True):
+def convnext_small(pretrained=True):
+    """Loads a ConvNeXt with specified size, optionally pretrained."""
+    depths, dims = ([3, 3, 27, 3], [96, 192, 384, 768])
+
+    if not pretrained:
+        return ConvNeXt(version=1, depths=depths, dims=dims)
+
+    weight_url = "https://dl.fbaipublicfiles.com/convnext/convnext_small_1k_224_ema.pth"
+
+    model = ConvNeXt(version=1, depths=depths, dims=dims)
+    w_clean = load_torch_weights(
+        weight_url, model, custom_mapping=_convnext_torch_weights_mapping
+    )
+    model.v = w_clean
+    return model
+
+
+def convnext_base(pretrained=True):
+    """Loads a ConvNeXt with specified size, optionally pretrained."""
+    depths, dims = ([3, 3, 27, 3], [128, 256, 512, 1024])
+
+    if not pretrained:
+        return ConvNeXt(version=1, depths=depths, dims=dims)
+
+    weight_url = "https://dl.fbaipublicfiles.com/convnext/convnext_base_1k_224_ema.pth"
+
+    model = ConvNeXt(version=1, depths=depths, dims=dims)
+    w_clean = load_torch_weights(
+        weight_url, model, custom_mapping=_convnext_torch_weights_mapping
+    )
+    model.v = w_clean
+    return model
+
+
+def convnext_large(pretrained=True):
+    """Loads a ConvNeXt with specified size, optionally pretrained."""
+    depths, dims = ([3, 3, 27, 3], [192, 384, 768, 1536])
+
+    if not pretrained:
+        return ConvNeXt(version=1, depths=depths, dims=dims)
+
+    weight_url = "https://dl.fbaipublicfiles.com/convnext/convnext_large_1k_224_ema.pth"
+
+    model = ConvNeXt(version=1, depths=depths, dims=dims)
+    w_clean = load_torch_weights(
+        weight_url, model, custom_mapping=_convnext_torch_weights_mapping
+    )
+    model.v = w_clean
+    return model
+
+
+def convnextv2_atto(pretrained=True):
     """Loads a ConvNeXtV2 with specified size, optionally pretrained."""
-    size_dict = {
-        "atto": ([2, 2, 6, 2], [40, 80, 160, 320]),
-        "base": ([3, 3, 27, 3], [128, 256, 512, 1024]),
-    }
-    try:
-        depths, dims = size_dict[size]
-    except KeyError:
-        raise Exception("Enter a valid model size: tiny/small/base/large")
+    depths, dims = ([2, 2, 6, 2], [40, 80, 160, 320])
 
     if not pretrained:
         return ConvNeXt(version=2, depths=depths, dims=dims)
 
-    weight_dl = {
-        "atto": "https://dl.fbaipublicfiles.com/convnext/convnextv2/im1k/convnextv2_atto_1k_224_ema.pt",  # noqa
-        "base": "https://dl.fbaipublicfiles.com/convnext/convnextv2/im1k/convnextv2_base_1k_224_ema.pt",  # noqa
-    }
+    weight_url = "https://dl.fbaipublicfiles.com/convnext/convnextv2/im1k/convnextv2_atto_1k_224_ema.pt"
 
-    reference_model = ConvNeXt(version=2, depths=depths, dims=dims)
-    w_clean = ivy_models.helpers.load_torch_weights(
-        weight_dl[size], reference_model, custom_mapping=_convnext_torch_weights_mapping
+    model = ConvNeXt(version=2, depths=depths, dims=dims)
+    w_clean = load_torch_weights(
+        weight_url, model, custom_mapping=_convnext_torch_weights_mapping
     )
-    return ConvNeXt(version=2, depths=depths, dims=dims, v=w_clean)
+    model.v = w_clean
+    return model
 
 
-if __name__ == "__main__":
-    model = convnext("tiny", pretrained=True)
-    print(model.v)
+def convnextv2_base(pretrained=True):
+    """Loads a ConvNeXtV2 with specified size, optionally pretrained."""
+    depths, dims = ([3, 3, 27, 3], [128, 256, 512, 1024])
+
+    if not pretrained:
+        return ConvNeXt(version=2, depths=depths, dims=dims)
+
+    weight_url = "https://dl.fbaipublicfiles.com/convnext/convnextv2/im1k/convnextv2_base_1k_224_ema.pt"
+
+    model = ConvNeXt(version=2, depths=depths, dims=dims)
+    w_clean = load_torch_weights(
+        weight_url, model, custom_mapping=_convnext_torch_weights_mapping
+    )
+    model.v = w_clean
+    return model
