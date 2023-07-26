@@ -42,14 +42,6 @@ class BartPretrainedModel(BaseModel):
         return dummy_inputs
 
 
-class PretrainedBartModel(BartPretrainedModel):
-    def __init_subclass__(self):
-        warnings.warn(
-            "The class `PretrainedBartModel` has been depreciated, please use `BartPretrainedModel` instead.",
-            FutureWarning,
-        )
-
-
 class BartEncoder(BartPretrainedModel):
     """
     Transformer encoder consisting of *config.encoder_layers* self attention layers. Each layer is a
