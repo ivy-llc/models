@@ -1,6 +1,34 @@
 import ivy
 import ivy_models
+from ivy_models.base import BaseModel, BaseSpec
 from .layers import ConvNeXtBlock, ConvNeXtV2Block, ConvNeXtLayerNorm
+
+
+class ConvNeXtSpec(BaseSpec):
+    def __init__(self,
+        version=1,
+        in_channels=3,
+        num_classes=1000,
+        depths=[3, 3, 9, 3],
+        dims=[96, 192, 384, 768],
+        drop_path_rate=0.0,
+        layer_scale_init_value=1e-6,
+        head_init_scale=1.0,
+        device=None,
+        training=False,
+    ):
+        super(ConvNeXtSpec, self).__init__(
+            version=version,
+            in_channels=in_channels,
+            num_classes=num_classes,
+            depths=depths,
+            dims=dims,
+            drop_path_rate=drop_path_rate,
+            layer_scale_init_value=layer_scale_init_value,
+            head_init_scale=head_init_scale,
+            device=device,
+            training=training
+        )
 
 
 class ConvNeXt(ivy.Module):
@@ -16,34 +44,43 @@ class ConvNeXt(ivy.Module):
         head_init_scale=1.0,
         device=None,
         training=False,
+        spec=None,
         v=None,
     ):
-        self.in_channels = in_channels
-        self.num_classes = num_classes
-        self.depths = depths
-        self.dims = dims
-        self.drop_path_rate = drop_path_rate
-        self.layer_scale_init_value = layer_scale_init_value
-        self.head_init_scale = head_init_scale
         assert version == 1 or version == 2
-        self.version = version
+        self.spec = (
+            spec
+            if spec and isinstance(spec, ConvNeXtSpec)
+            else ConvNeXtSpec(
+                version=version,
+                in_channels=in_channels,
+                num_classes=num_classes,
+                depths=depths,
+                dims=dims,
+                drop_path_rate=drop_path_rate,
+                layer_scale_init_value=layer_scale_init_value,
+                head_init_scale=head_init_scale,
+                device=device,
+                training=training,
+            )
+        )
         super(ConvNeXt, self).__init__(device=device, v=v)
 
     def _build(self, *args, **kwargs):
         self.downsample_layers = []
         stem = ivy.Sequential(
             ivy.Conv2D(
-                self.in_channels, self.dims[0], [4, 4], (4, 4), 0, data_format="NCHW"
+                self.spec.in_channels, self.spec.dims[0], [4, 4], (4, 4), 0, data_format="NCHW"
             ),
-            ConvNeXtLayerNorm(self.dims[0], eps=1e-6, data_format="channels_first"),
+            ConvNeXtLayerNorm(self.spec.dims[0], eps=1e-6, data_format="channels_first"),
         )
         self.downsample_layers.append(stem)
         for i in range(3):
             downsample_layer = ivy.Sequential(
-                ConvNeXtLayerNorm(self.dims[i], eps=1e-6, data_format="channels_first"),
+                ConvNeXtLayerNorm(self.spec.dims[i], eps=1e-6, data_format="channels_first"),
                 ivy.Conv2D(
-                    self.dims[i],
-                    self.dims[i + 1],
+                    self.spec.dims[i],
+                    self.spec.dims[i + 1],
                     [2, 2],
                     (2, 2),
                     0,
@@ -53,21 +90,21 @@ class ConvNeXt(ivy.Module):
             self.downsample_layers.append(downsample_layer)
 
         self.stages = []
-        dp_rates = [x for x in ivy.linspace(0, self.drop_path_rate, sum(self.depths))]
+        dp_rates = [x for x in ivy.linspace(0, self.spec.drop_path_rate, sum(self.depths))]
         cur = 0
         for i in range(4):
             stage = ivy.Sequential(
                 *[
                     ConvNeXtBlock(
-                        dim=self.dims[i],
+                        dim=self.spec.dims[i],
                         drop_path=dp_rates[cur + j],
-                        layer_scale_init_value=self.layer_scale_init_value,
+                        layer_scale_init_value=self.sepc.layer_scale_init_value,
                     )
                     if self.version == 1
                     else ConvNeXtV2Block(
-                        dim=self.dims[i],
+                        dim=self.spec.dims[i],
                         drop_path=dp_rates[cur + j],
-                        layer_scale_init_value=self.layer_scale_init_value,
+                        layer_scale_init_value=self.spec.layer_scale_init_value,
                     )
                     for j in range(self.depths[i])
                 ]
@@ -75,8 +112,12 @@ class ConvNeXt(ivy.Module):
             self.stages.append(stage)
             cur += self.depths[i]
 
-        self.norm = ivy.LayerNorm([self.dims[-1]], eps=1e-6)
-        self.head = ivy.Linear(self.dims[-1], self.num_classes)
+        self.norm = ivy.LayerNorm([self.spec.dims[-1]], eps=1e-6)
+        self.head = ivy.Linear(self.spec.dims[-1], self.spec.num_classes)
+
+    @classmethod
+    def get_spec_class(self):
+        return ConvNeXtSpec
 
     def _forward(self, x):
         for i in range(4):
@@ -162,3 +203,8 @@ def convnextv2(size: str, pretrained=True):
         weight_dl[size], reference_model, custom_mapping=_convnext_torch_weights_mapping
     )
     return ConvNeXt(version=2, depths=depths, dims=dims, v=w_clean)
+
+
+if __name__ == "__main__":
+    model = convnext("tiny", pretrained=True)
+    print(model.v)
