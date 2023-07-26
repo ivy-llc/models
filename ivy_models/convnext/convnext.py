@@ -6,18 +6,19 @@ from ivy_models.helpers import load_torch_weights
 
 
 class ConvNeXtSpec(BaseSpec):
-    def __init__(self,
-                 version=1,
-                 in_channels=3,
-                 num_classes=1000,
-                 depths=[3, 3, 9, 3],
-                 dims=[96, 192, 384, 768],
-                 drop_path_rate=0.0,
-                 layer_scale_init_value=1e-6,
-                 head_init_scale=1.0,
-                 device=None,
-                 training=False,
-                 ):
+    def __init__(
+        self,
+        version=1,
+        in_channels=3,
+        num_classes=1000,
+        depths=[3, 3, 9, 3],
+        dims=[96, 192, 384, 768],
+        drop_path_rate=0.0,
+        layer_scale_init_value=1e-6,
+        head_init_scale=1.0,
+        device=None,
+        training=False,
+    ):
         assert version == 1 or version == 2
         super(ConvNeXtSpec, self).__init__(
             version=version,
@@ -29,7 +30,7 @@ class ConvNeXtSpec(BaseSpec):
             layer_scale_init_value=layer_scale_init_value,
             head_init_scale=head_init_scale,
             device=device,
-            training=training
+            training=training,
         )
 
 
@@ -71,16 +72,23 @@ class ConvNeXt(BaseModel):
         self.downsample_layers = []
         stem = ivy.Sequential(
             ivy.Conv2D(
-                self.spec.in_channels, self.spec.dims[0], [4, 4], (4, 4), 0, data_format="NCHW"
+                self.spec.in_channels,
+                self.spec.dims[0],
+                [4, 4],
+                (4, 4),
+                0,
+                data_format="NCHW",
             ),
-            ConvNeXtLayerNorm(self.spec.dims[0], eps=1e-6,
-                              data_format="channels_first"),
+            ConvNeXtLayerNorm(
+                self.spec.dims[0], eps=1e-6, data_format="channels_first"
+            ),
         )
         self.downsample_layers.append(stem)
         for i in range(3):
             downsample_layer = ivy.Sequential(
                 ConvNeXtLayerNorm(
-                    self.spec.dims[i], eps=1e-6, data_format="channels_first"),
+                    self.spec.dims[i], eps=1e-6, data_format="channels_first"
+                ),
                 ivy.Conv2D(
                     self.spec.dims[i],
                     self.spec.dims[i + 1],
@@ -93,8 +101,9 @@ class ConvNeXt(BaseModel):
             self.downsample_layers.append(downsample_layer)
 
         self.stages = []
-        dp_rates = [x for x in ivy.linspace(
-            0, self.spec.drop_path_rate, sum(self.spec.depths))]
+        dp_rates = [
+            x for x in ivy.linspace(0, self.spec.drop_path_rate, sum(self.spec.depths))
+        ]
         cur = 0
         for i in range(4):
             stage = ivy.Sequential(
