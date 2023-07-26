@@ -18,6 +18,7 @@ class ConvNeXtSpec(BaseSpec):
                  device=None,
                  training=False,
                  ):
+        assert version == 1 or version == 2
         super(ConvNeXtSpec, self).__init__(
             version=version,
             in_channels=in_channels,
@@ -48,7 +49,6 @@ class ConvNeXt(ivy.Module):
         spec=None,
         v=None,
     ):
-        assert version == 1 or version == 2
         self.spec = (
             spec
             if spec and isinstance(spec, ConvNeXtSpec)
