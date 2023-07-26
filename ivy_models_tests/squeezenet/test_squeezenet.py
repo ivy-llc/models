@@ -13,7 +13,7 @@ jax.config.update("jax_enable_x64", False)
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_squeezenet_img_classification(device, f, fw, batch_shape, load_weights):
+def test_squeezenet_img_classification(device, fw, batch_shape, load_weights):
     """Test SqueezeNet image classification."""
     num_classes = 1000
     this_dir = os.path.dirname(os.path.realpath(__file__))

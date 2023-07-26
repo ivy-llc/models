@@ -17,7 +17,7 @@ v = ivy.to_numpy(model.v)
 
 
 @pytest.mark.parametrize("data_format", ["NHWC", "NCHW"])
-def test_alexnet_tiny_img_classification(device, f, fw, data_format):
+def test_alexnet_tiny_img_classification(device, fw, data_format):
     """Test AlexNet image classification."""
     num_classes = 1000
     batch_shape = [1]

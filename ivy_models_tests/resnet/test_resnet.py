@@ -39,7 +39,7 @@ model = VARIANTS[model_var](pretrained=load_weights)
 v = ivy.to_numpy(model.v)
 
 
-def test_resnet_img_classification(device, f, fw):
+def test_resnet_img_classification(device, fw):
     """Test ResNet-18 image classification."""
     num_classes = 1000
     batch_shape = [1]

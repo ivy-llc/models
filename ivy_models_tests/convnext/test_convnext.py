@@ -8,7 +8,7 @@ from ivy_models.convnext import convnext, convnextv2
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_convnext_tiny_img_classification(device, f, fw, batch_shape, load_weights):
+def test_convnext_tiny_img_classification(device, fw, batch_shape, load_weights):
     """Test ConvNeXt tiny image classification."""
     num_classes = 1000
     this_dir = os.path.dirname(os.path.realpath(__file__))
@@ -40,7 +40,7 @@ def test_convnext_tiny_img_classification(device, f, fw, batch_shape, load_weigh
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_convnext_small_img_classification(device, f, fw, batch_shape, load_weights):
+def test_convnext_small_img_classification(device, fw, batch_shape, load_weights):
     """Test ConvNeXt small image classification."""
     num_classes = 1000
     this_dir = os.path.dirname(os.path.realpath(__file__))
@@ -72,7 +72,7 @@ def test_convnext_small_img_classification(device, f, fw, batch_shape, load_weig
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_convnext_base_img_classification(device, f, fw, batch_shape, load_weights):
+def test_convnext_base_img_classification(device, fw, batch_shape, load_weights):
     """Test ConvNeXt base image classification."""
     num_classes = 1000
     this_dir = os.path.dirname(os.path.realpath(__file__))
@@ -104,7 +104,7 @@ def test_convnext_base_img_classification(device, f, fw, batch_shape, load_weigh
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_convnext_large_img_classification(device, f, fw, batch_shape, load_weights):
+def test_convnext_large_img_classification(device, fw, batch_shape, load_weights):
     """Test ConvNeXt large image classification."""
     num_classes = 1000
     this_dir = os.path.dirname(os.path.realpath(__file__))
@@ -137,7 +137,7 @@ def test_convnext_large_img_classification(device, f, fw, batch_shape, load_weig
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_convnextv2_atto_img_classification(device, f, fw, batch_shape, load_weights):
+def test_convnextv2_atto_img_classification(device, fw, batch_shape, load_weights):
     """Test ConvNeXtV2 atto image classification."""
     num_classes = 1000
     this_dir = os.path.dirname(os.path.realpath(__file__))
@@ -170,7 +170,7 @@ def test_convnextv2_atto_img_classification(device, f, fw, batch_shape, load_wei
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_convnextv2_base_img_classification(device, f, fw, batch_shape, load_weights):
+def test_convnextv2_base_img_classification(device, fw, batch_shape, load_weights):
     """Test ConvNeXtV2 base image classification."""
     num_classes = 1000
     this_dir = os.path.dirname(os.path.realpath(__file__))
