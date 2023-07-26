@@ -1,6 +1,6 @@
 import ivy
 from ivy_models.base import BaseModel, BaseSpec
-from ivy_mdoels.helpers import load_transformers_weights
+from ivy_models.helpers import load_transformers_weights
 from .layers import BertAttention, BertFeedForward, BertEmbedding
 
 
@@ -194,6 +194,10 @@ class BertModel(BaseModel):
         self.pooler_out = pooler_out
         super(BertModel, self).__init__(v=v)
 
+    @classmethod
+    def get_spec_class(self):
+        return BertConfig
+
     def _build(self, *args, **kwargs):
         self.embeddings = BertEmbedding(**self.config.get_embd_attrs())
         self.encoder = BertEncoder(self.config)
@@ -290,6 +294,8 @@ def bert_base_uncased(pretrained=True):
     )
     model = BertModel(config, pooler_out=True)
     if pretrained:
-        mapping = load_transformers_weights(model, _bert_weights_mapping)
-        model = BertModel(config, True, v=mapping)
+        w_clean = load_transformers_weights(
+            "bert-base-uncased", model, _bert_weights_mapping
+        )
+        model.v = w_clean
     return model
