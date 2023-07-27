@@ -4,7 +4,7 @@ import builtins
 
 import ivy
 import ivy_models
-from .layers import conv1x1, BasicBlock, Bottleneck
+from ivy_models.resnet.layers import conv1x1, BasicBlock, Bottleneck
 from ivy_models.base import BaseSpec, BaseModel
 
 
@@ -64,7 +64,6 @@ class ResNet(BaseModel):
             )
         )
 
-        
         super(ResNet, self).__init__(v=v)
 
     def _build(self, *args, **kwargs):
@@ -100,7 +99,7 @@ class ResNet(BaseModel):
             dilate=self.spec.replace_stride_with_dilation[2],
         )
         self.avgpool = ivy.AdaptiveAvgPool2d((1, 1))
-        self.fc = ivy.Linear(512 * self.spec.block.expansion, self.num_classes)
+        self.fc = ivy.Linear(512 * self.spec.block.expansion, self.spec.num_classes)
 
     def _make_layer(
         self,
@@ -111,9 +110,9 @@ class ResNet(BaseModel):
         dilate: bool = False,
     ) -> ivy.Sequential:
         downsample = None
-        previous_dilation = self.spec.dilation
+        previous_dilation = self.dilation
         if dilate:
-            self.spec.dilation *= stride
+            self.dilation *= stride
             stride = 1
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = ivy.Sequential(
@@ -139,11 +138,15 @@ class ResNet(BaseModel):
                     self.inplanes,
                     planes,
                     base_width=self.spec.base_width,
-                    dilation=self.sepc.dilation,
+                    dilation=self.dilation,
                 )
             )
 
         return ivy.Sequential(*layers)
+
+    @classmethod
+    def get_spec_class(self):
+        return ResNetSpec
 
     def _forward(self, x):
         dtype = x.dtype
