@@ -1,285 +1,44 @@
-import builtins
-import math
-from collections import OrderedDict
-from functools import partial
-from typing import Any, Callable, List, NamedTuple, Optional, Tuple, Union, Sequence
-import collections
-from ivy.stateful.initializers import Zeros
-from itertools import repeat
-
-
-import ivy
 from ivy_models.helpers import load_torch_weights
+from ivy_models.vit.layers import *
+from ivy_models.base import BaseModel, BaseSpec
 
-def _make_ntuple(x: Any, n: int) -> Tuple[Any, ...]:
-    """
-    Make n-tuple from input x. If x is an iterable, then we just convert it to tuple.
-    Otherwise, we will make a tuple of length n, all with value of x.
 
-    Args:
-        x (Any): input value
-        n (int): length of the resulting tuple
-    """
-    if isinstance(x, collections.abc.Iterable):
-        return tuple(x)
-    return tuple(repeat(x, n))
-
-class ConvNormActivation(ivy.Sequential):
+class VisionTransformerSpec(BaseSpec):
     def __init__(
         self,
-        in_channels: int,
-        out_channels: int,
-        kernel_size: Union[int, Tuple[int, ...]] = 3,
-        stride: Union[int, Tuple[int, ...]] = 1,
-        padding: Optional[Union[int, Tuple[int, ...], str]] = None,
-        groups: int = 1,
-        norm_layer: Optional[Callable[..., ivy.Module]] = ivy.BatchNorm2D,
-        activation_layer: Optional[Callable[..., ivy.Module]] = ivy.ReLU,
-        dilation: Union[int, Tuple[int, ...]] = 1,
-        inplace: Optional[bool] = False,
-        bias: Optional[bool] = None,
-        conv_layer: Callable[..., ivy.Module] = ivy.Conv2D,
-    ) -> None:
-
-        if padding is None:
-            if isinstance(kernel_size, int) and isinstance(dilation, int):
-                padding = (kernel_size - 1) // 2 * dilation
-            else:
-                _conv_dim = len(kernel_size) if isinstance(kernel_size, Sequence) else len(dilation)
-                kernel_size = _make_ntuple(kernel_size, _conv_dim)
-                dilation = _make_ntuple(dilation, _conv_dim)
-                padding = tuple((kernel_size[i] - 1) // 2 * dilation[i] for i in range(_conv_dim))
-        if bias is None:
-            bias = norm_layer is None
-
-        layers = [
-            conv_layer(
-                in_channels,
-                out_channels,
-                kernel_size,
-                stride,
-                padding,
-                dilation=dilation,
-                groups=groups,
-                bias=bias,
-            )
-        ]
-
-        if norm_layer is not None:
-            layers.append(norm_layer(out_channels))
-
-        if activation_layer is not None:
-            params = {} if inplace is None else {"inplace": inplace}
-            layers.append(activation_layer(**params))
-        self.out_channels = out_channels
-
-        super().__init__(*layers)
-
-        if self.__class__ == ConvNormActivation:
-            ivy.warnings.warn(
-                "Don't use ConvNormActivation directly, please use Conv2dNormActivation instead."
-            )
-
-
-class Conv2dNormActivation(ConvNormActivation):
-    """
-    Configurable block used for Convolution2d-Normalization-Activation blocks.
-
-    Args:
-        in_channels (int): Number of channels in the input image
-        out_channels (int): Number of channels produced by the Convolution-Normalization-Activation block
-        kernel_size: (int, optional): Size of the convolving kernel. Default: 3
-        stride (int, optional): Stride of the convolution. Default: 1
-        padding (int, tuple or str, optional): Padding added to all four sides of the input. Default: None, in which case it will be calculated as ``padding = (kernel_size - 1) // 2 * dilation``
-        groups (int, optional): Number of blocked connections from input channels to output channels. Default: 1
-        norm_layer (Callable[..., ivy.Module], optional): Norm layer that will be stacked on top of the convolution layer. If ``None`` this layer won't be used. Default: ``ivy.BatchNorm2D``
-        activation_layer (Callable[..., ivy.Module], optional): Activation function which will be stacked on top of the normalization layer (if not None), otherwise on top of the conv layer. If ``None`` this layer won't be used. Default: ``ivy.ReLU``
-        dilation (int): Spacing between kernel elements. Default: 1
-        inplace (bool): Parameter for the activation layer, which can optionally do the operation in-place. Default ``True``
-        bias (bool, optional): Whether to use bias in the convolution layer. By default, biases are included if ``norm_layer is None``.
-
-    """
-
-    def __init__(
-        self,
-        in_channels: int,
-        out_channels: int,
-        kernel_size: Union[int, Tuple[int, int]] = 3,
-        stride: Union[int, Tuple[int, int]] = 1,
-        padding: Optional[Union[int, Tuple[int, int], str]] = None,
-        groups: int = 1,
-        norm_layer: Optional[Callable[..., ivy.Module]] = ivy.BatchNorm2D,
-        activation_layer: Optional[Callable[..., ivy.Module]] = ivy.ReLU,
-        dilation: Union[int, Tuple[int, int]] = 1,
-        inplace: Optional[bool] = True,
-        bias: Optional[bool] = None,
-    ) -> None:
-
-        super().__init__(
-            in_channels,
-            out_channels,
-            kernel_size,
-            stride,
-            padding,
-            groups,
-            norm_layer,
-            activation_layer,
-            dilation,
-            inplace,
-            bias,
-            ivy.Conv2D,
-        )
-
-
-
-class MLP(ivy.Sequential):
-    """This block implements the multi-layer perceptron (MLP) module.
-
-    Args:
-        in_channels (int): Number of channels of the input
-        hidden_channels (List[int]): List of the hidden channel dimensions
-        norm_layer (Callable[..., ivy.Module], optional): Norm layer that will be stacked on top of the linear layer. If ``None`` this layer won't be used. Default: ``None``
-        activation_layer (Callable[..., ivy.Module], optional): Activation function which will be stacked on top of the normalization layer (if not None), otherwise on top of the linear layer. If ``None`` this layer won't be used. Default: ``ivy.ReLU``
-        inplace (bool, optional): Parameter for the activation layer, which can optionally do the operation in-place.
-            Default is ``None``, which uses the respective default values of the ``activation_layer`` and Dropout layer.
-        bias (bool): Whether to use bias in the linear layer. Default ``True``
-        dropout (float): The probability for the dropout layer. Default: 0.0
-    """
-
-    def __init__(
-        self,
-        in_channels: int,
-        hidden_channels: List[int],
-        norm_layer: Optional[Callable[..., ivy.Module]] = None,
-        activation_layer: Optional[Callable[..., ivy.Module]] = ivy.ReLU,
-        inplace: Optional[bool] = None,
-        bias: bool = True,
-        dropout: float = 0.0,
-    ):
-        params = {} if inplace is None else {"inplace": inplace}
-
-        layers = []
-        in_dim = in_channels
-        for hidden_dim in hidden_channels[:-1]:
-            layers.append(ivy.Linear(in_dim, hidden_dim, with_bias=bias))
-            if norm_layer is not None:
-                layers.append(norm_layer(hidden_dim))
-            layers.append(activation_layer(**params))
-            layers.append(ivy.Dropout(dropout, **params))
-            in_dim = hidden_dim
-
-        layers.append(ivy.Linear(in_dim, hidden_channels[-1], with_bias=bias))
-        layers.append(ivy.Dropout(dropout, **params))
-
-        super().__init__(*layers)
-
-
-class ConvStemConfig(NamedTuple):
-    out_channels: int
-    kernel_size: int
-    stride: int
-    norm_layer: Callable[..., ivy.Module] = ivy.BatchNorm2D
-    activation_layer: Callable[..., ivy.Module] = ivy.ReLU
-
-
-class VIT_MLPBlock(MLP):
-    """Transformer MLP block."""
-    def __init__(self, in_dim: int, mlp_dim: int, dropout: float):
-        super().__init__(in_dim, [mlp_dim, in_dim], activation_layer=ivy.GELU, inplace=None, dropout=dropout)
-
-
-class VIT_EncoderBlock(ivy.Module):
-    """Transformer encoder block."""
-
-    def __init__(
-        self,
-        num_heads: int,
-        hidden_dim: int,
-        mlp_dim: int,
-        dropout: float,
-        attention_dropout: float,
-        norm_layer: Callable[..., ivy.Module] = partial(ivy.LayerNorm, eps=1e-6),
-    ):
-        self.num_heads = num_heads
-        self.hidden_dim = hidden_dim
-        self.mlp_dim = mlp_dim
-        self.dropout = dropout
-        self.attention_dropout = attention_dropout
-        self.norm_layer = norm_layer
-
-        
-        super().__init__()
-
-    def _build(self, *args, **kwargs) -> bool:
-        # Attention block
-        self.ln_1 = self.norm_layer(self.hidden_dim)
-        self.self_attention = ivy.MultiHeadAttention(self.hidden_dim, num_heads=self.num_heads, dropout_rate=self.attention_dropout)
-        self.dropout = ivy.Dropout(self.dropout)
-
-        # MLP block
-        self.ln_2 = self.norm_layer(self.hidden_dim)
-        self.mlp = VIT_MLPBlock(self.hidden_dim, self.mlp_dim, self.dropout)
-
-    def _forward(self, input):
-        ivy.utils.assertions.check_true(input.dim() == 3, f"Expected (batch_size, seq_length, hidden_dim) got {input.shape}")
-        x = self.ln_1(input)
-        x, _ = self.self_attention(x, x, x, need_weights=False)
-        x = self.dropout(x)
-        x = x + input
-
-        y = self.ln_2(x)
-        y = self.mlp(y)
-        return x + y
-
-
-class VIT_Encoder(ivy.Module):
-    """Transformer Model Encoder for sequence to sequence translation."""
-
-    def __init__(
-        self,
-        seq_length: int,
+        image_size: int,
+        patch_size: int,
         num_layers: int,
         num_heads: int,
         hidden_dim: int,
         mlp_dim: int,
-        dropout: float,
-        attention_dropout: float,
+        dropout: float = 0.0,
+        attention_dropout: float = 0.0,
+        num_classes: int = 1000,
+        representation_size: Optional[int] = None,
         norm_layer: Callable[..., ivy.Module] = partial(ivy.LayerNorm, eps=1e-6),
+        conv_stem_configs: Optional[List[ConvStemConfig]] = None,
     ):
-        # Note that batch_size is on the first dim because
-        # we have batch_first=True in nn.MultiAttention() by default
-        self._pos_embedding_shape = (1, seq_length, hidden_dim)
-        self.pos_embedding = Zeros()  # from BERT
-        self.dropout = ivy.Dropout(dropout)
-        layers: OrderedDict[str, ivy.Module] = OrderedDict()
-        for i in range(num_layers):
-            layers[f"encoder_layer_{i}"] = VIT_EncoderBlock(
-                num_heads,
-                hidden_dim,
-                mlp_dim,
-                dropout,
-                attention_dropout,
-                norm_layer,
-            )
-        self.layers = ivy.Sequential(layers)
-        self.ln = norm_layer(hidden_dim)
-        super().__init__()
+        ivy.utils.assertions.check_true(
+            image_size % patch_size == 0, "Input shape indivisible by patch size!")
 
-    def _create_variables(self, device, dtype=None):
-        return {
-            "pos_embeddin": self.pos_embedding.create_variables(
-                self._pos_embedding_shape, device, dtype=dtype
-            )
-        }
+        super(VisionTransformerSpec, self).__init__(
+            image_size=image_size,
+            patch_size=patch_size,
+            num_layers=num_layers,
+            num_heads=num_heads,
+            hidden_dim=hidden_dim,
+            mlp_dim=mlp_dim,
+            dropout=dropout,
+            attention_dropout=attention_dropout,
+            num_classes=num_classes,
+            representation_size=representation_size,
+            norm_layer=norm_layer,
+            conv_stem_configs=conv_stem_configs,
+        )
 
 
-    def _forward(self, input):
-        ivy.utils.assertions.check_true(input.dim() == 3, f"Expected (batch_size, seq_length, hidden_dim) got {input.shape}")
-        input = input + self.pos_embedding
-        return self.ln(self.layers(self.dropout(input)))
-
-
-class VisionTransformer(ivy.Module):
+class VisionTransformer(BaseModel):
     """Vision Transformer as per https://arxiv.org/abs/2010.11929."""
 
     def __init__(
@@ -296,72 +55,84 @@ class VisionTransformer(ivy.Module):
         representation_size: Optional[int] = None,
         norm_layer: Callable[..., ivy.Module] = partial(ivy.LayerNorm, eps=1e-6),
         conv_stem_configs: Optional[List[ConvStemConfig]] = None,
+        spec=None,
         v=None
     ):
-        ivy.utils.assertions.check_true(image_size % patch_size == 0, "Input shape indivisible by patch size!")
-        self.image_size = image_size
-        self.patch_size = patch_size
-        self.hidden_dim = hidden_dim
-        self.num_layers = num_layers
-        self.num_heads = num_heads
-        self.mlp_dim = mlp_dim
-        self.attention_dropout = attention_dropout
-        self.dropout = dropout
-        self.num_classes = num_classes
-        self.representation_size = representation_size
-        self.norm_layer = norm_layer
-        self.conv_stem_configs = conv_stem_configs
-        
+        self.spec = (
+            spec if spec and isinstance(spec, VisionTransformerSpec)
+            else VisionTransformerSpec(
+                image_size=image_size,
+                patch_size=patch_size,
+                num_layers=num_layers,
+                num_heads=num_heads,
+                hidden_dim=hidden_dim,
+                mlp_dim=mlp_dim,
+                dropout=dropout,
+                attention_dropout=attention_dropout,
+                num_classes=num_classes,
+                representation_size=representation_size,
+                norm_layer=norm_layer,
+                conv_stem_configs=conv_stem_configs,
+            )
+        )
         super().__init__(v=v)
 
     def _build(self, *args, **kwargs):
-        if self.conv_stem_configs is not None:
+        if self.spec.conv_stem_configs is not None:
             # As per https://arxiv.org/abs/2106.14881
             seq_proj = OrderedDict()
             prev_channels = 3
-            for i, conv_stem_layer_config in enumerate(self.conv_stem_configs):
+            for i, conv_stem_layer_config in enumerate(self.spec.conv_stem_configs):
                 seq_proj[f"conv_bn_relu_{i}"] = Conv2dNormActivation(
-                        in_channels=prev_channels,
-                        out_channels=conv_stem_layer_config.out_channels,
-                        kernel_size=conv_stem_layer_config.kernel_size,
-                        stride=conv_stem_layer_config.stride,
-                        norm_layer=conv_stem_layer_config.norm_layer,
-                        activation_layer=conv_stem_layer_config.activation_layer,
-                    )
+                    in_channels=prev_channels,
+                    out_channels=conv_stem_layer_config.out_channels,
+                    kernel_size=conv_stem_layer_config.kernel_size,
+                    stride=conv_stem_layer_config.stride,
+                    norm_layer=conv_stem_layer_config.norm_layer,
+                    activation_layer=conv_stem_layer_config.activation_layer,
+                )
                 prev_channels = conv_stem_layer_config.out_channels
-            seq_proj["conv_last"] = ivy.Conv2D(prev_channels, self.hidden_dim, [1, 1], 1, 0)
+            seq_proj["conv_last"] = ivy.Conv2D(
+                prev_channels, self.spec.hidden_dim, [1, 1], 1, 0)
             self.conv_proj: ivy.Module = ivy.Sequential(seq_proj)
         else:
             self.conv_proj = ivy.Conv2D(
-                3, self.hidden_dim, [self.patch_size, self.patch_size], self.patch_size, 0
+                3, self.spec.hidden_dim, [self.spec.patch_size,
+                                          self.spec.patch_size], self.spec.patch_size, 0
             )
 
-        seq_length = (self.image_size // self.patch_size) ** 2
+        seq_length = (self.spec.image_size // self.spec.patch_size) ** 2
 
         # Add a class token
-        self._class_token_shape = (1, 1, self.hidden_dim)
+        self._class_token_shape = (1, 1, self.spec.hidden_dim)
         self.class_token = Zeros()
         seq_length += 1
 
         self.encoder = VIT_Encoder(
             seq_length,
-            self.num_layers,
-            self.num_heads,
-            self.hidden_dim,
-            self.mlp_dim,
-            self.dropout,
-            self.attention_dropout,
-            self.norm_layer,
+            self.spec.num_layers,
+            self.spec.num_heads,
+            self.spec.hidden_dim,
+            self.spec.mlp_dim,
+            self.spec.dropout,
+            self.spec.attention_dropout,
+            self.spec.norm_layer,
         )
         self.seq_length = seq_length
 
         heads_layers: OrderedDict[str, ivy.Module] = OrderedDict()
-        if self.representation_size is None:
-            heads_layers["head"] = ivy.Linear(self.hidden_dim, self.num_classes)
+        if self.spec.representation_size is None:
+            heads_layers["head"] = ivy.Linear(
+                self.spec.hidden_dim, self.spec.num_classes
+            )
         else:
-            heads_layers["pre_logits"] = ivy.Linear(self.hidden_dim, self.representation_size)
+            heads_layers["pre_logits"] = ivy.Linear(
+                self.spec.hidden_dim, self.spec.representation_size
+            )
             heads_layers["act"] = ivy.tanh()
-            heads_layers["head"] = ivy.Linear(self.representation_size, self.num_classes)
+            heads_layers["head"] = ivy.Linear(
+                self.spec.representation_size, self.spec.num_classes
+            )
 
         self.heads = ivy.Sequential(heads_layers)
 
@@ -374,16 +145,18 @@ class VisionTransformer(ivy.Module):
 
     def _process_input(self, x):
         n, c, h, w = x.shape
-        p = self.patch_size
-        ivy.utils.assertions.check_true(h == self.image_size, f"Wrong image height! Expected {self.image_size} but got {h}!")
-        ivy.utils.assertions.check_true(w == self.image_size, f"Wrong image width! Expected {self.image_size} but got {w}!")
+        p = self.spec.patch_size
+        ivy.utils.assertions.check_true(
+            h == self.spec.image_size, f"Wrong image height! Expected {self.spec.image_size} but got {h}!")
+        ivy.utils.assertions.check_true(
+            w == self.spec.image_size, f"Wrong image width! Expected {self.spec.image_size} but got {w}!")
         n_h = h // p
         n_w = w // p
 
         # (n, c, h, w) -> (n, self.hidden_dim, n_h, n_w)
         x = self.conv_proj(x)
         # (n, self.hidden_dim, n_h, n_w) -> (n, self.hidden_dim, (n_h * n_w))
-        x = x.reshape(n, self.self.hidden_dim, n_h * n_w)
+        x = x.reshape(n, self.spec.hidden_dim, n_h * n_w)
 
         # (n, self.hidden_dim, (n_h * n_w)) -> (n, (n_h * n_w), self.hidden_dim)
         # The self attention layer expects inputs in the format (N, S, E)
@@ -392,6 +165,10 @@ class VisionTransformer(ivy.Module):
         x = x.permute(0, 2, 1)
 
         return x
+
+    @classmethod
+    def get_spec_class(self):
+        return VisionTransformerSpec
 
     def _forward(self, x):
         # Reshape and permute the input tensor
@@ -431,7 +208,7 @@ def _vision_transformer(
     mlp_dim: int,
     v=None
 ) -> VisionTransformer:
-    
+
     model = VisionTransformer(
         image_size=224,
         patch_size=patch_size,
@@ -445,8 +222,8 @@ def _vision_transformer(
     return model
 
 
-def vit_b_16(v=None, pretrained=True) -> VisionTransformer:
-    ref_model = _vision_transformer(
+def vit_b_16(pretrained=True) -> VisionTransformer:
+    model = _vision_transformer(
         patch_size=16,
         num_layers=12,
         num_heads=12,
@@ -457,20 +234,15 @@ def vit_b_16(v=None, pretrained=True) -> VisionTransformer:
         url = 'https://download.pytorch.org/models/vit_b_16-c867db91.pth'
         w_clean = load_torch_weights(
             url,
-            ref_model,
+            model,
             raw_keys_to_prune=["num_batches_tracked"],
             custom_mapping=_vit_torch_weights_mapping,
         )
-    return _vision_transformer(
-        patch_size=16,
-        num_layers=12,
-        num_heads=12,
-        hidden_dim=768,
-        mlp_dim=3072,
-        v=w_clean,
-    )
+        model.v = w_clean
+    return model
 
-def vit_b_32(v=None, pretrained=True) -> VisionTransformer:
+
+def vit_b_32(pretrained=True) -> VisionTransformer:
     ref_model = _vision_transformer(
         patch_size=32,
         num_layers=12,
@@ -486,18 +258,11 @@ def vit_b_32(v=None, pretrained=True) -> VisionTransformer:
             raw_keys_to_prune=["num_batches_tracked"],
             custom_mapping=_vit_torch_weights_mapping,
         )
-        
-    return _vision_transformer(
-        patch_size=32,
-        num_layers=12,
-        num_heads=12,
-        hidden_dim=768,
-        mlp_dim=3072,
-        v=w_clean,
-    )
-    
+        model.v = w_clean
+    return model
 
-def vit_l_16(v=None, pretrained=True) -> VisionTransformer:
+
+def vit_l_16(pretrained=True) -> VisionTransformer:
     ref_model = _vision_transformer(
         patch_size=16,
         num_layers=24,
@@ -513,18 +278,11 @@ def vit_l_16(v=None, pretrained=True) -> VisionTransformer:
             raw_keys_to_prune=["num_batches_tracked"],
             custom_mapping=_vit_torch_weights_mapping,
         )
-        
-    return _vision_transformer(
-        patch_size=16,
-        num_layers=24,
-        num_heads=16,
-        hidden_dim=1024,
-        mlp_dim=4096,
-        v=w_clean,
-    )
-    
+        model.v = w_clean
+    return model
 
-def vit_l_32(v=None, pretrained=True) -> VisionTransformer:
+
+def vit_l_32(pretrained=True) -> VisionTransformer:
     ref_model = _vision_transformer(
         patch_size=32,
         num_layers=24,
@@ -540,17 +298,11 @@ def vit_l_32(v=None, pretrained=True) -> VisionTransformer:
             raw_keys_to_prune=["num_batches_tracked"],
             custom_mapping=_vit_torch_weights_mapping,
         )
-        
-    return _vision_transformer(
-        patch_size=32,
-        num_layers=24,
-        num_heads=16,
-        hidden_dim=1024,
-        mlp_dim=4096,
-        v=w_clean,
-    )
+        model.v = w_clean
+    return model
 
-def vit_h_14(v=None, pretrained=True) -> VisionTransformer:
+
+def vit_h_14(pretrained=True) -> VisionTransformer:
     ref_model = _vision_transformer(
         patch_size=14,
         num_layers=12,
@@ -566,18 +318,5 @@ def vit_h_14(v=None, pretrained=True) -> VisionTransformer:
             raw_keys_to_prune=["num_batches_tracked"],
             custom_mapping=_vit_torch_weights_mapping,
         )
-        
-    return _vision_transformer(
-        patch_size=14,
-        num_layers=12,
-        num_heads=14,
-        hidden_dim=768,
-        mlp_dim=3072,
-        v=w_clean,
-    )
-
-
-if __name__ == '__main__':
-    ivy.set_torch_backend()
-    model = vit_b_16()
-    print(model.v)
+        model.v = w_clean
+    return model
