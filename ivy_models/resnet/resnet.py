@@ -5,9 +5,33 @@ import builtins
 import ivy
 import ivy_models
 from .layers import conv1x1, BasicBlock, Bottleneck
+from ivy_models.base import BaseSpec, BaseModel
 
 
-class ResNet(ivy.Module):
+class ResNetSpec(BaseSpec):
+    """
+    ResNetSpec class.
+
+    """
+
+    def __init__(
+        self,
+        block: Type[Union[BasicBlock, Bottleneck]],
+        layers: List[int],
+        num_classes: int = 1000,
+        base_width: int = 64,
+        replace_stride_with_dilation: Optional[List[bool]] = None,
+    ) -> None:
+        super(ResNetSpec, self).__init__(
+            block=block,
+            layers=layers,
+            num_classes=num_classes,
+            base_width=base_width,
+            replace_stride_with_dilation=replace_stride_with_dilation
+        )
+
+
+class ResNet(BaseModel):
     """
     Residual Neural Network (ResNet) architecture.
 
@@ -30,50 +54,53 @@ class ResNet(ivy.Module):
         num_classes: int = 1000,
         base_width: int = 64,
         replace_stride_with_dilation: Optional[List[bool]] = None,
+        spec=None,
         v: ivy.Container = None,
     ) -> None:
-        self.inplanes = 64
-        self.dilation = 1
-        self.block = block
-        self.layers = layers
-        self.num_classes = num_classes
-        # if replace_stride_with_dilation is None:
-        if replace_stride_with_dilation is None:
-            replace_stride_with_dilation = [False, False, False]
-        self.replace_stride_with_dilation = replace_stride_with_dilation
+        self.spec = (
+            spec if spec and isinstance(spec, ResNetSpec) 
+            else ResNetSpec(
+                block, layers, num_classes, base_width, replace_stride_with_dilation
+            )
+        )
 
-        self.base_width = base_width
+        
         super(ResNet, self).__init__(v=v)
 
     def _build(self, *args, **kwargs):
+        self.inplanes = 64
+        self.dilation = 1
+        if self.spec.replace_stride_with_dilation is None:
+            self.spec.replace_stride_with_dilation = [False, False, False]
+
         self.conv1 = ivy.Conv2D(3, self.inplanes, [7, 7], 2, 3, with_bias=False)
         self.bn1 = ivy.BatchNorm2D(self.inplanes)
         self.relu = ivy.ReLU()
         self.maxpool = ivy.MaxPool2D(3, 2, 1)
-        self.layer1 = self._make_layer(self.block, 64, self.layers[0])
+        self.layer1 = self._make_layer(self.spec.block, 64, self.spec.layers[0])
         self.layer2 = self._make_layer(
-            self.block,
+            self.spec.block,
             128,
-            self.layers[1],
+            self.spec.layers[1],
             stride=2,
-            dilate=self.replace_stride_with_dilation[0],
+            dilate=self.spec.replace_stride_with_dilation[0],
         )
         self.layer3 = self._make_layer(
-            self.block,
+            self.spec.block,
             256,
-            self.layers[2],
+            self.spec.layers[2],
             stride=2,
-            dilate=self.replace_stride_with_dilation[1],
+            dilate=self.spec.replace_stride_with_dilation[1],
         )
         self.layer4 = self._make_layer(
-            self.block,
+            self.spec.block,
             512,
-            self.layers[3],
+            self.spec.layers[3],
             stride=2,
-            dilate=self.replace_stride_with_dilation[2],
+            dilate=self.spec.replace_stride_with_dilation[2],
         )
         self.avgpool = ivy.AdaptiveAvgPool2d((1, 1))
-        self.fc = ivy.Linear(512 * self.block.expansion, self.num_classes)
+        self.fc = ivy.Linear(512 * self.spec.block.expansion, self.num_classes)
 
     def _make_layer(
         self,
@@ -84,9 +111,9 @@ class ResNet(ivy.Module):
         dilate: bool = False,
     ) -> ivy.Sequential:
         downsample = None
-        previous_dilation = self.dilation
+        previous_dilation = self.spec.dilation
         if dilate:
-            self.dilation *= stride
+            self.spec.dilation *= stride
             stride = 1
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = ivy.Sequential(
@@ -101,7 +128,7 @@ class ResNet(ivy.Module):
                 planes,
                 stride,
                 downsample,
-                self.base_width,
+                self.spec.base_width,
                 previous_dilation,
             )
         )
@@ -111,8 +138,8 @@ class ResNet(ivy.Module):
                 block(
                     self.inplanes,
                     planes,
-                    base_width=self.base_width,
-                    dilation=self.dilation,
+                    base_width=self.spec.base_width,
+                    dilation=self.sepc.dilation,
                 )
             )
 
