@@ -130,7 +130,7 @@ class ConvNeXt(BaseModel):
 
         self.norm = ivy.LayerNorm(self.dims[-1], eps=1e-6)
         self.head = ivy.Linear(self.dims[-1], self.num_classes)
-    
+
     @classmethod
     def get_spec_class(self):
         return ConvNeXtSpec

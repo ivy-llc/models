@@ -1,5 +1,5 @@
 from ivy_models.helpers import load_torch_weights
-from ivy_models.vit.layers import *
+from ivy_models.vit.layers import Callable, Conv2dNormActivation, ConvStemConfig, List, Optional, OrderedDict, VIT_Encoder, Zeros, ivy, model, partial
 from ivy_models.base import BaseModel, BaseSpec
 
 
@@ -20,7 +20,8 @@ class VisionTransformerSpec(BaseSpec):
         conv_stem_configs: Optional[List[ConvStemConfig]] = None,
     ):
         ivy.utils.assertions.check_true(
-            image_size % patch_size == 0, "Input shape indivisible by patch size!")
+            image_size % patch_size == 0, "Input shape indivisible by patch size!"
+        )
 
         super(VisionTransformerSpec, self).__init__(
             image_size=image_size,
@@ -56,10 +57,11 @@ class VisionTransformer(BaseModel):
         norm_layer: Callable[..., ivy.Module] = partial(ivy.LayerNorm, eps=1e-6),
         conv_stem_configs: Optional[List[ConvStemConfig]] = None,
         spec=None,
-        v=None
+        v=None,
     ):
         self.spec = (
-            spec if spec and isinstance(spec, VisionTransformerSpec)
+            spec
+            if spec and isinstance(spec, VisionTransformerSpec)
             else VisionTransformerSpec(
                 image_size=image_size,
                 patch_size=patch_size,
@@ -93,12 +95,16 @@ class VisionTransformer(BaseModel):
                 )
                 prev_channels = conv_stem_layer_config.out_channels
             seq_proj["conv_last"] = ivy.Conv2D(
-                prev_channels, self.spec.hidden_dim, [1, 1], 1, 0)
+                prev_channels, self.spec.hidden_dim, [1, 1], 1, 0
+            )
             self.conv_proj: ivy.Module = ivy.Sequential(seq_proj)
         else:
             self.conv_proj = ivy.Conv2D(
-                3, self.spec.hidden_dim, [self.spec.patch_size,
-                                          self.spec.patch_size], self.spec.patch_size, 0
+                3,
+                self.spec.hidden_dim,
+                [self.spec.patch_size, self.spec.patch_size],
+                self.spec.patch_size,
+                0,
             )
 
         seq_length = (self.spec.image_size // self.spec.patch_size) ** 2
@@ -147,9 +153,13 @@ class VisionTransformer(BaseModel):
         n, c, h, w = x.shape
         p = self.spec.patch_size
         ivy.utils.assertions.check_true(
-            h == self.spec.image_size, f"Wrong image height! Expected {self.spec.image_size} but got {h}!")
+            h == self.spec.image_size,
+            f"Wrong image height! Expected {self.spec.image_size} but got {h}!",
+        )
         ivy.utils.assertions.check_true(
-            w == self.spec.image_size, f"Wrong image width! Expected {self.spec.image_size} but got {w}!")
+            w == self.spec.image_size,
+            f"Wrong image width! Expected {self.spec.image_size} but got {w}!",
+        )
         n_h = h // p
         n_w = w // p
 
@@ -206,9 +216,8 @@ def _vision_transformer(
     num_heads: int,
     hidden_dim: int,
     mlp_dim: int,
-    v=None
+    v=None,
 ) -> VisionTransformer:
-
     model = VisionTransformer(
         image_size=224,
         patch_size=patch_size,
@@ -224,14 +233,10 @@ def _vision_transformer(
 
 def vit_b_16(pretrained=True) -> VisionTransformer:
     model = _vision_transformer(
-        patch_size=16,
-        num_layers=12,
-        num_heads=12,
-        hidden_dim=768,
-        mlp_dim=3072
+        patch_size=16, num_layers=12, num_heads=12, hidden_dim=768, mlp_dim=3072
     )
     if pretrained:
-        url = 'https://download.pytorch.org/models/vit_b_16-c867db91.pth'
+        url = "https://download.pytorch.org/models/vit_b_16-c867db91.pth"
         w_clean = load_torch_weights(
             url,
             model,
@@ -244,14 +249,10 @@ def vit_b_16(pretrained=True) -> VisionTransformer:
 
 def vit_b_32(pretrained=True) -> VisionTransformer:
     ref_model = _vision_transformer(
-        patch_size=32,
-        num_layers=12,
-        num_heads=12,
-        hidden_dim=768,
-        mlp_dim=3072
+        patch_size=32, num_layers=12, num_heads=12, hidden_dim=768, mlp_dim=3072
     )
     if pretrained:
-        url = 'https://download.pytorch.org/models/vit_b_32-d86f8d99.pth'
+        url = "https://download.pytorch.org/models/vit_b_32-d86f8d99.pth"
         w_clean = load_torch_weights(
             url,
             ref_model,
@@ -264,14 +265,10 @@ def vit_b_32(pretrained=True) -> VisionTransformer:
 
 def vit_l_16(pretrained=True) -> VisionTransformer:
     ref_model = _vision_transformer(
-        patch_size=16,
-        num_layers=24,
-        num_heads=16,
-        hidden_dim=1024,
-        mlp_dim=4096
+        patch_size=16, num_layers=24, num_heads=16, hidden_dim=1024, mlp_dim=4096
     )
     if pretrained:
-        url = 'https://download.pytorch.org/models/vit_l_16-852ce7e3.pth'
+        url = "https://download.pytorch.org/models/vit_l_16-852ce7e3.pth"
         w_clean = load_torch_weights(
             url,
             ref_model,
@@ -284,14 +281,10 @@ def vit_l_16(pretrained=True) -> VisionTransformer:
 
 def vit_l_32(pretrained=True) -> VisionTransformer:
     ref_model = _vision_transformer(
-        patch_size=32,
-        num_layers=24,
-        num_heads=16,
-        hidden_dim=1024,
-        mlp_dim=4096
+        patch_size=32, num_layers=24, num_heads=16, hidden_dim=1024, mlp_dim=4096
     )
     if pretrained:
-        url = 'https://download.pytorch.org/models/vit_l_32-c7638314.pth'
+        url = "https://download.pytorch.org/models/vit_l_32-c7638314.pth"
         w_clean = load_torch_weights(
             url,
             ref_model,
@@ -304,14 +297,10 @@ def vit_l_32(pretrained=True) -> VisionTransformer:
 
 def vit_h_14(pretrained=True) -> VisionTransformer:
     ref_model = _vision_transformer(
-        patch_size=14,
-        num_layers=12,
-        num_heads=14,
-        hidden_dim=768,
-        mlp_dim=3072
+        patch_size=14, num_layers=12, num_heads=14, hidden_dim=768, mlp_dim=3072
     )
     if pretrained:
-        url = 'https://download.pytorch.org/models/vit_h_14_swag-80465313.pth'
+        url = "https://download.pytorch.org/models/vit_h_14_swag-80465313.pth"
         w_clean = load_torch_weights(
             url,
             ref_model,

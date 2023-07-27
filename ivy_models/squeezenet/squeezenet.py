@@ -66,7 +66,8 @@ class SqueezeNet(BaseModel):
         v=None,
     ) -> None:
         self.spec = (
-            spec if spec and isinstance(spec, SqueezeNetSpec) 
+            spec
+            if spec and isinstance(spec, SqueezeNetSpec)
             else SqueezeNetSpec(
                 version=version,
                 num_classes=num_classes,
@@ -114,8 +115,9 @@ class SqueezeNet(BaseModel):
             )
 
         # Final convolution is initialized differently from the rest
-        final_conv = ivy.Conv2D(512, self.spec.num_classes, [
-                                1, 1], 1, 0, data_format="NCHW")
+        final_conv = ivy.Conv2D(
+            512, self.spec.num_classes, [1, 1], 1, 0, data_format="NCHW"
+        )
         self.classifier = ivy.Sequential(
             ivy.Dropout(prob=self.spec.dropout),
             final_conv,

@@ -18,13 +18,13 @@ class UNetSpec(BaseSpec):
 class UNET(BaseModel):
     def __init__(self, n_channels, n_classes, bilinear=False, spec=None, v=None):
         self.spec = (
-            spec if spec and isinstance(spec, UNetSpec) 
+            spec
+            if spec and isinstance(spec, UNetSpec)
             else UNetSpec(n_channels, n_classes, bilinear)
         )
         super(UNET, self).__init__(v=v)
 
     def _build(self, *args, **kwargs):
-
         self.factor = 2 if self.spec.bilinear else 1
         self.inc = UNetDoubleConv(self.spec.n_channels, 64)
         self.down1 = UNetDown(64, 128)
@@ -74,7 +74,6 @@ def _unet_torch_weights_mapping(old_key, new_key):
 
 
 def unet_carvana(n_channels=3, n_classes=2, v=None, pretrained=True):
-
     model = UNET(n_channels=3, n_classes=2)
     if pretrained:
         url = "https://github.com/milesial/Pytorch-UNet/releases/download/v3.0/unet_carvana_scale1.0_epoch2.pth"  # noqa

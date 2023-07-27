@@ -27,7 +27,7 @@ class ResNetSpec(BaseSpec):
             layers=layers,
             num_classes=num_classes,
             base_width=base_width,
-            replace_stride_with_dilation=replace_stride_with_dilation
+            replace_stride_with_dilation=replace_stride_with_dilation,
         )
 
 
@@ -58,7 +58,8 @@ class ResNet(BaseModel):
         v: ivy.Container = None,
     ) -> None:
         self.spec = (
-            spec if spec and isinstance(spec, ResNetSpec) 
+            spec
+            if spec and isinstance(spec, ResNetSpec)
             else ResNetSpec(
                 block, layers, num_classes, base_width, replace_stride_with_dilation
             )

@@ -15,7 +15,7 @@ from ivy_models.efficientnet.layers import (
     EfficientNetConv2dNormActivation,
     EfficientNetSqueezeExcitation,
     EfficientNetStochasticDepth,
-)       
+)
 
 
 @dataclass
@@ -237,14 +237,14 @@ class EfficientNetFusedMBConv(ivy.Module):
 
 
 class EfficientNetSpec(BaseSpec):
-    def __init__( 
+    def __init__(
         self,
         inverted_residual_setting: Sequence[Union[MBConvConfig, FusedMBConvConfig]],
         dropout: float,
         stochastic_depth_prob: float = 0.2,
         num_classes: int = 1000,
         norm_layer: Optional[Callable[..., ivy.Module]] = None,
-        last_channel: Optional[int] = None
+        last_channel: Optional[int] = None,
     ):
         super(EfficientNetSpec, self).__init__(
             inverted_residual_setting=inverted_residual_setting,
@@ -304,7 +304,9 @@ class EfficientNet(BaseModel):
         layers = []
 
         # building first layer
-        firstconv_output_channels = self.spec.inverted_residual_setting[0].input_channels
+        firstconv_output_channels = self.spec.inverted_residual_setting[
+            0
+        ].input_channels
         layers.append(
             EfficientNetConv2dNormActivation(
                 3,
@@ -318,7 +320,8 @@ class EfficientNet(BaseModel):
 
         # building inverted residual blocks
         total_stage_blocks = sum(
-            cnf.num_layers for cnf in self.spec.inverted_residual_setting)
+            cnf.num_layers for cnf in self.spec.inverted_residual_setting
+        )
         stage_block_id = 0
         for cnf in self.spec.inverted_residual_setting:
             stage = []
@@ -334,7 +337,8 @@ class EfficientNet(BaseModel):
                 # adjust stochastic depth prob based on the depth of the stage block
                 sd_prob = (
                     self.spec.stochastic_depth_prob
-                    * float(stage_block_id) / total_stage_blocks
+                    * float(stage_block_id)
+                    / total_stage_blocks
                 )
 
                 stage.append(block_cnf.block(block_cnf, sd_prob, norm_layer))
@@ -345,7 +349,9 @@ class EfficientNet(BaseModel):
         # building last several layers
         lastconv_input_channels = self.spec.inverted_residual_setting[-1].out_channels
         lastconv_output_channels = (
-            self.spec.last_channel if self.spec.last_channel is not None else 4 * lastconv_input_channels
+            self.spec.last_channel
+            if self.spec.last_channel is not None
+            else 4 * lastconv_input_channels
         )
         layers.append(
             EfficientNetConv2dNormActivation(
@@ -504,7 +510,7 @@ def _efficient_net_torch_weights_mapping(old_key, new_key):
 def efficientnet_b0(pretrained=True):
     inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
         "efficientnet_b0"
-    ) 
+    )
     model = EfficientNet(
         inverted_residual_setting,
         dropout,
@@ -512,7 +518,9 @@ def efficientnet_b0(pretrained=True):
         last_channel=last_channel,
     )
     if pretrained:
-        url = "https://download.pytorch.org/models/efficientnet_b0_rwightman-3dd342df.pth"
+        url = (
+            "https://download.pytorch.org/models/efficientnet_b0_rwightman-3dd342df.pth"
+        )
         w_clean = ivy_models.helpers.load_torch_weights(
             url,
             model,
@@ -535,7 +543,9 @@ def efficientnet_b1(pretrained=True):
         last_channel=last_channel,
     )
     if pretrained:
-        url = "https://download.pytorch.org/models/efficientnet_b1_rwightman-533bc792.pth"
+        url = (
+            "https://download.pytorch.org/models/efficientnet_b1_rwightman-533bc792.pth"
+        )
         w_clean = ivy_models.helpers.load_torch_weights(
             url,
             model,
@@ -558,7 +568,9 @@ def efficientnet_b2(pretrained=True):
         last_channel=last_channel,
     )
     if pretrained:
-        url = "https://download.pytorch.org/models/efficientnet_b2_rwightman-bcdf34b7.pth"
+        url = (
+            "https://download.pytorch.org/models/efficientnet_b2_rwightman-bcdf34b7.pth"
+        )
         w_clean = ivy_models.helpers.load_torch_weights(
             url,
             model,
@@ -581,7 +593,9 @@ def efficientnet_b3(pretrained=True):
         last_channel=last_channel,
     )
     if pretrained:
-        url = "https://download.pytorch.org/models/efficientnet_b3_rwightman-cf984f9c.pth"
+        url = (
+            "https://download.pytorch.org/models/efficientnet_b3_rwightman-cf984f9c.pth"
+        )
         w_clean = ivy_models.helpers.load_torch_weights(
             url,
             model,
@@ -604,7 +618,9 @@ def efficientnet_b4(pretrained=True):
         last_channel=last_channel,
     )
     if pretrained:
-        url = "https://download.pytorch.org/models/efficientnet_b4_rwightman-7eb33cd5.pth"
+        url = (
+            "https://download.pytorch.org/models/efficientnet_b4_rwightman-7eb33cd5.pth"
+        )
         w_clean = ivy_models.helpers.load_torch_weights(
             url,
             model,
@@ -627,7 +643,9 @@ def efficientnet_b5(pretrained=True):
         last_channel=last_channel,
     )
     if pretrained:
-        url = "https://download.pytorch.org/models/efficientnet_b5_lukemelas-b6417697.pth"
+        url = (
+            "https://download.pytorch.org/models/efficientnet_b5_lukemelas-b6417697.pth"
+        )
         w_clean = ivy_models.helpers.load_torch_weights(
             url,
             model,
@@ -650,7 +668,9 @@ def efficientnet_b6(pretrained=True):
         last_channel=last_channel,
     )
     if pretrained:
-        url = "https://download.pytorch.org/models/efficientnet_b6_lukemelas-c76e70fd.pth"
+        url = (
+            "https://download.pytorch.org/models/efficientnet_b6_lukemelas-c76e70fd.pth"
+        )
         w_clean = ivy_models.helpers.load_torch_weights(
             url,
             model,
@@ -673,7 +693,9 @@ def efficientnet_b7(pretrained=True):
         last_channel=last_channel,
     )
     if pretrained:
-        url = "https://download.pytorch.org/models/efficientnet_b7_lukemelas-dcc49843.pth"
+        url = (
+            "https://download.pytorch.org/models/efficientnet_b7_lukemelas-dcc49843.pth"
+        )
         w_clean = ivy_models.helpers.load_torch_weights(
             url,
             model,

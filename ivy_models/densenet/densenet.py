@@ -3,7 +3,7 @@ from typing import Tuple
 import builtins
 
 from ivy_models.helpers import load_torch_weights
-from ivy_models.densenet.denselayers import *
+from ivy_models.densenet.denselayers import DenseNetBlock, DenseNetTransition, ivy
 from ivy_models.base import BaseSpec, BaseModel
 
 
@@ -66,7 +66,7 @@ class DenseNet(BaseModel):
                 num_init_features=num_init_features,
                 bn_size=bn_size,
                 drop_rate=drop_rate,
-                num_classes=num_classes
+                num_classes=num_classes,
             )
         )
         super().__init__(v=v)

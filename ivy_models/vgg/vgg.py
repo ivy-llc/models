@@ -38,7 +38,8 @@ class VGGSpec(BaseSpec):
 class VGG(BaseModel):
     def __init__(self, repeats, with_bn=False, num_classes=1000, spec=None, v=None):
         self.spec = (
-            spec if spec and isinstance(spec, VGGSpec)
+            spec
+            if spec and isinstance(spec, VGGSpec)
             else VGGSpec(
                 repeats=repeats,
                 with_bn=with_bn,

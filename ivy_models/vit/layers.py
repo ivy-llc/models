@@ -37,17 +37,20 @@ class ConvNormActivation(ivy.Sequential):
         bias: Optional[bool] = None,
         conv_layer: Callable[..., ivy.Module] = ivy.Conv2D,
     ) -> None:
-
         if padding is None:
             if isinstance(kernel_size, int) and isinstance(dilation, int):
                 padding = (kernel_size - 1) // 2 * dilation
             else:
-                _conv_dim = len(kernel_size) if isinstance(
-                    kernel_size, Sequence) else len(dilation)
+                _conv_dim = (
+                    len(kernel_size)
+                    if isinstance(kernel_size, Sequence)
+                    else len(dilation)
+                )
                 kernel_size = _make_ntuple(kernel_size, _conv_dim)
                 dilation = _make_ntuple(dilation, _conv_dim)
-                padding = tuple((kernel_size[i] - 1) // 2 * dilation[i]
-                                for i in range(_conv_dim))
+                padding = tuple(
+                    (kernel_size[i] - 1) // 2 * dilation[i] for i in range(_conv_dim)
+                )
         if bias is None:
             bias = norm_layer is None
 
@@ -113,7 +116,6 @@ class Conv2dNormActivation(ConvNormActivation):
         inplace: Optional[bool] = True,
         bias: Optional[bool] = None,
     ) -> None:
-
         super().__init__(
             in_channels,
             out_channels,
@@ -184,8 +186,13 @@ class VIT_MLPBlock(MLP):
     """Transformer MLP block."""
 
     def __init__(self, in_dim: int, mlp_dim: int, dropout: float):
-        super().__init__(in_dim, [mlp_dim, in_dim],
-                         activation_layer=ivy.GELU, inplace=None, dropout=dropout)
+        super().__init__(
+            in_dim,
+            [mlp_dim, in_dim],
+            activation_layer=ivy.GELU,
+            inplace=None,
+            dropout=dropout,
+        )
 
 
 class VIT_EncoderBlock(ivy.Module):
@@ -213,7 +220,10 @@ class VIT_EncoderBlock(ivy.Module):
         # Attention block
         self.ln_1 = self.norm_layer(self.hidden_dim)
         self.self_attention = ivy.MultiHeadAttention(
-            self.hidden_dim, num_heads=self.num_heads, dropout_rate=self.attention_dropout)
+            self.hidden_dim,
+            num_heads=self.num_heads,
+            dropout_rate=self.attention_dropout,
+        )
         self.dropout = ivy.Dropout(self.dropout)
 
         # MLP block
@@ -222,7 +232,9 @@ class VIT_EncoderBlock(ivy.Module):
 
     def _forward(self, input):
         ivy.utils.assertions.check_true(
-            input.dim() == 3, f"Expected (batch_size, seq_length, hidden_dim) got {input.shape}")
+            input.dim() == 3,
+            f"Expected (batch_size, seq_length, hidden_dim) got {input.shape}",
+        )
         x = self.ln_1(input)
         x, _ = self.self_attention(x, x, x, need_weights=False)
         x = self.dropout(x)
@@ -275,6 +287,8 @@ class VIT_Encoder(ivy.Module):
 
     def _forward(self, input):
         ivy.utils.assertions.check_true(
-            input.dim() == 3, f"Expected (batch_size, seq_length, hidden_dim) got {input.shape}")
+            input.dim() == 3,
+            f"Expected (batch_size, seq_length, hidden_dim) got {input.shape}",
+        )
         input = input + self.pos_embedding
         return self.ln(self.layers(self.dropout(input)))
