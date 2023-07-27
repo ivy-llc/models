@@ -32,3 +32,6 @@ from .densenet import *
 
 from . import bert
 from .bert import *
+
+from . import vit
+from .vit import *
