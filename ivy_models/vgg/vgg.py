@@ -31,7 +31,7 @@ class VGGSpec(BaseSpec):
         super(VGGSpec, self).__init__(
             repeats=repeats,
             with_bn=with_bn,
-            num=clasees=num_classes,
+            num_classes=num_classes,
         )
 
 
@@ -42,7 +42,7 @@ class VGG(BaseModel):
             else VGGSpec(
                 repeats=repeats,
                 with_bn=with_bn,
-                num_clasees=num_classes,
+                num_classes=num_classes,
             )
         )
         super(VGG, self).__init__(v=v)
@@ -91,7 +91,7 @@ def _vgg_torch_weights_mapping(old_key, new_key):
 
 def vgg11(pretrained=True):
     """VGG11 model"""
-    
+
     model = VGG([1, 1, 2, 2, 2], False)
     if pretrained:
         url = "https://download.pytorch.org/models/vgg11-8a719046.pth"
@@ -104,7 +104,7 @@ def vgg11(pretrained=True):
 
 def vgg11_bn(pretrained=True):
     """VGG11 model with BatchNorm2D"""
-    
+
     model = VGG([1, 1, 2, 2, 2], True)
     if pretrained:
         url = "https://download.pytorch.org/models/vgg11_bn-6002323d.pth"
@@ -117,7 +117,7 @@ def vgg11_bn(pretrained=True):
 
 def vgg13(pretrained=True):
     """VGG13 model"""
-    
+
     model = VGG([2, 2, 2, 2, 2], False)
     if pretrained:
         url = "https://download.pytorch.org/models/vgg13-19584684.pth"
@@ -130,7 +130,7 @@ def vgg13(pretrained=True):
 
 def vgg13_bn(pretrained=True):
     """VGG13 model with BatchNorm2D"""
-    
+
     model = VGG([2, 2, 2, 2, 2], True)
     if pretrained:
         url = "https://download.pytorch.org/models/vgg13_bn-abd245e5.pth"
@@ -143,7 +143,7 @@ def vgg13_bn(pretrained=True):
 
 def vgg16(pretrained=True):
     """VGG16 model"""
-    
+
     model = VGG([2, 2, 3, 3, 3], False)
     if pretrained:
         url = "https://download.pytorch.org/models/vgg16-397923af.pth"
@@ -156,7 +156,7 @@ def vgg16(pretrained=True):
 
 def vgg16_bn(pretrained=True):
     """VGG16 model with BatchNorm2D"""
-    
+
     model = VGG([2, 2, 3, 3, 3], True)
     if pretrained:
         url = "https://download.pytorch.org/models/vgg16_bn-6c64b313.pth"
@@ -169,7 +169,7 @@ def vgg16_bn(pretrained=True):
 
 def vgg19(pretrained=True):
     """VGG19 model"""
-    
+
     model = VGG([2, 2, 4, 4, 4], False)
     if pretrained:
         url = "https://download.pytorch.org/models/vgg19-dcbb9e9d.pth"
@@ -182,7 +182,7 @@ def vgg19(pretrained=True):
 
 def vgg19_bn(pretrained=True):
     """VGG19 model with BatchNorm2D"""
-    
+
     model = VGG([2, 2, 4, 4, 4], True)
     if pretrained:
         url = "https://download.pytorch.org/models/vgg19_bn-c79401a0.pth"
@@ -191,3 +191,8 @@ def vgg19_bn(pretrained=True):
         )
         model.v = w_clean
     return model
+
+
+if __name__ == "__main__":
+    ivy.set_torch_backend()
+    model = vgg11()
