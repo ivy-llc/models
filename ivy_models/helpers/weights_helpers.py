@@ -158,7 +158,7 @@ def load_torch_weights(
 def unflatten_set(container, name, to_set, split_on="__"):
     splits = name.split(split_on)
     cont = container
-    for idx, sp in enumerate(splits[:-1]):
+    for sp in splits[:-1]:
         cont = cont.setdefault(sp, {})
     cont[splits[-1]] = to_set
 
