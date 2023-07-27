@@ -147,7 +147,7 @@ def squeezenet1_0(
     v=None,
     pretrained=True,
 ):
-    model = SqueezeNet(version="1_0", num_classes, dropout, v=v)
+    model = SqueezeNet("1_0", num_classes, dropout, v=v)
     if pretrained:
         url = "https://download.pytorch.org/models/squeezenet1_0-b66bff10.pth"
         w_clean = load_torch_weights(
@@ -166,7 +166,7 @@ def squeezenet1_1(
     v=None,
     pretrained=True,
 ):
-    model = SqueezeNet(version="1_1", num_classes, dropout, v=v)
+    model = SqueezeNet("1_1", num_classes, dropout, v=v)
     if pretrained:
         url = "https://download.pytorch.org/models/squeezenet1_1-b8a52dc0.pth"
         w_clean = load_torch_weights(
