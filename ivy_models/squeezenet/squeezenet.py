@@ -1,5 +1,6 @@
 from ivy_models.helpers import load_torch_weights
 import ivy
+from ivy_models.base import BaseSpec, BaseModel
 
 
 class SqueezeNetFire(ivy.Module):
@@ -41,21 +42,41 @@ class SqueezeNetFire(ivy.Module):
         )
 
 
-class SqueezeNet(ivy.Module):
+class SqueezeNetSpec(BaseSpec):
     def __init__(
         self,
         version: str = "1_0",
         num_classes: int = 1000,
         dropout: float = 0.5,
+    ) -> None:
+        super(SqueezeNetSpec, self).__init__(
+            version=version,
+            num_classes=num_classes,
+            dropout=dropout,
+        )
+
+
+class SqueezeNet(BaseModel):
+    def __init__(
+        self,
+        version: str = "1_0",
+        num_classes: int = 1000,
+        dropout: float = 0.5,
+        spec=None,
         v=None,
     ) -> None:
-        self.version = version
-        self.num_classes = num_classes
-        self.dropout = dropout
+        self.spec = (
+            spec if spec and isinstance(spec, SqueezeNetSpec) 
+            else SqueezeNetSpec(
+                version=version,
+                num_classes=num_classes,
+                dropout=dropout,
+            )
+        )
         super().__init__(v=v)
 
     def _build(self, *args, **kwargs):
-        if self.version == "1_0":
+        if self.spec.version == "1_0":
             self.features = ivy.Sequential(
                 ivy.Conv2D(3, 96, [7, 7], 2, 0, data_format="NCHW"),
                 ivy.ReLU(),
@@ -71,7 +92,7 @@ class SqueezeNet(ivy.Module):
                 ivy.MaxPool2D(3, 2, 0, data_format="NCHW"),
                 SqueezeNetFire(512, 64, 256, 256),
             )
-        elif self.version == "1_1":
+        elif self.spec.version == "1_1":
             self.features = ivy.Sequential(
                 ivy.Conv2D(3, 64, [3, 3], 2, 0, data_format="NCHW"),
                 ivy.ReLU(),
@@ -89,17 +110,22 @@ class SqueezeNet(ivy.Module):
             )
         else:
             raise ValueError(
-                f"Unsupported SqueezeNet version {self.version}: 1_0 or 1_1 expected"
+                f"Unsupported SqueezeNet version {self.spec.version}: 1_0 or 1_1 expected"
             )
 
         # Final convolution is initialized differently from the rest
-        final_conv = ivy.Conv2D(512, self.num_classes, [1, 1], 1, 0, data_format="NCHW")
+        final_conv = ivy.Conv2D(512, self.spec.num_classes, [
+                                1, 1], 1, 0, data_format="NCHW")
         self.classifier = ivy.Sequential(
-            ivy.Dropout(prob=self.dropout),
+            ivy.Dropout(prob=self.spec.dropout),
             final_conv,
             ivy.ReLU(),
             ivy.AdaptiveAvgPool2d((1, 1)),
         )
+
+    @classmethod
+    def get_spec_class(self):
+        return SqueezeNetSpec
 
     def _forward(self, x):
         x = self.features(x)
@@ -117,29 +143,39 @@ def _squeezenet_torch_weights_mapping(old_key, new_key):
     return new_mapping
 
 
-def squeezenet(
-    version: str = "1_0",
+def squeezenet1_0(
     num_classes: int = 1000,
     dropout: float = 0.5,
     v=None,
     pretrained=True,
 ):
-    if not pretrained:
-        return SqueezeNet(version, num_classes, dropout, v=v)
-
-    reference_model = SqueezeNet(version, num_classes, dropout, v=v)
-    if version == "1_0":
+    model = SqueezeNet("1_0", num_classes, dropout, v=v)
+    if pretrained:
         url = "https://download.pytorch.org/models/squeezenet1_0-b66bff10.pth"
-    elif version == "1_1":
-        url = "https://download.pytorch.org/models/squeezenet1_1-b8a52dc0.pth"
-    else:
-        raise ValueError(
-            f"Unsupported SqueezeNet version {version}: 1_0 or 1_1 expected"
+        w_clean = load_torch_weights(
+            url,
+            model,
+            raw_keys_to_prune=["num_batches_tracked"],
+            custom_mapping=_squeezenet_torch_weights_mapping,
         )
-    w_clean = load_torch_weights(
-        url,
-        reference_model,
-        raw_keys_to_prune=["num_batches_tracked"],
-        custom_mapping=_squeezenet_torch_weights_mapping,
-    )
-    return SqueezeNet(version, num_classes, dropout, v=w_clean)
+        model.v = w_clean
+    return model
+
+
+def squeezenet1_1(
+    num_classes: int = 1000,
+    dropout: float = 0.5,
+    v=None,
+    pretrained=True,
+):
+    model = SqueezeNet("1_1", num_classes, dropout, v=v)
+    if pretrained:
+        url = "https://download.pytorch.org/models/squeezenet1_1-b8a52dc0.pth"
+        w_clean = load_torch_weights(
+            url,
+            model,
+            raw_keys_to_prune=["num_batches_tracked"],
+            custom_mapping=_squeezenet_torch_weights_mapping,
+        )
+        model.v = w_clean
+    return model
