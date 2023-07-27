@@ -1,8 +1,3 @@
-import ivy
-import warnings
-
-from ivy_models.base.spec import BaseSpec
-
 
 BART_START_DOCSTRING = r"""
     This model inherits from [`PreTrainedModel`]. Check the superclass documentation for the generic methods the
@@ -160,7 +155,7 @@ BART_INPUTS_DOCSTRING = r"""
 """
 
 
-class BartConfig(BaseSpec):
+class BartConfig:
     r"""
     Args:
         vocab_size (`int`, *optional*, defaults to 50265):
@@ -212,10 +207,13 @@ class BartConfig(BaseSpec):
             The id of the token to force as the last generated token when `max_length` is reached. Usually set to
             `eos_token_id`.
     """
-    
+
     model_type = "bart"
     keys_to_ignore_at_inference = ["past_key_values"]
-    attribute_map = {"num_attention_heads": "encoder_attention_heads", "hidden_size": "d_model"}
+    attribute_map = {
+        "num_attention_heads": "encoder_attention_heads",
+        "hidden_size": "d_model",
+    }
 
     def __init__(
         self,
@@ -266,25 +264,11 @@ class BartConfig(BaseSpec):
         self.classifier_dropout = classifier_dropout
         self.use_cache = use_cache
         self.num_hidden_layers = encoder_layers
-        self.scale_embedding = scale_embedding  # scale factor will be sqrt(d_model) if True
-
-        super().__init__(
-            num_labels=num_labels,
-            pad_token_id=pad_token_id,
-            bos_token_id=bos_token_id,
-            eos_token_id=eos_token_id,
-            is_encoder_decoder=is_encoder_decoder,
-            decoder_start_token_id=decoder_start_token_id,
-            forced_eos_token_id=forced_eos_token_id,
-            **kwargs,
-        )
-
-        # # ensure backward compatibility for BART CNN models
-        # if self.forced_bos_token_id is None and kwargs.get("force_bos_token_to_be_generated", False):
-        #     self.forced_bos_token_id = self.bos_token_id
-        #     warnings.warn(
-        #         f"Please make sure the config includes `forced_bos_token_id={self.bos_token_id}` in future versions. "
-        #         "The config can simply be saved and uploaded again to be fixed."
-        #     )
-            
-            
+        self.scale_embedding = scale_embedding
+        self.num_labels = num_labels
+        self.pad_token_id = pad_token_id
+        self.bos_token_id = bos_token_id
+        self.eos_token_id = eos_token_id
+        self.is_encoder_decoder = is_encoder_decoder
+        self.decoder_start_token_id = decoder_start_token_id
+        self.forced_eos_token_id = forced_eos_token_id

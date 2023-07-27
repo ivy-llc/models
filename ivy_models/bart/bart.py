@@ -3,7 +3,6 @@ from ivy_models.base import BaseModel
 from .config_bart import BartConfig
 from typing import Optional, Tuple, Union, List
 from .layers import BartLearnedPositionalEmbedding, BartEncoderLayer, BartDecoderLayer
-import warnings
 import logging
 from .modeling_outputs import BaseModelOutput, BaseModelOutputWithPastAndCrossAttentions, Seq2SeqModelOutput
 from .helper_func import _expand_mask, _make_causal_mask, shift_tokens_right
