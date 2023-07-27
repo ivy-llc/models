@@ -1,5 +1,5 @@
 import ivy
-from .layers import UNetDoubleConv, UNetDown, UNetOutConv, UNetUp
+from ivy_models.unet.layers import UNetDoubleConv, UNetDown, UNetOutConv, UNetUp
 
 import builtins
 from ivy_models.helpers import load_torch_weights
@@ -74,7 +74,7 @@ def _unet_torch_weights_mapping(old_key, new_key):
 
 
 def unet_carvana(n_channels=3, n_classes=2, v=None, pretrained=True):
-    
+
     model = UNET(n_channels=3, n_classes=2)
     if pretrained:
         url = "https://github.com/milesial/Pytorch-UNet/releases/download/v3.0/unet_carvana_scale1.0_epoch2.pth"  # noqa
@@ -86,3 +86,8 @@ def unet_carvana(n_channels=3, n_classes=2, v=None, pretrained=True):
         )
         model.v = w_clean
     return model
+
+
+if __name__ == "__main__":
+    ivy.set_torch_backend()
+    model = unet_carvana()
