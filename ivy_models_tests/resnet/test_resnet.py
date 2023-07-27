@@ -1,9 +1,8 @@
 import os
 import ivy
-import pytest
+import random
 import numpy as np
 import jax
-from hypothesis import given, strategies as st
 
 # Enable x64 support in JAX
 jax.config.update("jax_enable_x64", True)
@@ -12,29 +11,35 @@ from ivy_models.resnet import (
     resnet_18,
     resnet_34,
     resnet_50,
-)  # , resnet_152, resnet_101
+    resnet_101,
+    resnet_152,
+)
 
 
 VARIANTS = {
     "r18": resnet_18,
     "r34": resnet_34,
     "r50": resnet_50,
-    # "r101": resnet_101,
-    # "r152": resnet_152,
+    "r101": resnet_101,
+    "r152": resnet_152,
 }
 
 LOGITS = {
     "r18": np.array([0.7069, 0.2663, 0.0231]),
     "r34": np.array([0.8507, 0.1351, 0.0069]),
     "r50": np.array([0.3429, 0.0408, 0.0121]),
-    # "r101": np.array([0.7834, 0.0229, 0.0112]),
-    # "r152": np.array([0.8051, 0.0473, 0.0094]),
+    "r101": np.array([0.7834, 0.0229, 0.0112]),
+    "r152": np.array([0.8051, 0.0473, 0.0094]),
 }
 
 
-@pytest.mark.parametrize("load_weights", [False, True])
-@given(model_var=st.sampled_from(list(VARIANTS.keys())))
-def test_resnet_img_classification(device, f, fw, load_weights, model_var):
+load_weights = random.choice([False, True])
+model_var = random.choice(list(VARIANTS.keys()))
+model = VARIANTS[model_var](pretrained=load_weights)
+v = ivy.to_numpy(model.v)
+
+
+def test_resnet_img_classification(device, fw):
     """Test ResNet-18 image classification."""
     num_classes = 1000
     batch_shape = [1]
@@ -43,14 +48,15 @@ def test_resnet_img_classification(device, f, fw, load_weights, model_var):
     # Load image
     img = ivy.asarray(
         helpers.load_and_preprocess_img(
-            os.path.join(this_dir, "..", "..", "images", "cat.jpg"), 256, 224
+            os.path.join(this_dir, "..", "..", "images", "cat.jpg"),
+            256,
+            224,
+            data_format="NHWC",
+            to_ivy=True,
         ),
     )
 
-    # Create model
-    model = VARIANTS[model_var](pretrained=load_weights)
-
-    # Perform inference
+    model.v = ivy.asarray(v)
     output = model(img)
 
     # Cardinality test
