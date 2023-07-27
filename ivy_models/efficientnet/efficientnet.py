@@ -298,7 +298,7 @@ class EfficientNet(BaseModel):
         super(EfficientNet, self).__init__(v=v)
 
     def _build(self, *args, **kwargs) -> bool:
-        if norm_layer is None:
+        if self.spec.norm_layer is None:
             norm_layer = ivy.BatchNorm2D
 
         layers = []
@@ -317,7 +317,8 @@ class EfficientNet(BaseModel):
         )
 
         # building inverted residual blocks
-        total_stage_blocks = sum(cnf.num_layers for cnf in self.spec.inverted_residual_setting)
+        total_stage_blocks = sum(
+            cnf.num_layers for cnf in self.spec.inverted_residual_setting)
         stage_block_id = 0
         for cnf in self.spec.inverted_residual_setting:
             stage = []
@@ -332,7 +333,8 @@ class EfficientNet(BaseModel):
 
                 # adjust stochastic depth prob based on the depth of the stage block
                 sd_prob = (
-                    self.spec.stochastic_depth_prob * float(stage_block_id) / total_stage_blocks
+                    self.spec.stochastic_depth_prob
+                    * float(stage_block_id) / total_stage_blocks
                 )
 
                 stage.append(block_cnf.block(block_cnf, sd_prob, norm_layer))
@@ -521,6 +523,7 @@ def efficientnet_b0(pretrained=True):
 
     return model
 
+
 def efficientnet_b1(pretrained=True):
     inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
         "efficientnet_b1"
@@ -542,6 +545,7 @@ def efficientnet_b1(pretrained=True):
         model.v = w_clean
 
     return model
+
 
 def efficientnet_b2(pretrained=True):
     inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
@@ -565,6 +569,7 @@ def efficientnet_b2(pretrained=True):
 
     return model
 
+
 def efficientnet_b3(pretrained=True):
     inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
         "efficientnet_b3"
@@ -587,6 +592,7 @@ def efficientnet_b3(pretrained=True):
 
     return model
 
+
 def efficientnet_b4(pretrained=True):
     inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
         "efficientnet_b4"
@@ -608,6 +614,7 @@ def efficientnet_b4(pretrained=True):
         model.v = w_clean
 
     return model
+
 
 def efficientnet_b5(pretrained=True):
     inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
@@ -722,7 +729,7 @@ def efficientnet_v2_m(pretrained=True):
         model.v = w_clean
 
     return model
-    
+
 
 def efficientnet_v2_l(pretrained=True):
     inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
