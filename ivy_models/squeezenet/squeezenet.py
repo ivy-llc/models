@@ -41,6 +41,7 @@ class SqueezeNetFire(ivy.Module):
             axis=1,
         )
 
+
 class SqueezeNetSpec(BaseSpec):
     def __init__(
         self,
@@ -113,7 +114,8 @@ class SqueezeNet(BaseModel):
             )
 
         # Final convolution is initialized differently from the rest
-        final_conv = ivy.Conv2D(512, self.spec.num_classes, [1, 1], 1, 0, data_format="NCHW")
+        final_conv = ivy.Conv2D(512, self.spec.num_classes, [
+                                1, 1], 1, 0, data_format="NCHW")
         self.classifier = ivy.Sequential(
             ivy.Dropout(prob=self.spec.dropout),
             final_conv,
@@ -139,7 +141,7 @@ def _squeezenet_torch_weights_mapping(old_key, new_key):
         new_mapping = {"key_chain": new_key, "pattern": "h -> 1 h 1 1"}
 
     return new_mapping
-    
+
 
 def squeezenet1_0(
     num_classes: int = 1000,
@@ -177,4 +179,3 @@ def squeezenet1_1(
         )
         model.v = w_clean
     return model
-
