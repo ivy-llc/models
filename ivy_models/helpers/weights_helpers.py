@@ -155,10 +155,10 @@ def load_torch_weights(
     return ivy.asarray(w_clean)
 
 
-def unflatten_set(container, name, to_set, split_on="__"):
+def _unflatten_set(container, name, to_set, split_on="__"):
     splits = name.split(split_on)
     cont = container
-    for idx, sp in enumerate(splits[:-1]):
+    for sp in splits[:-1]:
         cont = cont.setdefault(sp, {})
     cont[splits[-1]] = to_set
 
@@ -179,5 +179,5 @@ def load_transformers_weights(hf_repo, model, map_fn, split_on="__"):
 
     for old_name, ref_name in mapping.items():
         to_set = ivy.asarray(ref_weights[ref_name])
-        unflatten_set(old_mapping, old_name, to_set, split_on)
+        _unflatten_set(old_mapping, old_name, to_set, split_on)
     return old_mapping

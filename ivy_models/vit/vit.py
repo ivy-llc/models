@@ -1,5 +1,5 @@
 from ivy_models.helpers import load_torch_weights
-from ivy_models.vit.layers import Callable, Conv2dNormActivation, ConvStemConfig, List, Optional, OrderedDict, VIT_Encoder, Zeros, ivy, model, partial
+from ivy_models.vit.layers import Callable, Conv2dNormActivation, ConvStemConfig, List, Optional, OrderedDict, VIT_Encoder, Zeros, ivy, partial
 from ivy_models.base import BaseModel, BaseSpec
 
 
@@ -259,8 +259,8 @@ def vit_b_32(pretrained=True) -> VisionTransformer:
             raw_keys_to_prune=["num_batches_tracked"],
             custom_mapping=_vit_torch_weights_mapping,
         )
-        model.v = w_clean
-    return model
+        ref_model.v = w_clean
+    return ref_model
 
 
 def vit_l_16(pretrained=True) -> VisionTransformer:
@@ -275,8 +275,8 @@ def vit_l_16(pretrained=True) -> VisionTransformer:
             raw_keys_to_prune=["num_batches_tracked"],
             custom_mapping=_vit_torch_weights_mapping,
         )
-        model.v = w_clean
-    return model
+        ref_model.v = w_clean
+    return ref_model
 
 
 def vit_l_32(pretrained=True) -> VisionTransformer:
@@ -291,8 +291,8 @@ def vit_l_32(pretrained=True) -> VisionTransformer:
             raw_keys_to_prune=["num_batches_tracked"],
             custom_mapping=_vit_torch_weights_mapping,
         )
-        model.v = w_clean
-    return model
+        ref_model.v = w_clean
+    return ref_model
 
 
 def vit_h_14(pretrained=True) -> VisionTransformer:
@@ -307,5 +307,5 @@ def vit_h_14(pretrained=True) -> VisionTransformer:
             raw_keys_to_prune=["num_batches_tracked"],
             custom_mapping=_vit_torch_weights_mapping,
         )
-        model.v = w_clean
-    return model
+        ref_model.v = w_clean
+    return ref_model
