@@ -1,5 +1,16 @@
 from ivy_models.helpers import load_torch_weights
-from ivy_models.vit.layers import Callable, Conv2dNormActivation, ConvStemConfig, List, Optional, OrderedDict, VIT_Encoder, Zeros, ivy, partial
+from ivy_models.vit.layers import (
+    Callable,
+    Conv2dNormActivation,
+    ConvStemConfig,
+    List,
+    Optional,
+    OrderedDict,
+    VIT_Encoder,
+    Zeros,
+    ivy,
+    partial,
+)
 from ivy_models.base import BaseModel, BaseSpec
 
 
