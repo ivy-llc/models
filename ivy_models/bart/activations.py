@@ -14,7 +14,7 @@ class IvyGELUTanh(ivy.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, input: ivy.Array) -> ivy.Array:
+    def _forward(self, input: ivy.Array) -> ivy.Array:
         return ivy.gelu(input, approximate="tanh")
 
 
@@ -24,7 +24,7 @@ class NewGELUActivation(ivy.Module):
     the Gaussian Error Linear Units paper: https://arxiv.org/abs/1606.08415
     """
 
-    def forward(self, input: ivy.Array) -> ivy.Array:
+    def _forward(self, input: ivy.Array) -> ivy.Array:
         return (
             0.5
             * input
@@ -55,7 +55,7 @@ class GELUActivation(ivy.Module):
     def _gelu_python(self, input: ivy.Array) -> ivy.Array:
         return input * 0.5 * (1.0 + ivy.erf(input / ivy.sqrt(2.0)))
 
-    def forward(self, input: ivy.Array) -> ivy.Array:
+    def _forward(self, input: ivy.Array) -> ivy.Array:
         return self.act(input)
 
 
@@ -64,7 +64,7 @@ class FastGELUActivation(ivy.Module):
     Applies GELU approximation that is slower than QuickGELU but more accurate. See: https://github.com/hendrycks/GELUs
     """
 
-    def forward(self, input: ivy.Array) -> ivy.Array:
+    def _forward(self, input: ivy.Array) -> ivy.Array:
         return (
             0.5
             * input
@@ -77,7 +77,7 @@ class QuickGELUActivation(ivy.Module):
     Applies GELU approximation that is fast but somewhat inaccurate. See: https://github.com/hendrycks/GELUs
     """
 
-    def forward(self, input: ivy.Array) -> ivy.Array:
+    def _forward(self, input: ivy.Array) -> ivy.Array:
         return input * ivy.sigmoid(1.702 * input)
 
 
@@ -102,7 +102,7 @@ class ClippedGELUActivation(ivy.Module):
         self.min = min
         self.max = max
 
-    def forward(self, x: ivy.Array) -> ivy.Array:
+    def _forward(self, x: ivy.Array) -> ivy.Array:
         return ivy.clip(gelu(x), self.min, self.max)
 
 
@@ -118,7 +118,7 @@ class AccurateGELUActivation(ivy.Module):
         super().__init__()
         self.precomputed_constant = ivy.sqrt(2 / ivy.pi)
 
-    def forward(self, input: ivy.Array) -> ivy.Array:
+    def _forward(self, input: ivy.Array) -> ivy.Array:
         return (
             0.5
             * input
@@ -140,7 +140,7 @@ class SiLUActivation(ivy.Module):
     later.
     """
 
-    def forward(self, input: ivy.Array) -> ivy.Array:
+    def _forward(self, input: ivy.Array) -> ivy.Array:
         return ivy.silu(input)
 
 
@@ -149,7 +149,7 @@ class LinearActivation(ivy.Module):
     Applies the linear activation function, i.e. forwarding input directly to output.
     """
 
-    def forward(self, input: ivy.Array) -> ivy.Array:
+    def _forward(self, input: ivy.Array) -> ivy.Array:
         return input
 
 
@@ -161,8 +161,8 @@ class LaplaceActivation(ivy.Module):
     Inspired by squared relu, but with bounded range and gradient for better stability
     """
 
-    def forward(self, input, mu=0.707107, sigma=0.282095):
-        input = (input - mu).div(sigma * ivy.sqrt(2.0))
+    def _forward(self, input, mu=0.707107, sigma=0.282095):
+        input = (input - mu).divide(sigma * ivy.sqrt(2.0))
         return 0.5 * (1.0 + ivy.erf(input))
 
 
@@ -171,7 +171,7 @@ class ReLUSquaredActivation(ivy.Module):
     Applies the relu^2 activation introduced in https://arxiv.org/abs/2109.08668v2
     """
 
-    def forward(self, input):
+    def _forward(self, input):
         relu_applied = ivy.relu(input)
         squared = ivy.square(relu_applied)
         return squared
