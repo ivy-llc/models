@@ -72,6 +72,129 @@ The functions that automatically load the pretrained weights are found at the en
 The layers are sometimes kept in a separate file, usually named :code:`layers.py`.
 
 
+**Ivy Libraries**
+
+There are a host of derived libraries written in Ivy, in the areas of mechanics, 3D vision, robotics, gym environments,
+neural memory, pre-trained models + implementations, and builder tools with trainers, data loaders and more. Click on the icons below to learn more!
+
+.. raw:: html
+
+    <div style="display: block;">
+        <a href="https://github.com/unifyai/mech">
+            <picture>
+                <source class="dark-light" width="15%" style="float: left; margin: 0% 5%;" media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/unifyai/unifyai.github.io/master/img/externally_linked/logos/ivy_mech_dark.png">
+                <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://raw.githubusercontent.com/unifyai/unifyai.github.io/master/img/externally_linked/logos/ivy_mech.png">
+            </picture>
+        </a>
+        <a href="https://github.com/unifyai/vision">
+            <picture>
+                <source class="dark-light" width="15%" style="float: left; margin: 0% 5%;" media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/unifyai/unifyai.github.io/master/img/externally_linked/logos/ivy_vision_dark.png">
+                <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://raw.githubusercontent.com/unifyai/unifyai.github.io/master/img/externally_linked/logos/ivy_vision.png">
+            </picture>
+        </a>
+        <a href="https://github.com/unifyai/robot">
+            <picture>
+                <source class="dark-light" width="15%" style="float: left; margin: 0% 5%;" media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/unifyai/unifyai.github.io/master/img/externally_linked/logos/ivy_robot_dark.png">
+                <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://raw.githubusercontent.com/unifyai/unifyai.github.io/master/img/externally_linked/logos/ivy_robot.png">
+            </picture>
+        </a>
+        <a href="https://github.com/unifyai/gym">
+            <picture>
+                <source class="dark-light" width="15%" style="float: left; margin: 0% 5%;" media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/unifyai/unifyai.github.io/master/img/externally_linked/logos/ivy_gym_dark.png">
+                <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://raw.githubusercontent.com/unifyai/unifyai.github.io/master/img/externally_linked/logos/ivy_gym.png">
+            </picture>
+        </a>
+
+        <br clear="all" />
+
+        <a href="https://pypi.org/project/ivy-mech">
+            <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://badge.fury.io/py/ivy-mech.svg">
+        </a>
+        <a href="https://pypi.org/project/ivy-vision">
+            <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://badge.fury.io/py/ivy-vision.svg">
+        </a>
+        <a href="https://pypi.org/project/ivy-robot">
+            <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://badge.fury.io/py/ivy-robot.svg">
+        </a>
+        <a href="https://pypi.org/project/ivy-gym">
+            <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;"width="15%" style="float: left; margin: 0% 5%;" src="https://badge.fury.io/py/ivy-gym.svg">
+        </a>
+
+        <br clear="all" />
+
+        <a href="https://github.com/unifyai/mech/actions?query=workflow%3Anightly-tests">
+            <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;"src="https://github.com/unifyai/mech/actions/workflows/nightly-tests.yml/badge.svg">
+        </a>
+        <a href="https://github.com/unifyai/vision/actions?query=workflow%3Anightly-tests">
+            <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://github.com/unifyai/vision/actions/workflows/nightly-tests.yml/badge.svg">
+        </a>
+        <a href="https://github.com/unifyai/robot/actions?query=workflow%3Anightly-tests">
+            <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://github.com/unifyai/robot/actions/workflows/nightly-tests.yml/badge.svg">
+        </a>
+        <a href="https://github.com/unifyai/gym/actions?query=workflow%3Anightly-tests">
+            <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://github.com/unifyai/gym/actions/workflows/nightly-tests.yml/badge.svg">
+        </a>
+
+        <br clear="all" />
+
+        <a href="https://github.com/unifyai/memory">
+            <picture>
+                <source class="dark-light" width="15%" style="float: left; margin: 0% 5%;" media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/unifyai/unifyai.github.io/master/img/externally_linked/logos/ivy_memory_dark.png">
+                <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://raw.githubusercontent.com/unifyai/unifyai.github.io/master/img/externally_linked/logos/ivy_memory.png">
+            </picture>
+        </a>
+        <a href="https://github.com/unifyai/builder">
+            <picture>
+                <source class="dark-light" width="15%" style="float: left; margin: 0% 5%;" media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/unifyai/unifyai.github.io/master/img/externally_linked/logos/ivy_builder_dark.png">
+                <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://raw.githubusercontent.com/unifyai/unifyai.github.io/master/img/externally_linked/logos/ivy_builder.png">
+            </picture>
+        </a>
+        <a href="https://github.com/unifyai/models">
+            <picture>
+                <source class="dark-light" width="15%" style="float: left; margin: 0% 5%;" media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/unifyai/unifyai.github.io/master/img/externally_linked/logos/ivy_models_dark.png">
+                <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://raw.githubusercontent.com/unifyai/unifyai.github.io/master/img/externally_linked/logos/ivy_models.png">
+            </picture>
+        </a>
+        <a href="https://github.com/unifyai/ecosystem">
+            <picture>
+                <source class="dark-light" width="15%" style="float: left; margin: 0% 5%;" media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/unifyai/unifyai.github.io/master/img/externally_linked/logos/ivy_ecosystem_dark.png">
+                <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://raw.githubusercontent.com/unifyai/unifyai.github.io/master/img/externally_linked/logos/ivy_ecosystem.png">
+            </picture>
+        </a>
+
+        <br clear="all" />
+
+        <a href="https://pypi.org/project/ivy-memory">
+            <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://badge.fury.io/py/ivy-memory.svg">
+        </a>
+        <a href="https://pypi.org/project/ivy-builder">
+            <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://badge.fury.io/py/ivy-builder.svg">
+        </a>
+        <a href="https://pypi.org/project/ivy-models">
+            <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://badge.fury.io/py/ivy-models.svg">
+        </a>
+        <a href="https://github.com/unifyai/ecosystem/actions?query=workflow%3Adocs">
+            <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://github.com/unifyai/ecosystem/actions/workflows/docs.yml/badge.svg">
+        </a>
+
+        <br clear="all" />
+
+        <a href="https://github.com/unifyai/memory/actions?query=workflow%3Anightly-tests">
+            <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://github.com/unifyai/memory/actions/workflows/nightly-tests.yml/badge.svg">
+        </a>
+        <a href="https://github.com/unifyai/builder/actions?query=workflow%3Anightly-tests">
+            <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://github.com/unifyai/builder/actions/workflows/nightly-tests.yml/badge.svg">
+        </a>
+        <a href="https://github.com/unifyai/models/actions?query=workflow%3Anightly-tests">
+            <img class="dark-light" width="15%" style="float: left; margin: 0% 5%;" src="https://github.com/unifyai/models/actions/workflows/nightly-tests.yml/badge.svg">
+        </a>
+
+        <br clear="all" />
+
+    </div>
+    <br clear="all" />
+
+
 Citation
 --------
 
