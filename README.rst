@@ -29,16 +29,17 @@ Ivy Models
 
 This repository houses a collection of popular machine learning models written in `Ivy <https://github.com/unifyai/ivy>`_.
 
-This means that each model is compatible with all of the backends that Ivy supports: PyTorch, TensorFlow, JAX and NumPy.
-This means that you can use these models as part of a working pipeline in any of the standard ML frameworks.
-The purpose of this repository is to provide reference Ivy implementations of models, and to give examples of how to write custom models in Ivy.
+Models written in Ivy are compatible with PyTorch, TensorFlow, JAX and NumPy.
+This means that these models can be used as part of a working pipeline in any of the standard ML frameworks.
+The purpose of this repository is to provide reference Ivy implementations of common machine learning models.
+It also gives a demonstration of how to write custom models in Ivy.
 
-You can check out our `demos <https://unify.ai/demos/#examples-and-demos>`_ to see these models in action.
+Check out our `demos <https://unify.ai/demos/#examples-and-demos>`_ to see these models in action.
 In particular, `UNet <https://unify.ai/demos/examples_and_demos/image_segmentation_with_ivy_unet.html>`_ 
 and `AlexNet <https://unify.ai/demos/examples_and_demos/alexnet_demo.html>`_ demonstrate using models from this repository.
 
-You can load the models with pretrained weights, we have tests to ensure our models are consistent with the reference implementation.
-You can also initialise the models with random weights by passing `pretrained=False`.
+These models can be loaded with pretrained weights, we have tests to ensure that our models give the same output as the reference implementation.
+Models can also be initialised with random weights by passing :code:`pretrained=False` to the loading function.
 
 To learn more about Ivy, check out `unify.ai <https://unify.ai>`_, our `Docs <https://unify.ai/docs/ivy/>`_, and our `GitHub <https://github.com/unifyai/ivy>`_.
 
