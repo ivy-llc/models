@@ -1,5 +1,5 @@
 .. image:: https://github.com/unifyai/unifyai.github.io/blob/master/img/externally_linked/logo.png?raw=true#gh-light-mode-only
-   :width: 100%
+   :width: 50%
    :class: only-light
 
 .. image:: https://github.com/unifyai/unifyai.github.io/blob/master/img/externally_linked/logo_dark.png?raw=true#gh-dark-mode-only
@@ -28,13 +28,12 @@ Ivy Models
 
 This repository houses a collection of popular machine learning models written in `Ivy <https://github.com/unifyai/ivy>`_.
 
-This means that all models are compatible with each of the backends that Ivy supports: PyTorch, TensorFlow, JAX and NumPy.
+This means that each model is compatible with all of the backends that Ivy supports: PyTorch, TensorFlow, JAX and NumPy.
+The purpose of this repository is to provide reference Ivy implementations of models, and to give examples of how to write custom models in Ivy.
 
 You can check out our `demos <https://unify.ai/demos/#examples-and-demos>`_ to see these models in action.
 In particular, `UNet <https://unify.ai/demos/examples_and_demos/image_segmentation_with_ivy_unet.html>`_ 
-and `AlexNet <https://unify.ai/demos/examples_and_demos/alexnet_demo.html>`_
-
-The purpose of this repository is both to provide reference Ivy implementations of models, and to show how to write custom trainable modules in Ivy.
+and `AlexNet <https://unify.ai/demos/examples_and_demos/alexnet_demo.html>`_ demonstrate using models from this repository.
 
 You can load the models with pretrained weights, we have tests to ensure our models are consistent with the reference implementation.
 You can also initialise the models with random weights by passing `pretrained=False`.
@@ -58,14 +57,14 @@ Getting started
     model = alexnet()
 
 The AlexNet model is now ready to be used, and is compatible with any other PyTorch code.
+See `this demo <https://unify.ai/demos/examples_and_demos/alexnet_demo.html>`_ for more details.
 
 Navigating this repository
 -----------------------------
-The models are contained in the ivy_models/ directory, within MODEL_NAME.py.
-The functions that automatically load the pretrained weights are found at the end of this file, some models have multiple sizes.
+The models are contained in the ivy_models folder.
+The functions that automatically load the pretrained weights are found at the end of :code:`model_name.py`, some models have multiple sizes.
 
-The layers are kept in a separate file, usually named layers.py
-
+The layers are kept in a separate file, usually named :code:`layers.py`
 
 
 Citation
