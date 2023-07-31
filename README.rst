@@ -30,6 +30,7 @@ Ivy Models
 This repository houses a collection of popular machine learning models written in `Ivy <https://github.com/unifyai/ivy>`_.
 
 This means that each model is compatible with all of the backends that Ivy supports: PyTorch, TensorFlow, JAX and NumPy.
+This means that you can use these models as part of a working pipeline in any of the standard ML frameworks.
 The purpose of this repository is to provide reference Ivy implementations of models, and to give examples of how to write custom models in Ivy.
 
 You can check out our `demos <https://unify.ai/demos/#examples-and-demos>`_ to see these models in action.
@@ -39,7 +40,7 @@ and `AlexNet <https://unify.ai/demos/examples_and_demos/alexnet_demo.html>`_ dem
 You can load the models with pretrained weights, we have tests to ensure our models are consistent with the reference implementation.
 You can also initialise the models with random weights by passing `pretrained=False`.
 
-To learn more about Ivy, check out `unify.ai <https://unify.ai>`_, our `docs <https://unify.ai/docs/ivy/>`_, and our `github <https://github.com/unifyai/ivy>`_.
+To learn more about Ivy, check out `unify.ai <https://unify.ai>`_, our `Docs <https://unify.ai/docs/ivy/>`_, and our `GitHub <https://github.com/unifyai/ivy>`_.
 
 Setting up
 ------------
@@ -66,8 +67,7 @@ Navigating this repository
 -----------------------------
 The models are contained in the ivy_models folder.
 The functions that automatically load the pretrained weights are found at the end of :code:`model_name.py`, some models have multiple sizes.
-
-The layers are kept in a separate file, usually named :code:`layers.py`
+The layers are sometimes kept in a separate file, usually named :code:`layers.py`.
 
 
 Citation
