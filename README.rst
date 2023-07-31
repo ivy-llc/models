@@ -45,6 +45,7 @@ To learn more about Ivy, check out `unify.ai <https://unify.ai>`_, our `Docs <ht
 
 Setting up
 ------------
+
 .. code-block:: bash
 
     git clone https://github.com/unifyai/models
@@ -61,7 +62,7 @@ Getting started
     ivy.set_backend(“torch”)
     model = alexnet()
 
-The AlexNet model is now ready to be used, and is compatible with any other PyTorch code.
+The pretrained AlexNet model is now ready to be used, and is compatible with any other PyTorch code.
 See `this demo <https://unify.ai/demos/examples_and_demos/alexnet_demo.html>`_ for more details.
 
 Navigating this repository
