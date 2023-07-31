@@ -27,9 +27,9 @@
 Ivy Models
 ===========
 
-This repository houses a collection of popular machine learning models written in `Ivy <https://github.com/unifyai/ivy>`_.
+This repository houses a collection of popular machine learning models written in the `Ivy framework<https://github.com/unifyai/ivy>`_.
 
-Models written in Ivy are compatible with PyTorch, TensorFlow, JAX and NumPy.
+Code written in Ivy is compatible with PyTorch, TensorFlow, JAX and NumPy.
 This means that these models can be integrated into a working pipeline for any of these standard ML frameworks.
 
 The purpose of this repository is to provide reference Ivy implementations of common machine learning models, as well as giving a demonstration of how to write custom models in Ivy.
