@@ -94,7 +94,7 @@ class ConvNormActivation(ivy.Sequential):
             params = {} if inplace is None else {"inplace": inplace}
             layers.append(activation_layer(**params))
         super().__init__(*layers)
-        # _log_api_usage_once(self) # TODO: Does Ivy have this ?
+
         self.out_channels = out_channels
 
         if self.__class__ == ConvNormActivation:
@@ -338,6 +338,7 @@ class AnyStage(ivy.Sequential):
     ) -> None:
         super().__init__()
 
+        self.blocks = OrderedDict()
         for i in range(depth):
             block = block_constructor(  # noqa: F841
                 width_in if i == 0 else width_out,
@@ -349,8 +350,7 @@ class AnyStage(ivy.Sequential):
                 bottleneck_multiplier,
                 se_ratio,
             )
-
-            # self.add_module(f"block{stage_index}-{i}", block) # TODO: Implement add_module method in ivy.Module # noqa: E501
+            self.blocks[f"block{stage_index}-{i}"] = block
 
 
 class BlockParams:

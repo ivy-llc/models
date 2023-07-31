@@ -17,7 +17,6 @@ class RegNet(ivy.Module):
         activation: Optional[Callable[..., ivy.Module]] = None,
     ) -> None:
         super().__init__()
-        # _log_api_usage_once(self) # TODO: API Logging
 
         if stem_type is None:
             stem_type = SimpleStemIN
@@ -75,7 +74,6 @@ class RegNet(ivy.Module):
         x = self.stem(x)
         x = self.trunk_output(x)
         x = self.avgpool(x)
-        # x = ivy.reshape(x, (x.shape[0], -1))
         x = x.flatten(start_dim=1)
         x = self.fc(x)
         return x
