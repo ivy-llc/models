@@ -25,7 +25,16 @@ class NewGELUActivation(ivy.Module):
     """
 
     def forward(self, input: ivy.Array) -> ivy.Array:
-        return 0.5 * input * (1.0 + ivy.tanh(ivy.sqrt(2.0 / ivy.pi) * (input + 0.044715 * ivy.pow(input, 3.0))))
+        return (
+            0.5
+            * input
+            * (
+                1.0
+                + ivy.tanh(
+                    ivy.sqrt(2.0 / ivy.pi) * (input + 0.044715 * ivy.pow(input, 3.0))
+                )
+            )
+        )
 
 
 class GELUActivation(ivy.Module):
@@ -56,7 +65,11 @@ class FastGELUActivation(ivy.Module):
     """
 
     def forward(self, input: ivy.Array) -> ivy.Array:
-        return 0.5 * input * (1.0 + ivy.tanh(input * 0.7978845608 * (1.0 + 0.044715 * input * input)))
+        return (
+            0.5
+            * input
+            * (1.0 + ivy.tanh(input * 0.7978845608 * (1.0 + 0.044715 * input * input)))
+        )
 
 
 class QuickGELUActivation(ivy.Module):
@@ -106,7 +119,16 @@ class AccurateGELUActivation(ivy.Module):
         self.precomputed_constant = ivy.sqrt(2 / ivy.pi)
 
     def forward(self, input: ivy.Array) -> ivy.Array:
-        return 0.5 * input * (1 + ivy.tanh(self.precomputed_constant * (input + 0.044715 * ivy.pow(input, 3))))
+        return (
+            0.5
+            * input
+            * (
+                1
+                + ivy.tanh(
+                    self.precomputed_constant * (input + 0.044715 * ivy.pow(input, 3))
+                )
+            )
+        )
 
 
 class SiLUActivation(ivy.Module):
@@ -120,7 +142,6 @@ class SiLUActivation(ivy.Module):
 
     def forward(self, input: ivy.Array) -> ivy.Array:
         return ivy.silu(input)
-
 
 
 class LinearActivation(ivy.Module):
@@ -190,7 +211,9 @@ def get_activation(activation_string):
     if activation_string in ACT2FN:
         return ACT2FN[activation_string]
     else:
-        raise KeyError(f"function {activation_string} not found in ACT2FN mapping {list(ACT2FN.keys())}")
+        raise KeyError(
+            f"function {activation_string} not found in ACT2FN mapping {list(ACT2FN.keys())}"
+        )
 
 
 gelu_python = get_activation("gelu_python")

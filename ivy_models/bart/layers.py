@@ -8,22 +8,25 @@ class BartLearnedPositionalEmbedding(ivy.Embedding):
     """
     This module learns positional embeddings up to a fixed maximum size.
     """
-    
+
     def __init__(self, num_embeddings: int, embedding_dim: int):
         # Bart is set up so that if padding_idx is specified then offset the embedding ids by 2
         # and adjust num_embeddings appropriately. Other models don't have this hack
         self.offset = 2
         super().__init__(num_embeddings + self.offset, embedding_dim)
-    
+
     def _forward(self, input_ids: ivy.Array, past_key_values_length: int = 0):
         """`input_ids' shape is expected to be [bsz x seqlen]."""
 
         bsz, seq_len = input_ids.shape[:2]
         positions = ivy.arange(
-            past_key_values_length, past_key_values_length + seq_len, dtype=ivy.int64, device=self.weight.device
+            past_key_values_length,
+            past_key_values_length + seq_len,
+            dtype=ivy.int64,
+            device=self.weight.device,
         )
         ivy.expand(positions, (bsz, -1))
-    
+
         return super()._forward(positions + self.offset)
 
 
@@ -49,18 +52,17 @@ class BartAttention(ivy.Module):
             )
         self.scaling = self.head_dim**-0.5
         self.is_decoder = is_decoder
-        
+
         self.k_proj = ivy.Linear(embed_dim, embed_dim, with_bias=bias)
         self.v_proj = ivy.Linear(embed_dim, embed_dim, with_bias=bias)
         self.q_proj = ivy.Linear(embed_dim, embed_dim, with_bias=bias)
         self.out_proj = ivy.Linear(embed_dim, embed_dim, with_bias=bias)
-        
+
     def _shape(self, tensor: ivy.Array, seq_len: int, bsz: int):
         return ivy.swapaxes(
-            ivy.reshape(tensor, (bsz, seq_len, self.num_heads, self.head_dim)), 
-            1, 2
+            ivy.reshape(tensor, (bsz, seq_len, self.num_heads, self.head_dim)), 1, 2
         )
-    
+
     def _forward(
         self,
         hidden_states: ivy.Array,
@@ -106,7 +108,7 @@ class BartAttention(ivy.Module):
             # self_attention
             key_states = self._shape(self.k_proj(hidden_states), -1, bsz)
             value_states = self._shape(self.v_proj(hidden_states), -1, bsz)
-        
+
         if self.is_decoder:
             # if cross_attention save Tuple(ivy.Array, ivy.Array) of all cross attention key/value_states.
             # Further calls to cross_attention layer can then reuse all cross-attention
@@ -116,7 +118,7 @@ class BartAttention(ivy.Module):
             # can concat previous decoder key/value_states to current projected key/value_states (third "elif" case)
             # if encoder bi-directional self-attention `past_key_value` is always `None`
             past_key_value = (key_states, value_states)
-        
+
         proj_shape = (bsz * self.num_heads, -1, self.head_dim)
         query_states = ivy.reshape(self._shape(query_states, tgt_len, bsz), *proj_shape)
         key_states = ivy.reshape(key_states, *proj_shape)
@@ -124,42 +126,54 @@ class BartAttention(ivy.Module):
 
         src_len = key_states.shape[1]
         attn_weights = ivy.matmul(query_states, ivy.swapaxes(key_states, 1, 2))
-        
+
         if attn_weights.shape != (bsz * self.num_heads, tgt_len, src_len):
             raise ValueError(
                 f"Attention weights should be of size {(bsz * self.num_heads, tgt_len, src_len)}, but is"
                 f" {attn_weights.shape}"
             )
-        
+
         if attention_mask is not None:
             if attention_mask.shape != (bsz, 1, tgt_len, src_len):
                 raise ValueError(
                     f"Attention mask should be of size {(bsz, 1, tgt_len, src_len)}, but is {attention_mask.shape}"
                 )
-            attn_weights = attn_weights.shape[bsz, self.num_heads, tgt_len, src_len] + attention_mask
+            attn_weights = (
+                attn_weights.shape[bsz, self.num_heads, tgt_len, src_len]
+                + attention_mask
+            )
             attn_weights = attn_weights.shape[bsz * self.num_heads, tgt_len, src_len]
-        
+
         attn_weights = ivy.softmax(attn_weights, dim=-1)
-        
+
         if layer_head_mask is not None:
             if layer_head_mask.shape != (self.num_heads,):
                 raise ValueError(
                     f"Head mask for a single layer should be of size {(self.num_heads,)}, but is {layer_head_mask.shape}"
                 )
-            attn_weights = layer_head_mask.shape[1, -1, 1, 1] * attn_weights.shape[bsz, self.num_heads, tgt_len, src_len]
+            attn_weights = (
+                layer_head_mask.shape[1, -1, 1, 1]
+                * attn_weights.shape[bsz, self.num_heads, tgt_len, src_len]
+            )
             attn_weights = attn_weights.shape[bsz * self.num_heads, tgt_len, src_len]
-        
+
         if output_attentions:
             # this operation is a bit awkward, but it's required to
             # make sure that attn_weights keeps its gradient.
             # In order to do so, attn_weights have to be reshaped
             # twice and have to be reused in the following
-            attn_weights_reshaped = attn_weights.shape[bsz, self.num_heads, tgt_len, src_len]
-            attn_weights = attn_weights_reshaped.shape[bsz * self.num_heads, tgt_len, src_len]
+            attn_weights_reshaped = attn_weights.shape[
+                bsz, self.num_heads, tgt_len, src_len
+            ]
+            attn_weights = attn_weights_reshaped.shape[
+                bsz * self.num_heads, tgt_len, src_len
+            ]
         else:
             attn_weights_reshaped = None
-        
-        attn_probs = ivy.functional.dropout(attn_weights, p=self.dropout, training=self.training)
+
+        attn_probs = ivy.functional.dropout(
+            attn_weights, p=self.dropout, training=self.training
+        )
 
         attn_output = ivy.matmul(attn_probs, value_states)
 
@@ -168,7 +182,7 @@ class BartAttention(ivy.Module):
                 f"`attn_output` should be of size {(bsz * self.num_heads, tgt_len, self.head_dim)}, but is"
                 f" {attn_output.shape}"
             )
-        
+
         attn_output = attn_output.shape[bsz, self.num_heads, tgt_len, self.head_dim]
         attn_output = ivy.swapaxes(attn_output, 1, 2)
 
@@ -179,7 +193,7 @@ class BartAttention(ivy.Module):
         attn_output = self.out_proj(attn_output)
 
         return attn_output, attn_weights_reshaped, past_key_value
-    
+
 
 class BartEncoderLayer(ivy.Module):
     def __init__(self, config: BartConfig):
@@ -195,7 +209,7 @@ class BartEncoderLayer(ivy.Module):
         self.dropout = config.dropout
         self.activation_fn = ACT2FN[config.activation_function]
         self.activation_dropout = config.activation_dropout
-        
+
         self.self_attn_layer_norm = ivy.LayerNorm(self.embed_dim)
         self.encoder_attn = BartAttention(
             self.embed_dim,
@@ -207,7 +221,7 @@ class BartEncoderLayer(ivy.Module):
         self.fc1 = ivy.Linear(self.embed_dim, config.decoder_ffn_dim)
         self.fc2 = ivy.Linear(config.decoder_ffn_dim, self.embed_dim)
         self.final_layer_norm = ivy.LayerNorm(self.embed_dim)
-        
+
     def _forward(
         self,
         hidden_states: ivy.Array,
@@ -242,7 +256,9 @@ class BartEncoderLayer(ivy.Module):
 
         # Self Attention
         # decoder uni-directional self-attention cached key/values tuple is at positions 1,2
-        self_attn_past_key_value = past_key_value[:2] if past_key_value is not None else None
+        self_attn_past_key_value = (
+            past_key_value[:2] if past_key_value is not None else None
+        )
         # add present self-attn cache to positions 1,2 of present_key_value tuple
         hidden_states, self_attn_weights, present_key_value = self.self_attn(
             hidden_states=hidden_states,
@@ -251,7 +267,9 @@ class BartEncoderLayer(ivy.Module):
             layer_head_mask=layer_head_mask,
             output_attentions=output_attentions,
         )
-        hidden_states = ivy.dropout(hidden_states, p=self.dropout, training=self.training)
+        hidden_states = ivy.dropout(
+            hidden_states, p=self.dropout, training=self.training
+        )
         hidden_states = residual + hidden_states
         hidden_states = self.self_attn_layer_norm(hidden_states)
 
@@ -262,8 +280,14 @@ class BartEncoderLayer(ivy.Module):
             residual = hidden_states
 
             # cross_attn cached key/values tuple is at positions 3,4 of present_key_value tuple
-            cross_attn_past_key_value = past_key_value[-2:] if past_key_value is not None else None
-            hidden_states, cross_attn_weights, cross_attn_present_key_value = self.encoder_attn(
+            cross_attn_past_key_value = (
+                past_key_value[-2:] if past_key_value is not None else None
+            )
+            (
+                hidden_states,
+                cross_attn_weights,
+                cross_attn_present_key_value,
+            ) = self.encoder_attn(
                 hidden_states=hidden_states,
                 key_value_states=encoder_hidden_states,
                 attention_mask=encoder_attention_mask,
@@ -271,22 +295,28 @@ class BartEncoderLayer(ivy.Module):
                 past_key_value=cross_attn_past_key_value,
                 output_attentions=output_attentions,
             )
-            hidden_states = ivy.dropout(hidden_states, p=self.dropout, training=self.training)
+            hidden_states = ivy.dropout(
+                hidden_states, p=self.dropout, training=self.training
+            )
             hidden_states = residual + hidden_states
             hidden_states = self.encoder_attn_layer_norm(hidden_states)
 
             # add cross-attn to positions 3,4 of present_key_value tuple
             present_key_value = present_key_value + cross_attn_present_key_value
-            
+
             # Fully Connected
             residual = hidden_states
             hidden_states = self.activation_fn(self.fc1(hidden_states))
-            hidden_states = ivy.dropout(hidden_states, p=self.activation_dropout, training=self.training)
+            hidden_states = ivy.dropout(
+                hidden_states, p=self.activation_dropout, training=self.training
+            )
             hidden_states = self.fc2(hidden_states)
-            hidden_states = ivy.dropout(hidden_states, p=self.dropout, training=self.training)
+            hidden_states = ivy.dropout(
+                hidden_states, p=self.dropout, training=self.training
+            )
             hidden_states = residual + hidden_states
             hidden_states = self.final_layer_norm(hidden_states)
-            
+
             outputs = (hidden_states,)
 
             if output_attentions:
@@ -359,7 +389,9 @@ class BartDecoderLayer(ivy.Module):
 
         # Self Attention
         # decoder uni-directional self-attention cached key/values tuple is at positions 1,2
-        self_attn_past_key_value = past_key_value[:2] if past_key_value is not None else None
+        self_attn_past_key_value = (
+            past_key_value[:2] if past_key_value is not None else None
+        )
         # add present self-attn cache to positions 1,2 of present_key_value tuple
         hidden_states, self_attn_weights, present_key_value = self.self_attn(
             hidden_states=hidden_states,
@@ -368,7 +400,9 @@ class BartDecoderLayer(ivy.Module):
             layer_head_mask=layer_head_mask,
             output_attentions=output_attentions,
         )
-        hidden_states = ivy.functional.dropout(hidden_states, p=self.dropout, training=self.training)
+        hidden_states = ivy.functional.dropout(
+            hidden_states, p=self.dropout, training=self.training
+        )
         hidden_states = residual + hidden_states
         hidden_states = self.self_attn_layer_norm(hidden_states)
 
@@ -379,8 +413,14 @@ class BartDecoderLayer(ivy.Module):
             residual = hidden_states
 
             # cross_attn cached key/values tuple is at positions 3,4 of present_key_value tuple
-            cross_attn_past_key_value = past_key_value[-2:] if past_key_value is not None else None
-            hidden_states, cross_attn_weights, cross_attn_present_key_value = self.encoder_attn(
+            cross_attn_past_key_value = (
+                past_key_value[-2:] if past_key_value is not None else None
+            )
+            (
+                hidden_states,
+                cross_attn_weights,
+                cross_attn_present_key_value,
+            ) = self.encoder_attn(
                 hidden_states=hidden_states,
                 key_value_states=encoder_hidden_states,
                 attention_mask=encoder_attention_mask,
@@ -388,7 +428,9 @@ class BartDecoderLayer(ivy.Module):
                 past_key_value=cross_attn_past_key_value,
                 output_attentions=output_attentions,
             )
-            hidden_states = ivy.functional.dropout(hidden_states, p=self.dropout, training=self.training)
+            hidden_states = ivy.functional.dropout(
+                hidden_states, p=self.dropout, training=self.training
+            )
             hidden_states = residual + hidden_states
             hidden_states = self.encoder_attn_layer_norm(hidden_states)
 
@@ -398,9 +440,13 @@ class BartDecoderLayer(ivy.Module):
         # Fully Connected
         residual = hidden_states
         hidden_states = self.activation_fn(self.fc1(hidden_states))
-        hidden_states = ivy.dropout(hidden_states, p=self.activation_dropout, training=self.training)
+        hidden_states = ivy.dropout(
+            hidden_states, p=self.activation_dropout, training=self.training
+        )
         hidden_states = self.fc2(hidden_states)
-        hidden_states = ivy.dropout(hidden_states, p=self.dropout, training=self.training)
+        hidden_states = ivy.dropout(
+            hidden_states, p=self.dropout, training=self.training
+        )
         hidden_states = residual + hidden_states
         hidden_states = self.final_layer_norm(hidden_states)
 
@@ -429,7 +475,7 @@ class BartClassificationHead(ivy.Module):
         self.dense = ivy.Linear(input_dim, inner_dim)
         self.dropout = ivy.Dropout(p=pooler_dropout)
         self.out_proj = ivy.Linear(inner_dim, num_classes)
-    
+
     def _forward(self, hidden_states: ivy.Array) -> ivy.Array:
         hidden_states = self.dropout(hidden_states)
         hidden_states = self.dense(hidden_states)
@@ -437,5 +483,3 @@ class BartClassificationHead(ivy.Module):
         hidden_states = self.dropout(hidden_states)
         hidden_states = self.out_proj(hidden_states)
         return hidden_states
-
-
