@@ -1,10 +1,11 @@
 .. image:: https://github.com/unifyai/unifyai.github.io/blob/master/img/externally_linked/logo.png?raw=true#gh-light-mode-only
-   :width: 50%
+   :width: 100%
    :class: only-light
 
 .. image:: https://github.com/unifyai/unifyai.github.io/blob/master/img/externally_linked/logo_dark.png?raw=true#gh-dark-mode-only
    :width: 100%
    :class: only-dark
+
 
 .. raw:: html
 
@@ -43,6 +44,7 @@ To learn more about Ivy, check out `unify.ai <https://unify.ai>`_, our `docs <ht
 Setting up
 ------------
 .. code-block:: bash
+
     git clone https://github.com/unifyai/models
     cd models
     pip install .
@@ -51,6 +53,7 @@ Getting started
 -----------------
 
 .. code-block:: python
+
     import ivy
     from ivy_models import alexnet
     ivy.set_backend(“torch”)
