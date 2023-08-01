@@ -18,6 +18,7 @@ class ConvNeXtSpec(BaseSpec):
         head_init_scale=1.0,
         device=None,
         training=False,
+        data_format="NCHW",
     ):
         assert version == 1 or version == 2
         super(ConvNeXtSpec, self).__init__(
@@ -31,6 +32,7 @@ class ConvNeXtSpec(BaseSpec):
             head_init_scale=head_init_scale,
             device=device,
             training=training,
+            data_format=data_format,
         )
 
 
@@ -47,6 +49,7 @@ class ConvNeXt(BaseModel):
         head_init_scale=1.0,
         device=None,
         training=False,
+        data_format="NCHW",
         spec=None,
         v=None,
     ):
@@ -64,6 +67,7 @@ class ConvNeXt(BaseModel):
                 head_init_scale=head_init_scale,
                 device=device,
                 training=training,
+                data_format=data_format,
             )
         )
         super(ConvNeXt, self).__init__(device=device, v=v)
@@ -128,14 +132,17 @@ class ConvNeXt(BaseModel):
         self.norm = ivy.LayerNorm([self.spec.dims[-1]], eps=1e-6)
         self.head = ivy.Linear(self.spec.dims[-1], self.spec.num_classes)
 
-        self.norm = ivy.LayerNorm(self.dims[-1], eps=1e-6)
-        self.head = ivy.Linear(self.dims[-1], self.num_classes)
+        self.norm = ivy.LayerNorm(self.spec.dims[-1], eps=1e-6)
+        self.head = ivy.Linear(self.spec.dims[-1], self.spec.num_classes)
 
     @classmethod
     def get_spec_class(self):
         return ConvNeXtSpec
 
-    def _forward(self, x):
+    def _forward(self, x, data_format=None):
+        data_format = data_format if data_format else self.spec.data_format
+        if data_format == "NHWC":
+            x = ivy.permute_dims(x, (0, 3, 1, 2))
         for i in range(4):
             x = self.downsample_layers[i](x)
             x = self.stages[i](x)
@@ -165,33 +172,37 @@ def _convnext_torch_weights_mapping(old_key, new_key):
     return new_mapping
 
 
-def convnext_tiny(pretrained=True):
+def convnext_tiny(data_format="NCHW", pretrained=True):
     """Loads a ConvNeXt with specified size, optionally pretrained."""
     depths, dims = ([3, 3, 9, 3], [96, 192, 384, 768])
 
     if not pretrained:
-        return ConvNeXt(version=1, depths=depths, dims=dims)
+        return ConvNeXt(
+            version=1,
+            depths=depths,
+            dims=dims,
+        )
 
     weight_url = "https://dl.fbaipublicfiles.com/convnext/convnext_tiny_1k_224_ema.pth"
 
-    model = ConvNeXt(version=1, depths=depths, dims=dims)
+    model = ConvNeXt(version=1, depths=depths, dims=dims, data_format=data_format)
     w_clean = load_torch_weights(
         weight_url, model, custom_mapping=_convnext_torch_weights_mapping
     )
+    model.v = w_clean
+    return model
 
-    return ConvNeXt(version=1, depths=depths, dims=dims, v=w_clean)
 
-
-def convnext_small(pretrained=True):
+def convnext_small(data_format="NCHW", pretrained=True):
     """Loads a ConvNeXt with specified size, optionally pretrained."""
     depths, dims = ([3, 3, 27, 3], [96, 192, 384, 768])
 
     if not pretrained:
-        return ConvNeXt(version=1, depths=depths, dims=dims)
+        return ConvNeXt(version=1, depths=depths, dims=dims, data_format=data_format)
 
     weight_url = "https://dl.fbaipublicfiles.com/convnext/convnext_small_1k_224_ema.pth"
 
-    model = ConvNeXt(version=1, depths=depths, dims=dims)
+    model = ConvNeXt(version=1, depths=depths, dims=dims, data_format=data_format)
     w_clean = load_torch_weights(
         weight_url, model, custom_mapping=_convnext_torch_weights_mapping
     )
@@ -199,16 +210,16 @@ def convnext_small(pretrained=True):
     return model
 
 
-def convnext_base(pretrained=True):
+def convnext_base(data_format="NCHW", pretrained=True):
     """Loads a ConvNeXt with specified size, optionally pretrained."""
     depths, dims = ([3, 3, 27, 3], [128, 256, 512, 1024])
 
     if not pretrained:
-        return ConvNeXt(version=1, depths=depths, dims=dims)
+        return ConvNeXt(version=1, depths=depths, dims=dims, data_format=data_format)
 
     weight_url = "https://dl.fbaipublicfiles.com/convnext/convnext_base_1k_224_ema.pth"
 
-    model = ConvNeXt(version=1, depths=depths, dims=dims)
+    model = ConvNeXt(version=1, depths=depths, dims=dims, data_format=data_format)
     w_clean = load_torch_weights(
         weight_url, model, custom_mapping=_convnext_torch_weights_mapping
     )
@@ -216,16 +227,16 @@ def convnext_base(pretrained=True):
     return model
 
 
-def convnext_large(pretrained=True):
+def convnext_large(data_format="NCHW", pretrained=True):
     """Loads a ConvNeXt with specified size, optionally pretrained."""
     depths, dims = ([3, 3, 27, 3], [192, 384, 768, 1536])
 
     if not pretrained:
-        return ConvNeXt(version=1, depths=depths, dims=dims)
+        return ConvNeXt(version=1, depths=depths, dims=dims, data_format=data_format)
 
     weight_url = "https://dl.fbaipublicfiles.com/convnext/convnext_large_1k_224_ema.pth"
 
-    model = ConvNeXt(version=1, depths=depths, dims=dims)
+    model = ConvNeXt(version=1, depths=depths, dims=dims, data_format=data_format)
     w_clean = load_torch_weights(
         weight_url, model, custom_mapping=_convnext_torch_weights_mapping
     )
@@ -233,16 +244,16 @@ def convnext_large(pretrained=True):
     return model
 
 
-def convnextv2_atto(pretrained=True):
+def convnextv2_atto(data_format="NCHW", pretrained=True):
     """Loads a ConvNeXtV2 with specified size, optionally pretrained."""
     depths, dims = ([2, 2, 6, 2], [40, 80, 160, 320])
 
     if not pretrained:
-        return ConvNeXt(version=2, depths=depths, dims=dims)
+        return ConvNeXt(version=2, depths=depths, dims=dims, data_format=data_format)
 
     weight_url = "https://dl.fbaipublicfiles.com/convnext/convnextv2/im1k/convnextv2_atto_1k_224_ema.pt"
 
-    model = ConvNeXt(version=2, depths=depths, dims=dims)
+    model = ConvNeXt(version=2, depths=depths, dims=dims, data_format=data_format)
     w_clean = load_torch_weights(
         weight_url, model, custom_mapping=_convnext_torch_weights_mapping
     )
@@ -250,16 +261,16 @@ def convnextv2_atto(pretrained=True):
     return model
 
 
-def convnextv2_base(pretrained=True):
+def convnextv2_base(data_format="NCHW", pretrained=True):
     """Loads a ConvNeXtV2 with specified size, optionally pretrained."""
     depths, dims = ([3, 3, 27, 3], [128, 256, 512, 1024])
 
     if not pretrained:
-        return ConvNeXt(version=2, depths=depths, dims=dims)
+        return ConvNeXt(version=2, depths=depths, dims=dims, data_format=data_format)
 
     weight_url = "https://dl.fbaipublicfiles.com/convnext/convnextv2/im1k/convnextv2_base_1k_224_ema.pt"
 
-    model = ConvNeXt(version=2, depths=depths, dims=dims)
+    model = ConvNeXt(version=2, depths=depths, dims=dims, data_format=data_format)
     w_clean = load_torch_weights(
         weight_url, model, custom_mapping=_convnext_torch_weights_mapping
     )
