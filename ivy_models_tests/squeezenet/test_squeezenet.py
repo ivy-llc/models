@@ -3,7 +3,7 @@ import ivy
 import pytest
 import numpy as np
 
-from ivy_models.squeezenet import squeezenet
+from ivy_models import squeezenet1_0
 from ivy_models_tests import helpers
 
 import jax
@@ -24,7 +24,7 @@ def test_squeezenet_img_classification(device, fw, batch_shape, load_weights):
     )
     img = ivy.permute_dims(img, (0, 3, 1, 2))
 
-    model = squeezenet(pretrained=load_weights)
+    model = squeezenet1_0(pretrained=load_weights)
     logits = model(img)
 
     # Cardinality test
