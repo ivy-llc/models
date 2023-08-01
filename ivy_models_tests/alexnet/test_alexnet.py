@@ -4,7 +4,7 @@ import ivy
 import pytest
 import numpy as np
 
-from ivy_models.alexnet import alexnet
+from ivy_models import alexnet
 from ivy_models_tests import helpers
 
 import jax

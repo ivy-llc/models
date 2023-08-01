@@ -1,7 +1,7 @@
 import ivy
 import pytest
 import numpy as np
-from ivy_models.bert import bert_base_uncased
+from ivy_models import bert_base_uncased
 
 
 @pytest.mark.parametrize("batch_shape", [[1]])

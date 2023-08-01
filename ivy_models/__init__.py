@@ -6,32 +6,32 @@ from . import transformers
 from .transformers import perceiver_io
 from .transformers.perceiver_io import *
 
-from . import resnet
+# from . import resnet
 from .resnet import *
 
-from . import vgg
+# from . import vgg
 from .vgg import *
 
-from . import convnext
+# from . import convnext
 from .convnext import *
 
-from . import alexnet
+# from . import alexnet
 from .alexnet import *
 
-from . import unet
+# from . import unet
 from .unet import *
 
 from . import efficientnet
 from .efficientnet import *
 
-from . import squeezenet
+# from . import squeezenet
 from .squeezenet import *
 
-from . import densenet
+# from . import densenet
 from .densenet import *
 
-from . import bert
+# from . import bert
 from .bert import *
 
-from . import vit
+# from . import vit
 from .vit import *

@@ -1,2 +1,2 @@
-from . import alexnet
-from .alexnet import *
+# from . import alexnet
+from .alexnet import AlexNetSpec, AlexNet, alexnet
