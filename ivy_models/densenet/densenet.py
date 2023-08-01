@@ -209,3 +209,8 @@ def densenet201(v=None, pretrained=True):
         )
         model.v = w_clean
     return model
+
+
+if __name__ == "__main__":
+    ivy.set_torch_backend()
+    model = densenet121()
