@@ -8,7 +8,7 @@ from ivy_models.efficientnet import efficientnet_b0
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_efficientnet_b0_img_classification(device, f, fw, batch_shape, load_weights):
+def test_efficientnet_b0_img_classification(device, fw, batch_shape, load_weights):
     """Test EfficientNet B0 image classification."""
     num_classes = 1000
     this_dir = os.path.dirname(os.path.realpath(__file__))

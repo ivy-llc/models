@@ -1,8 +1,8 @@
-name: test-resnet
+name: test-vit
 on: [push, pull_request, workflow_dispatch]
 jobs:
   run-nightly-tests:
-    runs-on: ubuntu-latest-32-cores
+    runs-on: ubuntu-latest-4-cores
     steps:
       - name: Checkout 🛎️Ivy Models
         uses: actions/checkout@v2
@@ -14,4 +14,4 @@ jobs:
       - name: Run Tests
         run: |
           cd models
-          docker run --rm -v `pwd`:/models unifyai/models:latest python3 -m pytest ivy_models_tests/resnet
+          docker run --rm -v `pwd`:/models unifyai/models:latest python3 -m pytest ivy_models_tests/vit

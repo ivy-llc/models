@@ -34,7 +34,7 @@ def np_softmax(inputs):
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_vgg_11_img_classification(device, f, fw, batch_shape, load_weights):
+def test_vgg_11_img_classification(device, fw, batch_shape, load_weights):
     """Test VGG-11 image classification."""
     num_classes = 1000
     device = "cpu"
@@ -72,7 +72,7 @@ def test_vgg_11_img_classification(device, f, fw, batch_shape, load_weights):
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_vgg_11_bn_img_classification(device, f, fw, batch_shape, load_weights):
+def test_vgg_11_bn_img_classification(device, fw, batch_shape, load_weights):
     """Test VGG-11-BN image classification."""
     num_classes = 1000
     device = "cpu"
@@ -110,7 +110,7 @@ def test_vgg_11_bn_img_classification(device, f, fw, batch_shape, load_weights):
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_vgg_13_img_classification(device, f, fw, batch_shape, load_weights):
+def test_vgg_13_img_classification(device, fw, batch_shape, load_weights):
     """Test VGG-13 image classification."""
     num_classes = 1000
     device = "cpu"
@@ -148,7 +148,7 @@ def test_vgg_13_img_classification(device, f, fw, batch_shape, load_weights):
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_vgg_13_bn_img_classification(device, f, fw, batch_shape, load_weights):
+def test_vgg_13_bn_img_classification(device, fw, batch_shape, load_weights):
     """Test VGG-13-BN image classification."""
     num_classes = 1000
     device = "cpu"
@@ -186,7 +186,7 @@ def test_vgg_13_bn_img_classification(device, f, fw, batch_shape, load_weights):
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_vgg_16_img_classification(device, f, fw, batch_shape, load_weights):
+def test_vgg_16_img_classification(device, fw, batch_shape, load_weights):
     """Test VGG-16 image classification."""
     num_classes = 1000
     device = "cpu"
@@ -224,7 +224,7 @@ def test_vgg_16_img_classification(device, f, fw, batch_shape, load_weights):
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_vgg_16_bn_img_classification(device, f, fw, batch_shape, load_weights):
+def test_vgg_16_bn_img_classification(device, fw, batch_shape, load_weights):
     """Test VGG-16-BN image classification."""
     num_classes = 1000
     device = "cpu"
@@ -262,7 +262,7 @@ def test_vgg_16_bn_img_classification(device, f, fw, batch_shape, load_weights):
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_vgg_19_img_classification(device, f, fw, batch_shape, load_weights):
+def test_vgg_19_img_classification(device, fw, batch_shape, load_weights):
     """Test VGG-19 image classification."""
     num_classes = 1000
     device = "cpu"
@@ -300,7 +300,7 @@ def test_vgg_19_img_classification(device, f, fw, batch_shape, load_weights):
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_vgg_19_bn_img_classification(device, f, fw, batch_shape, load_weights):
+def test_vgg_19_bn_img_classification(device, fw, batch_shape, load_weights):
     """Test VGG-19-BN image classification."""
     num_classes = 1000
     device = "cpu"

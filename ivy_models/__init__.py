@@ -30,5 +30,12 @@ from .squeezenet import *
 from . import densenet
 from .densenet import *
 
+
 from . import bart
 from .bart import *
+
+from . import bert
+from .bert import *
+
+from . import vit
+from .vit import *

@@ -1,10 +1,15 @@
 # global
 import ivy
+import ivy_models
 import string
 import numpy as np
 
 # local
-from ivy_models.transformers.helpers import PreNorm, FeedForward
+from ivy_models.transformers.helpers import (
+    PreNorm,
+    FeedForward,
+    _perceiver_jax_weights_mapping,
+)
 
 
 # Specification class #
@@ -116,7 +121,6 @@ class PerceiverIO(ivy.Module):
                 device=self._spec.device,
             ),
             key_dim=input_dim,
-            value_dim=input_dim,
             eps=1e-5,
             device=self._spec.device,
         )
@@ -143,7 +147,7 @@ class PerceiverIO(ivy.Module):
             device=self._spec.device,
         )
 
-        self._layers = list()
+        self._perceiver_encoder = list()
         if self._spec.weight_tie_layers:
             self._create_latent_layer = ivy.cache_fn(self._create_latent_layer)
             self._create_cross_layer = ivy.cache_fn(self._create_cross_layer)
@@ -151,9 +155,9 @@ class PerceiverIO(ivy.Module):
             layer = {"self_atts": self._create_latent_layer()}
             if i == 0 or self._spec.cross_attend_in_every_layer:
                 layer = {**layer, **self._create_cross_layer()}
-            self._layers.append(layer)
+            self._perceiver_encoder.append(layer)
 
-        self._decoder_cross_attn = PreNorm(
+        self._classification_decoder = PreNorm(
             self._spec.queries_dim,
             ivy.MultiHeadAttention(
                 self._spec.queries_dim,
@@ -163,9 +167,9 @@ class PerceiverIO(ivy.Module):
                 value_dim=self._spec.latent_dim,
             ),
             key_dim=self._spec.latent_dim,
-            value_dim=self._spec.latent_dim,
             eps=1e-5,
         )
+
         self._decoder = (
             PreNorm(
                 self._spec.queries_dim,
@@ -176,7 +180,7 @@ class PerceiverIO(ivy.Module):
             else None
         )
 
-        self._to_logits = (
+        self._decoder_logits = (
             ivy.Linear(
                 self._spec.queries_dim, self._spec.output_dim, device=self._spec.device
             )
@@ -194,7 +198,7 @@ class PerceiverIO(ivy.Module):
             if self._spec.learn_query
             else None
         )
-        return {"latents": latents, "decoder_queries": decoder_queries}
+        return {"z_latents": latents, "decoder_queries": decoder_queries}
 
     def _forward(self, data, mask=None, queries=None):
         # shapes
@@ -246,10 +250,10 @@ class PerceiverIO(ivy.Module):
             data = ivy.concat([data, enc_pos], axis=-1)
 
         # batchify latents
-        x = ivy.einops_repeat(self.v.latents, "n d -> b n d", b=flat_batch_size)
+        x = ivy.einops_repeat(self.v.z_latents, "n d -> b n d", b=flat_batch_size)
 
         # layers
-        for layer_dict in self._layers:
+        for layer_dict in self._perceiver_encoder:
             if "cross_att" in layer_dict:
                 x = layer_dict["cross_att"](x, data, data, attention_mask=mask) + x
             if "cross_fc" in layer_dict:
@@ -277,7 +281,7 @@ class PerceiverIO(ivy.Module):
 
         # cross attend from decoder queries to latents
 
-        latents = self._decoder_cross_attn(queries, x, x)
+        latents = self._classification_decoder(queries, x, x)
 
         # optional decoder feedforward
 
@@ -286,7 +290,7 @@ class PerceiverIO(ivy.Module):
 
         # final linear out
 
-        ret_flat = self._to_logits(latents)
+        ret_flat = self._decoder_logits(latents)
 
         # reshape to correct number of axes
         ret_flat = ivy.reshape(ret_flat, queries_shape[:-1] + [self._spec.output_dim])
@@ -299,3 +303,20 @@ class PerceiverIO(ivy.Module):
                 **batch_shape_dict
             )
         return ret_flat[0]
+
+
+def perceiver_io_img_classification(spec, pretrained=True):
+    if not pretrained:
+        return PerceiverIO(spec)
+
+    reference_model = PerceiverIO(spec)
+    url = "https://storage.googleapis.com/perceiver_io/imagenet_learned_position_encoding.pystate"  # noqa
+    w_clean = ivy_models.helpers.load_jax_weights(
+        url,
+        reference_model,
+        custom_mapping=_perceiver_jax_weights_mapping,
+        special_rename={"mlp": "net"},
+        with_mha=True,
+    )
+    reference_model.v = w_clean
+    return reference_model
