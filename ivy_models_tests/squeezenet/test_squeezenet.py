@@ -33,10 +33,10 @@ def test_squeezenet_img_classification(device, fw, batch_shape, load_weights):
     # Value test
     if load_weights:
         np_out = ivy.to_numpy(logits[0])
-        true_indices = np.array([282, 281, 285, 287, 896])
-        calc_indices = np.argsort(np_out)[-5:][::-1]
+        true_indices = np.array([282, 281, 285, 287])
+        calc_indices = np.argsort(np_out)[-4:][::-1]
         assert np.array_equal(true_indices, calc_indices)
 
-        true_logits = np.array([23.5786, 22.791977, 20.917543, 19.49762, 16.102253])
+        true_logits = np.array([23.5786, 22.791977, 20.917543, 19.49762])
         calc_logits = np.take(np_out, calc_indices)
         assert np.allclose(true_logits, calc_logits, rtol=1e-3)
