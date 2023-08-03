@@ -22,5 +22,5 @@ def test_bert(device, fw, batch_shape, load_weights):
 
     logits_path = os.path.join(this_dir, "bert_pooled_output.npy")
     ref_logits = np.load(logits_path)
-    assert logits.shape == tuple([ivy.to_scaler(batch_shape), num_dims])
+    assert logits.shape == tuple([ivy.to_scalar(batch_shape), num_dims])
     assert np.allclose(ref_logits, logits, rtol=0.005, atol=0.0005)
