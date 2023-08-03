@@ -8,8 +8,9 @@ import copy
 from dataclasses import dataclass
 from functools import partial
 from typing import Callable, Optional, Sequence, Union, Tuple
+from ivy_models.base import BaseSpec, BaseModel
 
-from .layers import (
+from ivy_models.efficientnet.layers import (
     _make_divisible,
     EfficientNetConv2dNormActivation,
     EfficientNetSqueezeExcitation,
@@ -235,7 +236,7 @@ class EfficientNetFusedMBConv(ivy.Module):
         return result
 
 
-class EfficientNet(ivy.Module):
+class EfficientNetSpec(BaseSpec):
     def __init__(
         self,
         inverted_residual_setting: Sequence[Union[MBConvConfig, FusedMBConvConfig]],
@@ -244,6 +245,27 @@ class EfficientNet(ivy.Module):
         num_classes: int = 1000,
         norm_layer: Optional[Callable[..., ivy.Module]] = None,
         last_channel: Optional[int] = None,
+    ):
+        super(EfficientNetSpec, self).__init__(
+            inverted_residual_setting=inverted_residual_setting,
+            dropout=dropout,
+            stochastic_depth_prob=stochastic_depth_prob,
+            num_classes=num_classes,
+            norm_layer=norm_layer,
+            last_channel=last_channel,
+        )
+
+
+class EfficientNet(BaseModel):
+    def __init__(
+        self,
+        inverted_residual_setting: Sequence[Union[MBConvConfig, FusedMBConvConfig]],
+        dropout: float,
+        stochastic_depth_prob: float = 0.2,
+        num_classes: int = 1000,
+        norm_layer: Optional[Callable[..., ivy.Module]] = None,
+        last_channel: Optional[int] = None,
+        spec=None,
         v=None,
     ) -> None:
         """
@@ -260,13 +282,31 @@ class EfficientNet(ivy.Module):
                 Module specifying the normalization layer to use
             last_channel (int): The number of channels on the penultimate layer
         """
-        if norm_layer is None:
+        self.spec = (
+            spec
+            if spec and isinstance(spec, EfficientNetSpec)
+            else EfficientNetSpec(
+                inverted_residual_setting,
+                dropout,
+                stochastic_depth_prob,
+                num_classes,
+                norm_layer,
+                last_channel,
+            )
+        )
+
+        super(EfficientNet, self).__init__(v=v)
+
+    def _build(self, *args, **kwargs) -> bool:
+        if self.spec.norm_layer is None:
             norm_layer = ivy.BatchNorm2D
 
         layers = []
 
         # building first layer
-        firstconv_output_channels = inverted_residual_setting[0].input_channels
+        firstconv_output_channels = self.spec.inverted_residual_setting[
+            0
+        ].input_channels
         layers.append(
             EfficientNetConv2dNormActivation(
                 3,
@@ -279,9 +319,11 @@ class EfficientNet(ivy.Module):
         )
 
         # building inverted residual blocks
-        total_stage_blocks = sum(cnf.num_layers for cnf in inverted_residual_setting)
+        total_stage_blocks = sum(
+            cnf.num_layers for cnf in self.spec.inverted_residual_setting
+        )
         stage_block_id = 0
-        for cnf in inverted_residual_setting:
+        for cnf in self.spec.inverted_residual_setting:
             stage = []
             for _ in range(cnf.num_layers):
                 # copy to avoid modifications. shallow copy is enough
@@ -294,7 +336,9 @@ class EfficientNet(ivy.Module):
 
                 # adjust stochastic depth prob based on the depth of the stage block
                 sd_prob = (
-                    stochastic_depth_prob * float(stage_block_id) / total_stage_blocks
+                    self.spec.stochastic_depth_prob
+                    * float(stage_block_id)
+                    / total_stage_blocks
                 )
 
                 stage.append(block_cnf.block(block_cnf, sd_prob, norm_layer))
@@ -303,9 +347,11 @@ class EfficientNet(ivy.Module):
             layers.append(ivy.Sequential(*stage))
 
         # building last several layers
-        lastconv_input_channels = inverted_residual_setting[-1].out_channels
+        lastconv_input_channels = self.spec.inverted_residual_setting[-1].out_channels
         lastconv_output_channels = (
-            last_channel if last_channel is not None else 4 * lastconv_input_channels
+            self.spec.last_channel
+            if self.spec.last_channel is not None
+            else 4 * lastconv_input_channels
         )
         layers.append(
             EfficientNetConv2dNormActivation(
@@ -319,11 +365,13 @@ class EfficientNet(ivy.Module):
 
         self.features = ivy.Sequential(*layers)
         self.classifier = ivy.Sequential(
-            ivy.Dropout(dropout),
-            ivy.Linear(lastconv_output_channels, num_classes),
+            ivy.Dropout(self.spec.dropout),
+            ivy.Linear(lastconv_output_channels, self.spec.num_classes),
         )
 
-        super(EfficientNet, self).__init__(v=v)
+    @classmethod
+    def get_spec_class(self):
+        return EfficientNetSpec
 
     def _forward_impl(self, x: ivy.Array) -> ivy.Array:
         x = self.features(x)
@@ -463,31 +511,266 @@ def efficientnet_b0(pretrained=True):
     inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
         "efficientnet_b0"
     )
-    if not pretrained:
-        return EfficientNet(
-            inverted_residual_setting,
-            dropout,
-            norm_layer=norm_layer,
-            last_channel=last_channel,
+    model = EfficientNet(
+        inverted_residual_setting,
+        dropout,
+        norm_layer=norm_layer,
+        last_channel=last_channel,
+    )
+    if pretrained:
+        url = (
+            "https://download.pytorch.org/models/efficientnet_b0_rwightman-3dd342df.pth"
         )
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url,
+            model,
+            raw_keys_to_prune=["num_batches_tracked"],
+            custom_mapping=_efficient_net_torch_weights_mapping,
+        )
+        model.v = w_clean
 
-    reference_model = EfficientNet(
+    return model
+
+
+def efficientnet_b1(pretrained=True):
+    inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
+        "efficientnet_b1"
+    )
+    model = EfficientNet(
         inverted_residual_setting,
         dropout,
         norm_layer=norm_layer,
         last_channel=last_channel,
     )
-    url = "https://download.pytorch.org/models/efficientnet_b0_rwightman-3dd342df.pth"
-    w_clean = ivy_models.helpers.load_torch_weights(
-        url,
-        reference_model,
-        raw_keys_to_prune=["num_batches_tracked"],
-        custom_mapping=_efficient_net_torch_weights_mapping,
+    if pretrained:
+        url = (
+            "https://download.pytorch.org/models/efficientnet_b1_rwightman-533bc792.pth"
+        )
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url,
+            model,
+            raw_keys_to_prune=["num_batches_tracked"],
+            custom_mapping=_efficient_net_torch_weights_mapping,
+        )
+        model.v = w_clean
+
+    return model
+
+
+def efficientnet_b2(pretrained=True):
+    inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
+        "efficientnet_b2"
     )
-    return EfficientNet(
+    model = EfficientNet(
         inverted_residual_setting,
         dropout,
         norm_layer=norm_layer,
         last_channel=last_channel,
-        v=w_clean,
     )
+    if pretrained:
+        url = (
+            "https://download.pytorch.org/models/efficientnet_b2_rwightman-bcdf34b7.pth"
+        )
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url,
+            model,
+            raw_keys_to_prune=["num_batches_tracked"],
+            custom_mapping=_efficient_net_torch_weights_mapping,
+        )
+        model.v = w_clean
+
+    return model
+
+
+def efficientnet_b3(pretrained=True):
+    inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
+        "efficientnet_b3"
+    )
+    model = EfficientNet(
+        inverted_residual_setting,
+        dropout,
+        norm_layer=norm_layer,
+        last_channel=last_channel,
+    )
+    if pretrained:
+        url = (
+            "https://download.pytorch.org/models/efficientnet_b3_rwightman-cf984f9c.pth"
+        )
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url,
+            model,
+            raw_keys_to_prune=["num_batches_tracked"],
+            custom_mapping=_efficient_net_torch_weights_mapping,
+        )
+        model.v = w_clean
+
+    return model
+
+
+def efficientnet_b4(pretrained=True):
+    inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
+        "efficientnet_b4"
+    )
+    model = EfficientNet(
+        inverted_residual_setting,
+        dropout,
+        norm_layer=norm_layer,
+        last_channel=last_channel,
+    )
+    if pretrained:
+        url = (
+            "https://download.pytorch.org/models/efficientnet_b4_rwightman-7eb33cd5.pth"
+        )
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url,
+            model,
+            raw_keys_to_prune=["num_batches_tracked"],
+            custom_mapping=_efficient_net_torch_weights_mapping,
+        )
+        model.v = w_clean
+
+    return model
+
+
+def efficientnet_b5(pretrained=True):
+    inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
+        "efficientnet_b5"
+    )
+    model = EfficientNet(
+        inverted_residual_setting,
+        dropout,
+        norm_layer=norm_layer,
+        last_channel=last_channel,
+    )
+    if pretrained:
+        url = (
+            "https://download.pytorch.org/models/efficientnet_b5_lukemelas-b6417697.pth"
+        )
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url,
+            model,
+            raw_keys_to_prune=["num_batches_tracked"],
+            custom_mapping=_efficient_net_torch_weights_mapping,
+        )
+        model.v = w_clean
+
+    return model
+
+
+def efficientnet_b6(pretrained=True):
+    inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
+        "efficientnet_b6"
+    )
+    model = EfficientNet(
+        inverted_residual_setting,
+        dropout,
+        norm_layer=norm_layer,
+        last_channel=last_channel,
+    )
+    if pretrained:
+        url = (
+            "https://download.pytorch.org/models/efficientnet_b6_lukemelas-c76e70fd.pth"
+        )
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url,
+            model,
+            raw_keys_to_prune=["num_batches_tracked"],
+            custom_mapping=_efficient_net_torch_weights_mapping,
+        )
+        model.v = w_clean
+
+    return model
+
+
+def efficientnet_b7(pretrained=True):
+    inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
+        "efficientnet_b7"
+    )
+    model = EfficientNet(
+        inverted_residual_setting,
+        dropout,
+        norm_layer=norm_layer,
+        last_channel=last_channel,
+    )
+    if pretrained:
+        url = (
+            "https://download.pytorch.org/models/efficientnet_b7_lukemelas-dcc49843.pth"
+        )
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url,
+            model,
+            raw_keys_to_prune=["num_batches_tracked"],
+            custom_mapping=_efficient_net_torch_weights_mapping,
+        )
+        model.v = w_clean
+
+    return model
+
+
+def efficientnet_v2_s(pretrained=True):
+    inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
+        "efficientnet_v2_s"
+    )
+    model = EfficientNet(
+        inverted_residual_setting,
+        dropout,
+        norm_layer=norm_layer,
+        last_channel=last_channel,
+    )
+    if pretrained:
+        url = "https://download.pytorch.org/models/efficientnet_v2_s-dd5fe13b.pth"
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url,
+            model,
+            raw_keys_to_prune=["num_batches_tracked"],
+            custom_mapping=_efficient_net_torch_weights_mapping,
+        )
+        model.v = w_clean
+
+    return model
+
+
+def efficientnet_v2_m(pretrained=True):
+    inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
+        "efficientnet_v2_m"
+    )
+    model = EfficientNet(
+        inverted_residual_setting,
+        dropout,
+        norm_layer=norm_layer,
+        last_channel=last_channel,
+    )
+    if pretrained:
+        url = "https://download.pytorch.org/models/efficientnet_v2_m-dc08266a.pth"
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url,
+            model,
+            raw_keys_to_prune=["num_batches_tracked"],
+            custom_mapping=_efficient_net_torch_weights_mapping,
+        )
+        model.v = w_clean
+
+    return model
+
+
+def efficientnet_v2_l(pretrained=True):
+    inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
+        "efficientnet_v2_l"
+    )
+    model = EfficientNet(
+        inverted_residual_setting,
+        dropout,
+        norm_layer=norm_layer,
+        last_channel=last_channel,
+    )
+    if pretrained:
+        url = "https://download.pytorch.org/models/efficientnet_v2_l-59c71312.pth"
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url,
+            model,
+            raw_keys_to_prune=["num_batches_tracked"],
+            custom_mapping=_efficient_net_torch_weights_mapping,
+        )
+        model.v = w_clean
+
+    return model
