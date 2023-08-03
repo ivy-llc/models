@@ -6,7 +6,7 @@ from ivy_models import bert_base_uncased
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_bert(device, f, fw, batch_shape, load_weights):
+def test_bert(device, fw, batch_shape, load_weights):
     """Test Bert Base Sequence Classification"""
 
     num_dims = 768
