@@ -1,4 +1,3 @@
-# from . import convnext
 from .convnext import (
     ConvNeXtSpec,
     ConvNeXt,

@@ -1,4 +1,3 @@
-# from . import vgg
 from .vgg import (
     VGGSpec,
     VGG,
