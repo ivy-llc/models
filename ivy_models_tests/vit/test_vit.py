@@ -3,7 +3,7 @@ import ivy
 import pytest
 import numpy as np
 
-from ivy_models.vit import vit_b_16
+from ivy_models import vit_b_16
 from ivy_models_tests import helpers
 
 import jax
@@ -13,7 +13,7 @@ jax.config.update("jax_enable_x64", False)
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_alexnet_tiny_img_classification(device, f, fw, batch_shape, load_weights):
+def test_alexnet_tiny_img_classification(device, fw, batch_shape, load_weights):
     """Test ViT image classification."""
     num_classes = 1000
     this_dir = os.path.dirname(os.path.realpath(__file__))

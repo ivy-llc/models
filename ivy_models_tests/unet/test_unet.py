@@ -3,7 +3,7 @@ import ivy
 import pytest
 import numpy as np
 
-from ivy_models.unet import unet_carvana
+from ivy_models import unet_carvana
 from ivy_models_tests import helpers
 
 

@@ -4,7 +4,7 @@ import pytest
 import random
 import ivy
 from ivy_models_tests import helpers
-from ivy_models.convnext import (
+from ivy_models import (
     convnext_tiny,
     convnext_small,
     convnext_base,

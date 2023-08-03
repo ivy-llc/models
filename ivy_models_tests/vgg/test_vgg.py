@@ -4,7 +4,7 @@ import numpy as np
 import jax
 import ivy
 
-from ivy_models.vgg import (
+from ivy_models import (
     vgg11,
     vgg11_bn,
     vgg13,
