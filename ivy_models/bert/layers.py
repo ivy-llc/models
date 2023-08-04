@@ -35,14 +35,15 @@ class Embedding(ivy.Module):
         }
         return v
 
-    def _pad_embd(self, indices, embd):
+    def _mask_embed(self, indices, embed):
         mask = ivy.expand_dims(indices == self.padding_idx, axis=-1)
-        return ivy.where(mask, 0, embd)
+        mask_val = ivy.array(0.0, dtype=embed.dtype)
+        return ivy.where(mask, mask_val, embed)
 
     def _forward(self, indices):
         emb = ivy.embedding(self.v.weight, indices, max_norm=self.max_norm)
         if self.padding_idx is not None:
-            emb = self._pad_embd(indices, emb)
+            emb = self._mask_embed(indices, emb)
         return emb
 
 
