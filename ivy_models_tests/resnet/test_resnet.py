@@ -7,7 +7,7 @@ import jax
 # Enable x64 support in JAX
 jax.config.update("jax_enable_x64", True)
 from ivy_models_tests import helpers
-from ivy_models.resnet import (
+from ivy_models import (
     resnet_18,
     resnet_34,
     resnet_50,

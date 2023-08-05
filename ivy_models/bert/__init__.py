@@ -1,2 +1,1 @@
-from . import bert
-from .bert import *
+from .bert import BertConfig, BertModel, bert_base_uncased
