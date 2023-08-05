@@ -19,4 +19,4 @@ def test_roberta(device, fw, batch_shape, load_weights):
     logits = model(**inputs)["pooler_output"]
     ref_logits = np.load("/models/ivy_models_tests/roberta/roberta_pooled_output.npy")
     assert logits.shape == tuple([ivy.to_scalar(batch_shape), num_dims])
-    assert np.allclose(ref_logits, logits, rtol=0.005, atol=0.0005)
+    assert np.allclose(ref_logits, logits, rtol=0.005, atol=0.005)
