@@ -1,3 +1,6 @@
+from ivy_models.base import BaseSpec
+
+
 BART_START_DOCSTRING = r"""
     This model inherits from [`PreTrainedModel`]. Check the superclass documentation for the generic methods the
     library implements for all its model (such as downloading or saving, resizing the input embeddings, pruning heads
@@ -154,7 +157,7 @@ BART_INPUTS_DOCSTRING = r"""
 """
 
 
-class BartConfig:
+class BartConfig(BaseSpec):
     r"""
     Args:
         vocab_size (`int`, *optional*, defaults to 50265):
@@ -207,67 +210,42 @@ class BartConfig:
             `eos_token_id`.
     """
 
-    model_type = "bart"
-    keys_to_ignore_at_inference = ["past_key_values"]
-    attribute_map = {
+    model_type: str = "bart"
+    keys_to_ignore_at_inference: list = ["past_key_values"]
+    attribute_map: dict = {
         "num_attention_heads": "encoder_attention_heads",
         "hidden_size": "d_model",
     }
+    
+    vocab_size: int = 50265,
+    max_position_embeddings: int = 1024,
+    encoder_layers: int = 12,
+    encoder_ffn_dim: int = 4096,
+    encoder_attention_heads: int = 16,
+    decoder_layers: int = 12,
+    decoder_ffn_dim: int = 4096,
+    decoder_attention_heads: int = 16,
+    encoder_layerdrop: float = 0.0,
+    decoder_layerdrop: float = 0.0,
+    activation_function: str = "gelu",
+    d_model: int = 1024,
+    dropout: float = 0.1,
+    attention_dropout: float = 0.0,
+    activation_dropout: float = 0.0,
+    init_std: float = 0.02,
+    classifier_dropout: float = 0.0,
+    scale_embedding: bool = False,
+    use_cache: bool = True,
+    num_labels: int = 3,
+    pad_token_id: int = 1,
+    bos_token_id: int = 0,
+    eos_token_id: int = 2,
+    is_encoder_decoder: bool = True,
+    decoder_start_token_id: int = 2,
+    forced_eos_token_id: int = 2,
 
-    def __init__(
-        self,
-        vocab_size=50265,
-        max_position_embeddings=1024,
-        encoder_layers=12,
-        encoder_ffn_dim=4096,
-        encoder_attention_heads=16,
-        decoder_layers=12,
-        decoder_ffn_dim=4096,
-        decoder_attention_heads=16,
-        encoder_layerdrop=0.0,
-        decoder_layerdrop=0.0,
-        activation_function="gelu",
-        d_model=1024,
-        dropout=0.1,
-        attention_dropout=0.0,
-        activation_dropout=0.0,
-        init_std=0.02,
-        classifier_dropout=0.0,
-        scale_embedding=False,
-        use_cache=True,
-        num_labels=3,
-        pad_token_id=1,
-        bos_token_id=0,
-        eos_token_id=2,
-        is_encoder_decoder=True,
-        decoder_start_token_id=2,
-        forced_eos_token_id=2,
-        **kwargs,
-    ):
-        self.vocab_size = vocab_size
-        self.max_position_embeddings = max_position_embeddings
-        self.d_model = d_model
-        self.encoder_ffn_dim = encoder_ffn_dim
-        self.encoder_layers = encoder_layers
-        self.encoder_attention_heads = encoder_attention_heads
-        self.decoder_ffn_dim = decoder_ffn_dim
-        self.decoder_layers = decoder_layers
-        self.decoder_attention_heads = decoder_attention_heads
-        self.dropout = dropout
-        self.attention_dropout = attention_dropout
-        self.activation_dropout = activation_dropout
-        self.activation_function = activation_function
-        self.init_std = init_std
-        self.encoder_layerdrop = encoder_layerdrop
-        self.decoder_layerdrop = decoder_layerdrop
-        self.classifier_dropout = classifier_dropout
-        self.use_cache = use_cache
-        self.num_hidden_layers = encoder_layers
-        self.scale_embedding = scale_embedding
-        self.num_labels = num_labels
-        self.pad_token_id = pad_token_id
-        self.bos_token_id = bos_token_id
-        self.eos_token_id = eos_token_id
-        self.is_encoder_decoder = is_encoder_decoder
-        self.decoder_start_token_id = decoder_start_token_id
-        self.forced_eos_token_id = forced_eos_token_id
+    def get(self, *attr_names):
+        new_dict = {}
+        for name in attr_names:
+            new_dict[name] = getattr(self, name)
+        return new_dict
