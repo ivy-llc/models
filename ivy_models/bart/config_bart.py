@@ -211,6 +211,7 @@ class BartConfig(BaseSpec):
     """
 
     model_type: str = "bart"
+    problem_type: str = "multi_label_classification"
     keys_to_ignore_at_inference: list = ["past_key_values"]
     attribute_map: dict = {
         "num_attention_heads": "encoder_attention_heads",
@@ -241,8 +242,12 @@ class BartConfig(BaseSpec):
     bos_token_id: int = 0,
     eos_token_id: int = 2,
     is_encoder_decoder: bool = True,
+    is_decoder: bool = False,
     decoder_start_token_id: int = 2,
     forced_eos_token_id: int = 2,
+    output_attentions: bool = False,
+    output_hidden_states: bool = False,
+    use_return_dict: bool = False,
 
     def get(self, *attr_names):
         new_dict = {}

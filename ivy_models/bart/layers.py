@@ -23,7 +23,7 @@ class BartLearnedPositionalEmbedding(ivy.Embedding):
             past_key_values_length,
             past_key_values_length + seq_len,
             dtype=ivy.int64,
-            device=self.weight.device,
+            device=self.v.w.device,
         )
         ivy.expand(positions, (bsz, -1))
 
@@ -37,9 +37,10 @@ class BartAttention(ivy.Module):
         num_heads: int,
         dropout: float = 0.0,
         is_decoder: bool = False,
-        bias: bool = True,
+        with_bias: bool = True,
+        v=None
     ):
-        super().__init__()
+        self.training = True
         self.embed_dim = embed_dim
         self.num_heads = num_heads
         self.dropout = dropout
@@ -53,10 +54,11 @@ class BartAttention(ivy.Module):
         self.scaling = self.head_dim**-0.5
         self.is_decoder = is_decoder
 
-        self.k_proj = ivy.Linear(embed_dim, embed_dim, with_bias=bias)
-        self.v_proj = ivy.Linear(embed_dim, embed_dim, with_bias=bias)
-        self.q_proj = ivy.Linear(embed_dim, embed_dim, with_bias=bias)
-        self.out_proj = ivy.Linear(embed_dim, embed_dim, with_bias=bias)
+        self.k_proj = ivy.Linear(embed_dim, embed_dim, with_bias=with_bias)
+        self.v_proj = ivy.Linear(embed_dim, embed_dim, with_bias=with_bias)
+        self.q_proj = ivy.Linear(embed_dim, embed_dim, with_bias=with_bias)
+        self.out_proj = ivy.Linear(embed_dim, embed_dim, with_bias=with_bias)
+        super(BartAttention, self).__init__(v=v)
 
     def _shape(self, tensor: ivy.Array, seq_len: int, bsz: int):
         return ivy.swapaxes(
@@ -196,8 +198,9 @@ class BartAttention(ivy.Module):
 
 
 class BartEncoderLayer(ivy.Module):
-    def __init__(self, config: BartConfig):
-        super().__init__()
+    def __init__(self, config: BartConfig, v=None):
+        self.training = True
+        self.config = config
         self.embed_dim = config.d_model
 
         self.self_attn = BartAttention(
@@ -221,6 +224,7 @@ class BartEncoderLayer(ivy.Module):
         self.fc1 = ivy.Linear(self.embed_dim, config.decoder_ffn_dim)
         self.fc2 = ivy.Linear(config.decoder_ffn_dim, self.embed_dim)
         self.final_layer_norm = ivy.LayerNorm(self.embed_dim)
+        super(BartEncoderLayer, self).__init__(v=v)
 
     def _forward(
         self,
@@ -329,8 +333,8 @@ class BartEncoderLayer(ivy.Module):
 
 
 class BartDecoderLayer(ivy.Module):
-    def __init__(self, config: BartConfig):
-        super().__init__()
+    def __init__(self, config: BartConfig, v=None):
+        self.training = True
         self.embed_dim = config.d_model
 
         self.self_attn = BartAttention(
@@ -354,6 +358,7 @@ class BartDecoderLayer(ivy.Module):
         self.fc1 = ivy.Linear(self.embed_dim, config.decoder_ffn_dim)
         self.fc2 = ivy.Linear(config.decoder_ffn_dim, self.embed_dim)
         self.final_layer_norm = ivy.LayerNorm(self.embed_dim)
+        super(BartDecoderLayer, self).__init__(v=v)
 
     def _forward(
         self,
@@ -470,11 +475,12 @@ class BartClassificationHead(ivy.Module):
         inner_dim: int,
         num_classes: int,
         pooler_dropout: float,
+        v=None,
     ):
-        super().__init__()
         self.dense = ivy.Linear(input_dim, inner_dim)
         self.dropout = ivy.Dropout(p=pooler_dropout)
         self.out_proj = ivy.Linear(inner_dim, num_classes)
+        super(BartClassificationHead, self).__init__(v=v)
 
     def _forward(self, hidden_states: ivy.Array) -> ivy.Array:
         hidden_states = self.dropout(hidden_states)

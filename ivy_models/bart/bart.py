@@ -15,38 +15,7 @@ from .helper_func import _expand_mask, _make_causal_mask, shift_tokens_right
 logger = logging.getLogger(__name__)
 
 
-class BartPretrainedModel(BaseModel):
-    config_class = BartConfig
-    base_model_prefix = "model"
-    _keys_to_ignore_on_load_unexpected = ["encoder.version", "decoder.version"]
-    _no_split_modules = [r"BartEncoderLayer", r"BartDecoderLayer"]
-    _skip_keys_device_placement = "past_key_values"
-
-    def _init_weights(self, module):
-        std = self.config.init_std
-        if isinstance(module, ivy.Linear):
-            module.weight.data.normal_(mean=0.0, std=std)
-            if module.bias is not None:
-                module.bias.data.zero_()
-        elif isinstance(module, ivy.Embedding):
-            module.weight.data.normal_(mean=0.0, std=std)
-            if module.padding_idx is not None:
-                module.weight.data[module.padding_idx].zero_()
-
-    @property
-    def dummy_inputs(self):
-        pad_token = self.config.pad_token_id
-        input_ids = ivy.array(
-            [[0, 6, 10, 4, 2], [0, 8, 12, 2, pad_token]], device=self.device
-        )
-        dummy_inputs = {
-            "attention_mask": input_ids.ne(pad_token),
-            "input_ids": input_ids,
-        }
-        return dummy_inputs
-
-
-class BartEncoder(BartPretrainedModel):
+class BartEncoder(ivy.Module):
     """
     Transformer encoder consisting of *config.encoder_layers* self attention layers. Each layer is a
     [`BartEncoderLayer`].
@@ -57,14 +26,18 @@ class BartEncoder(BartPretrainedModel):
     """
 
     def __init__(
-        self, config: BartConfig, embed_tokens: Optional[ivy.Embedding] = None
+        self,
+        config: BartConfig,
+        embed_tokens: Optional[ivy.Embedding] = None,
+        v=None,
     ):
-        super().__init__(config)
-
+        self.training = True
+        self.config = config
         self.dropout = config.dropout
         self.layerdrop = config.encoder_layerdrop
 
         embed_dim = config.d_model
+
         self.padding_idx = config.pad_token_id
         self.max_source_positions = config.max_position_embeddings
         self.embed_scale = ivy.sqrt(embed_dim) if config.scale_embedding else 1.0
@@ -74,7 +47,7 @@ class BartEncoder(BartPretrainedModel):
         )
 
         if embed_tokens is not None:
-            self.embed_tokens.weight = embed_tokens.weight
+            self.embed_tokens.v.w = embed_tokens.v.w
 
         self.embed_positions = BartLearnedPositionalEmbedding(
             config.max_position_embeddings,
@@ -86,8 +59,7 @@ class BartEncoder(BartPretrainedModel):
         ]  # TODO: Do we need ModuleList class like in PyTorch?
         self.layernorm_embedding = ivy.LayerNorm(embed_dim)
 
-        # Initialize weights and apply final processing
-        self.post_init()
+        super(BartEncoder, self).__init__(v=v)
 
     def get_input_embeddings(self):
         return self.embed_tokens
@@ -162,7 +134,7 @@ class BartEncoder(BartPretrainedModel):
             )
         elif input_ids is not None:
             input = input_ids
-            input_ids = input_ids.view(-1, input_ids.shape[-1])
+            input_ids = ivy.reshape(input_ids, (-1, input_ids.shape[-1]))
         elif inputs_embeds is not None:
             input = inputs_embeds[:, :, -1]
         else:
@@ -190,10 +162,10 @@ class BartEncoder(BartPretrainedModel):
 
         # check if head_mask has a correct number of layers specified if desired
         if head_mask is not None:
-            if head_mask.size()[0] != (len(self.layers)):
+            if head_mask.shape[0] != (len(self.layers)):
                 raise ValueError(
                     f"The head_mask should be specified for {len(self.layers)} layers, but it is for"
-                    f" {head_mask.size()[0]}."
+                    f" {head_mask.shape[0]}."
                 )
 
         for idx, encoder_layer in enumerate(self.layers):
@@ -237,7 +209,7 @@ class BartEncoder(BartPretrainedModel):
         )
 
 
-class BartDecoder(BartPretrainedModel):
+class BartDecoder(ivy.Module):
     """
     Transformer decoder consisting of *config.decoder_layers* layers. Each layer is a [`BartDecoderLayer`]
 
@@ -247,9 +219,13 @@ class BartDecoder(BartPretrainedModel):
     """
 
     def __init__(
-        self, config: BartConfig, embed_tokens: Optional[ivy.Embedding] = None
+        self,
+        config: BartConfig,
+        embed_tokens: Optional[ivy.Embedding] = None,
+        v=None,
     ):
-        super().__init__(config)
+        self.training = True
+        self.config = config
         self.dropout = config.dropout
         self.layerdrop = config.decoder_layerdrop
         self.padding_idx = config.pad_token_id
@@ -270,8 +246,7 @@ class BartDecoder(BartPretrainedModel):
         self.layers = [BartDecoderLayer(config) for _ in range(config.decoder_layers)]
         self.layernorm_embedding = ivy.LayerNorm(config.d_model)
 
-        # Initialize weights and apply final processing
-        self.post_init()
+        super(BartDecoder, self).__init__(v=v)
 
     def get_input_embeddings(self):
         return self.embed_tokens
@@ -409,9 +384,9 @@ class BartDecoder(BartPretrainedModel):
         elif input_ids is not None:
             input = input_ids
             input_shape = input.shape
-            input_ids = input_ids.view(-1, input_shape[-1])
+            input_ids = ivy.reshape(input_ids, (-1, input_shape[-1]))
         elif inputs_embeds is not None:
-            input_shape = inputs_embeds.size()[:-1]
+            input_shape = inputs_embeds.shape[:-1]
             input = inputs_embeds[:, :, -1]
         else:
             raise ValueError(
@@ -461,10 +436,10 @@ class BartDecoder(BartPretrainedModel):
             [head_mask, cross_attn_head_mask], ["head_mask", "cross_attn_head_mask"]
         ):
             if attn_mask is not None:
-                if attn_mask.size()[0] != (len(self.layers)):
+                if attn_mask.shape[0] != (len(self.layers)):
                     raise ValueError(
                         f"The `{mask_name}` should be specified for {len(self.layers)} layers, but it is for"
-                        f" {head_mask.size()[0]}."
+                        f" {head_mask.shape[0]}."
                     )
 
         for idx, decoder_layer in enumerate(self.layers):
@@ -533,20 +508,18 @@ class BartDecoder(BartPretrainedModel):
         )
 
 
-class BartModel(BartPretrainedModel):
+class BartModel(BaseModel):
     _tied_weights_keys = ["encoder.embed_tokens.weight", "decoder.embed_tokens.weight"]
 
-    def __init__(self, config: BartConfig):
-        super().__init__(config)
-
+    def __init__(self, config: BartConfig, v=None):
+        self.config = config
         padding_idx, vocab_size = config.pad_token_id, config.vocab_size
         self.shared = ivy.Embedding(vocab_size, config.d_model, padding_idx)
 
         self.encoder = BartEncoder(config, self.shared)
         self.decoder = BartDecoder(config, self.shared)
 
-        # Initialize weights and apply final processing
-        self.post_init()
+        super(BartModel, self).__init__(v=v)
 
     def get_input_embeddings(self):
         return self.shared
