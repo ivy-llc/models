@@ -6,6 +6,7 @@ import numpy as np
 from ivy_models.mlpmixer import mlpmixer
 from ivy_models_tests import helpers
 
+
 import jax
 import tensorflow as tf
 from tensorflow import keras
