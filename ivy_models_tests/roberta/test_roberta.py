@@ -1,7 +1,8 @@
+import os
 import ivy
 import pytest
 import numpy as np
-from ivy_models.roberta import roberta_base
+from ivy_models import roberta_base
 
 
 @pytest.mark.parametrize("batch_shape", [[1]])
@@ -10,13 +11,16 @@ def test_roberta(device, fw, batch_shape, load_weights):
     """Test RoBerta Base Sequence Classification"""
 
     num_dims = 768
-    inputs = np.load(
-        "/models/ivy_models_tests/roberta/roberta_inputs.npy", allow_pickle=True
-    ).tolist()
-
+    this_dir = os.path.dirname(os.path.realpath(__file__))
+    input_path = os.path.join(this_dir, "roberta_inputs.npy")
+    inputs = np.load(input_path, allow_pickle=True).tolist()
     model = roberta_base(load_weights)
+
     inputs = {k: ivy.asarray(v) for k, v in inputs.items()}
     logits = model(**inputs)["pooler_output"]
-    ref_logits = np.load("/models/ivy_models_tests/roberta/roberta_pooled_output.npy")
     assert logits.shape == tuple([ivy.to_scalar(batch_shape), num_dims])
-    assert np.allclose(ref_logits, logits, rtol=0.005, atol=0.005)
+
+    if load_weights:
+        ref_logits_path = os.path.join(this_dir, "roberta_pooled_output.npy")
+        ref_logits = np.load(ref_logits_path)
+        assert np.allclose(ref_logits, ivy.to_numpy(logits), rtol=0.005, atol=0.005)

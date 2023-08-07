@@ -81,6 +81,7 @@ def roberta_base(pretrained=True):
         max_position_embeddings=514,
         type_vocab_size=1,
     )
+
     model = RobertaModel(config, pooler_out=True)
     if pretrained:
         w_clean = load_transformers_weights(

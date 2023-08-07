@@ -23,4 +23,8 @@ from .bart import *
 
 from . import bert
 from .bert import *
+
+from . import roberta
+from .roberta import *
+
 from .vit import *
