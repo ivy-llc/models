@@ -17,10 +17,11 @@ logger = logging.getLogger(__name__)
 
 class BartEncoder(ivy.Module):
     """
-    Transformer encoder consisting of *config.encoder_layers* self attention layers. Each layer is a
-    [`BartEncoderLayer`].
+    Transformer encoder consisting of *config.encoder_layers* self attention layers.
+    Each layer is a [`BartEncoderLayer`].
 
     Args:
+    ----
         config: BartConfig
         embed_tokens (ivy.Embedding): output embedding
     """
@@ -80,38 +81,47 @@ class BartEncoder(ivy.Module):
         r"""
         Args:
             input_ids (`ivy.Array` of shape `(batch_size, sequence_length)`):
-                Indices of input sequence tokens in the vocabulary. Padding will be ignored by default should you
-                provide it.
+                Indices of input sequence tokens in the vocabulary.
+                Padding will be ignored by default should you provide it.
 
-                Indices can be obtained using [`AutoTokenizer`]. See [`PreTrainedTokenizer.encode`] and
-                [`PreTrainedTokenizer.__call__`] for details.
+                Indices can be obtained using [`AutoTokenizer`].
+                See [`PreTrainedTokenizer.encode`]
+                and [`PreTrainedTokenizer.__call__`] for details.
 
                 [What are input IDs?](../glossary#input-ids)
-            attention_mask (`ivy.Array` of shape `(batch_size, sequence_length)`, *optional*):
-                Mask to avoid performing attention on padding token indices. Mask values selected in `[0, 1]`:
+            attention_mask (`ivy.Array` of shape
+            `(batch_size, sequence_length)`, *optional*):
+                Mask to avoid performing attention on padding token indices.
+                Mask values selected in `[0, 1]`:
 
                 - 1 for tokens that are **not masked**,
                 - 0 for tokens that are **masked**.
 
                 [What are attention masks?](../glossary#attention-mask)
-            head_mask (`ivy.Array` of shape `(encoder_layers, encoder_attention_heads)`, *optional*):
-                Mask to nullify selected heads of the attention modules. Mask values selected in `[0, 1]`:
+            head_mask (`ivy.Array` of shape
+            `(encoder_layers, encoder_attention_heads)`, *optional*):
+                Mask to nullify selected heads of the attention modules.
+                Mask values selected in `[0, 1]`:
 
                 - 1 indicates the head is **not masked**,
                 - 0 indicates the head is **masked**.
 
-            inputs_embeds (`ivy.FloatTensor` of shape `(batch_size, sequence_length, hidden_size)`, *optional*):
-                Optionally, instead of passing `input_ids` you can choose to directly pass an embedded representation.
-                This is useful if you want more control over how to convert `input_ids` indices into associated vectors
-                than the model's internal embedding lookup matrix.
+            inputs_embeds (`ivy.FloatTensor` of shape
+            `(batch_size, sequence_length, hidden_size)`, *optional*):
+                Optionally, instead of passing `input_ids` you can choose to
+                directly pass an embedded representation.
+                This is useful if you want more control over how to convert
+                `input_ids` indices into associated vectors than the model's internal
+                embedding lookup matrix.
             output_attentions (`bool`, *optional*):
-                Whether or not to return the attentions tensors of all attention layers. See `attentions` under
-                returned tensors for more detail.
+                Whether or not to return the attentions tensors of all attention layers.
+                See `attentions` under returned tensors for more detail.
             output_hidden_states (`bool`, *optional*):
-                Whether or not to return the hidden states of all layers. See `hidden_states` under returned tensors
-                for more detail.
+                Whether or not to return the hidden states of all layers.
+                See `hidden_states` under returned tensors for more detail.
             return_dict (`bool`, *optional*):
-                Whether or not to return a [`~utils.ModelOutput`] instead of a plain tuple.
+                Whether or not to return a [`~utils.ModelOutput`]
+                instead of a plain tuple.
         """
         output_attentions = (
             output_attentions
@@ -164,8 +174,8 @@ class BartEncoder(ivy.Module):
         if head_mask is not None:
             if head_mask.shape[0] != (len(self.layers)):
                 raise ValueError(
-                    f"The head_mask should be specified for {len(self.layers)} layers, but it is for"
-                    f" {head_mask.shape[0]}."
+                    f"The head_mask should be specified for {len(self.layers)} layers, "
+                    f"but it is for {head_mask.shape[0]}."
                 )
 
         for idx, encoder_layer in enumerate(self.layers):
@@ -211,9 +221,11 @@ class BartEncoder(ivy.Module):
 
 class BartDecoder(ivy.Module):
     """
-    Transformer decoder consisting of *config.decoder_layers* layers. Each layer is a [`BartDecoderLayer`]
+    Transformer decoder consisting of *config.decoder_layers* layers.
+    Each layer is a [`BartDecoderLayer`]
 
     Args:
+    ----
         config: BartConfig
         embed_tokens (nn.Embedding): output embedding
     """
@@ -299,67 +311,85 @@ class BartDecoder(ivy.Module):
         r"""
         Args:
             input_ids (`ivy.Array` of shape `(batch_size, sequence_length)`):
-                Indices of input sequence tokens in the vocabulary. Padding will be ignored by default should you
-                provide it.
+                Indices of input sequence tokens in the vocabulary.
+                Padding will be ignored by default should you provide it.
 
-                Indices can be obtained using [`AutoTokenizer`]. See [`PreTrainedTokenizer.encode`] and
+                Indices can be obtained using [`AutoTokenizer`].
+                See [`PreTrainedTokenizer.encode`] and
                 [`PreTrainedTokenizer.__call__`] for details.
 
                 [What are input IDs?](../glossary#input-ids)
-            attention_mask (`ivy.Array` of shape `(batch_size, sequence_length)`, *optional*):
-                Mask to avoid performing attention on padding token indices. Mask values selected in `[0, 1]`:
+            attention_mask (`ivy.Array` of shape
+            `(batch_size, sequence_length)`, *optional*):
+                Mask to avoid performing attention on padding token indices.
+                Mask values selected in `[0, 1]`:
 
                 - 1 for tokens that are **not masked**,
                 - 0 for tokens that are **masked**.
 
                 [What are attention masks?](../glossary#attention-mask)
-            encoder_hidden_states (`ivy.Array` of shape `(batch_size, encoder_sequence_length, hidden_size)`, *optional*):
-                Sequence of hidden-states at the output of the last layer of the encoder. Used in the cross-attention
-                of the decoder.
-            encoder_attention_mask (`ivy.Array` of shape `(batch_size, encoder_sequence_length)`, *optional*):
-                Mask to avoid performing cross-attention on padding tokens indices of encoder input_ids. Mask values
-                selected in `[0, 1]`:
+            encoder_hidden_states (`ivy.Array` of shape
+            `(batch_size, encoder_sequence_length, hidden_size)`, *optional*):
+                Sequence of hidden-states at the output of last layer of the encoder.
+                Used in the cross-attention of the decoder.
+            encoder_attention_mask (`ivy.Array` of shape
+            `(batch_size, encoder_sequence_length)`, *optional*):
+                Mask to avoid performing cross-attention on padding tokens indices of
+                encoder input_ids. Mask values selected in `[0, 1]`:
 
                 - 1 for tokens that are **not masked**,
                 - 0 for tokens that are **masked**.
 
                 [What are attention masks?](../glossary#attention-mask)
-            head_mask (`ivy.Array` of shape `(decoder_layers, decoder_attention_heads)`, *optional*):
-                Mask to nullify selected heads of the attention modules. Mask values selected in `[0, 1]`:
+            head_mask (`ivy.Array` of shape
+            `(decoder_layers, decoder_attention_heads)`, *optional*):
+                Mask to nullify selected heads of the attention modules.
+                Mask values selected in `[0, 1]`:
 
                 - 1 indicates the head is **not masked**,
                 - 0 indicates the head is **masked**.
 
-            cross_attn_head_mask (`ivy.Array` of shape `(decoder_layers, decoder_attention_heads)`, *optional*):
-                Mask to nullify selected heads of the cross-attention modules in the decoder to avoid performing
-                cross-attention on hidden heads. Mask values selected in `[0, 1]`:
+            cross_attn_head_mask (`ivy.Array` of shape
+            `(decoder_layers, decoder_attention_heads)`, *optional*):
+                Mask to nullify selected heads of the cross-attention modules
+                in the decoder to avoid performing cross-attention on hidden heads.
+                Mask values selected in `[0, 1]`:
 
                 - 1 indicates the head is **not masked**,
                 - 0 indicates the head is **masked**.
 
-            past_key_values (`tuple(tuple(ivy.Array))`, *optional*, returned when `use_cache=True` is passed or when `config.use_cache=True`):
-                Tuple of `tuple(ivy.Array)` of length `config.n_layers`, with each tuple having 2 tensors of
-                shape `(batch_size, num_heads, sequence_length, embed_size_per_head)`) and 2 additional tensors of
-                shape `(batch_size, num_heads, encoder_sequence_length, embed_size_per_head)`.
+            past_key_values (`tuple(tuple(ivy.Array))`, *optional*, returned when
+            `use_cache=True` is passed or when `config.use_cache=True`):
+                Tuple of `tuple(ivy.Array)` of length `config.n_layers`,
+                with each tuple having 2 tensors of
+                shape `(batch_size, num_heads, sequence_length, embed_size_per_head)`)
+                and 2 additional tensors of shape
+                `(batch_size, num_heads, encoder_sequence_length, embed_size_per_head)`.
 
-                Contains pre-computed hidden-states (key and values in the self-attention blocks and in the
-                cross-attention blocks) that can be used (see `past_key_values` input) to speed up sequential decoding.
+                Contains pre-computed hidden-states (key and values in self-attention
+                blocks and in the cross-attention blocks) that can be used
+                (see `past_key_values` input) to speed up sequential decoding.
 
-                If `past_key_values` are used, the user can optionally input only the last `decoder_input_ids` (those
-                that don't have their past key value states given to this model) of shape `(batch_size, 1)` instead of
-                all `decoder_input_ids` of shape `(batch_size, sequence_length)`. inputs_embeds (`ivy.Array` of
-                shape `(batch_size, sequence_length, hidden_size)`, *optional*): Optionally, instead of passing
-                `input_ids` you can choose to directly pass an embedded representation. This is useful if you want more
-                control over how to convert `input_ids` indices into associated vectors than the model's internal
+                If `past_key_values` are used, the user can optionally input only last
+                `decoder_input_ids` (those that don't have their past key value states
+                given to this model) of shape `(batch_size, 1)`
+                instead of all `decoder_input_ids` of shape
+                `(batch_size, sequence_length)`. inputs_embeds (`ivy.Array` of shape
+                `(batch_size, sequence_length, hidden_size)`, *optional*):
+                Optionally, instead of passing `input_ids` you can choose to directly
+                pass an embedded representation.
+                This is useful if you want more control over how to convert `input_ids`
+                indices into associated vectors than the model's internal
                 embedding lookup matrix.
             output_attentions (`bool`, *optional*):
-                Whether or not to return the attentions tensors of all attention layers. See `attentions` under
-                returned tensors for more detail.
+                Whether or not to return the attentions tensors of all attention layers.
+                See `attentions` under returned tensors for more detail.
             output_hidden_states (`bool`, *optional*):
-                Whether or not to return the hidden states of all layers. See `hidden_states` under returned tensors
-                for more detail.
+                Whether or not to return the hidden states of all layers.
+                See `hidden_states` under returned tensors for more detail.
             return_dict (`bool`, *optional*):
-                Whether or not to return a [`~utils.ModelOutput`] instead of a plain tuple.
+                Whether or not to return a [`~utils.ModelOutput`]
+                instead of a plain tuple.
         """
         output_attentions = (
             output_attentions
@@ -379,7 +409,8 @@ class BartDecoder(ivy.Module):
         # retrieve input_ids and inputs_embeds
         if input_ids is not None and inputs_embeds is not None:
             raise ValueError(
-                "You cannot specify both decoder_input_ids and decoder_inputs_embeds at the same time"
+                "You cannot specify both decoder_input_ids and "
+                "decoder_inputs_embeds at the same time"
             )
         elif input_ids is not None:
             input = input_ids
@@ -431,15 +462,16 @@ class BartDecoder(ivy.Module):
         )
         next_decoder_cache = () if use_cache else None
 
-        # check if head_mask/cross_attn_head_mask has a correct number of layers specified if desired
+        # check if head_mask/cross_attn_head_mask has a correct number of
+        # layers specified if desired
         for attn_mask, mask_name in zip(
             [head_mask, cross_attn_head_mask], ["head_mask", "cross_attn_head_mask"]
         ):
             if attn_mask is not None:
                 if attn_mask.shape[0] != (len(self.layers)):
                     raise ValueError(
-                        f"The `{mask_name}` should be specified for {len(self.layers)} layers, but it is for"
-                        f" {head_mask.shape[0]}."
+                        f"The `{mask_name}` should be specified for {len(self.layers)} "
+                        f"layers, but it is for {head_mask.shape[0]}."
                     )
 
         for idx, decoder_layer in enumerate(self.layers):
@@ -592,7 +624,8 @@ class BartModel(BaseModel):
                 output_hidden_states=output_hidden_states,
                 return_dict=return_dict,
             )
-        # If the user passed a tuple for encoder_outputs, we wrap it in a BaseModelOutput when return_dict=True
+        # If the user passed a tuple for encoder_outputs, we wrap it in a
+        # BaseModelOutput when return_dict=True
         elif return_dict and not isinstance(encoder_outputs, BaseModelOutput):
             encoder_outputs = BaseModelOutput(
                 last_hidden_state=encoder_outputs[0],
@@ -600,7 +633,8 @@ class BartModel(BaseModel):
                 attentions=encoder_outputs[2] if len(encoder_outputs) > 2 else None,
             )
 
-        # decoder outputs consists of (dec_features, past_key_value, dec_hidden, dec_attn)
+        # decoder outputs consists of
+        # (dec_features, past_key_value, dec_hidden, dec_attn)
         decoder_outputs = self.decoder(
             input_ids=decoder_input_ids,
             attention_mask=decoder_attention_mask,
