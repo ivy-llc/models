@@ -19,7 +19,7 @@ v = ivy.to_numpy(model.v)
 
 
 @pytest.mark.parametrize("data_format", ["NHWC", "NCHW"])
-def test_mlpmixer_tiny_img_classification(device, f, fw, data_format):
+def test_mlpmixer_tiny_img_classification(device, fw, data_format):
     """Test MLPMixer image classification."""
     num_classes = 10
     batch_shape = [1]
@@ -50,7 +50,10 @@ def test_mlpmixer_tiny_img_classification(device, f, fw, data_format):
 
     data_augmentation = get_augmentation_layers()
     img = data_augmentation(img)
-    img = tf.expand_dims(img, 0)
+    img = tf.expand_dims(img, 0).numpy()
+    img = ivy.asarray(img)
+    if data_format == "NCHW":
+        img = ivy.permute_dims(img, (0, 3, 1, 2))
 
     model.v = ivy.asarray(v)
     logits = model(img, data_format=data_format)
