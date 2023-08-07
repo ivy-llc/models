@@ -6,10 +6,10 @@ import numpy as np
 from ivy_models.mlpmixer import mlpmixer
 from ivy_models_tests import helpers
 
-import jax
 import tensorflow as tf
 from tensorflow import keras
 from keras import layers
+import jax
 
 jax.config.update("jax_enable_x64", False)
 
