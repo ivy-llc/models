@@ -4,7 +4,8 @@ from typing import Optional
 
 def _expand_mask(mask: ivy.Array, dtype: ivy.dtype, tgt_len: Optional[int] = None):
     """
-    Expands attention_mask from `[bsz, seq_len]` to `[bsz, 1, tgt_seq_len, src_seq_len]`.
+    Expands attention_mask from `[bsz, seq_len]` to
+    `[bsz, 1, tgt_seq_len, src_seq_len]`.
     """
     bsz, src_len = mask.shape
     tgt_len = tgt_len if tgt_len is not None else src_len
@@ -17,14 +18,12 @@ def _expand_mask(mask: ivy.Array, dtype: ivy.dtype, tgt_len: Optional[int] = Non
 
 
 def _make_causal_mask(
-    input_ids_shape: ivy.Size,
+    input_ids_shape: ivy.Shape,
     dtype: ivy.dtype,
     device: ivy.device,
     past_key_values_length: int = 0,
 ):
-    """
-    Make causal mask used for bi-directional self-attention.
-    """
+    """Make causal mask used for bi-directional self-attention."""
     bsz, tgt_len = input_ids_shape
     mask = ivy.full((tgt_len, tgt_len), ivy.finfo(dtype).min, device=device)
     mask_cond = ivy.arange(mask.size(-1), device=device)
@@ -47,9 +46,7 @@ def _make_causal_mask(
 def shift_tokens_right(
     input_ids: ivy.Array, pad_token_id: int, decoder_start_token_id: int
 ):
-    """
-    Shift input ids one token to the right.
-    """
+    """Shift input ids one token to the right."""
     shifted_input_ids = input_ids.new_zeros(input_ids.shape)
     shifted_input_ids[:, 1:] = input_ids[:, :-1].clone()
     shifted_input_ids[:, 0] = decoder_start_token_id
