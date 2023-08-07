@@ -38,7 +38,7 @@ class BartAttention(ivy.Module):
         dropout: float = 0.0,
         is_decoder: bool = False,
         with_bias: bool = True,
-        v=None
+        v=None,
     ):
         self.training = True
         self.embed_dim = embed_dim
