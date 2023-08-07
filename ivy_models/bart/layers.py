@@ -5,19 +5,12 @@ from .activations import ACT2FN
 
 
 class BartLearnedPositionalEmbedding(ivy.Embedding):
-    """
-    This module learns positional embeddings up to a fixed maximum size.
-    """
-
     def __init__(self, num_embeddings: int, embedding_dim: int):
-        # Bart is set up so that if padding_idx is specified then offset the embedding ids by 2
-        # and adjust num_embeddings appropriately. Other models don't have this hack
         self.offset = 2
         super().__init__(num_embeddings + self.offset, embedding_dim)
 
     def _forward(self, input_ids: ivy.Array, past_key_values_length: int = 0):
         """`input_ids' shape is expected to be [bsz x seqlen]."""
-
         bsz, seq_len = input_ids.shape[:2]
         positions = ivy.arange(
             past_key_values_length,
@@ -48,8 +41,8 @@ class BartAttention(ivy.Module):
 
         if (self.head_dim * num_heads) != self.embed_dim:
             raise ValueError(
-                f"embed_dim must be divisible by num_heads (got `embed_dim`: {self.embed_dim}"
-                f" and `num_heads`: {num_heads})."
+                f"embed_dim must be divisible by num_heads "
+                f"(got `embed_dim`: {self.embed_dim} and `num_heads`: {num_heads})."
             )
         self.scaling = self.head_dim**-0.5
         self.is_decoder = is_decoder
@@ -75,7 +68,6 @@ class BartAttention(ivy.Module):
         output_attentions: bool = False,
     ) -> Tuple[ivy.Array, Optional[ivy.Array], Optional[Tuple[ivy.Array]]]:
         """Input shape: Batch x Time x Channel"""
-
         # if key_value_states are provided this layer is used as a cross-attention layer
         # for the decoder
         is_cross_attention = key_value_states is not None
@@ -112,13 +104,6 @@ class BartAttention(ivy.Module):
             value_states = self._shape(self.v_proj(hidden_states), -1, bsz)
 
         if self.is_decoder:
-            # if cross_attention save Tuple(ivy.Array, ivy.Array) of all cross attention key/value_states.
-            # Further calls to cross_attention layer can then reuse all cross-attention
-            # key/value_states (first "if" case)
-            # if uni-directional self-attention (decoder) save Tuple(ivy.Array, ivy.Array) of
-            # all previous decoder key/value_states. Further calls to uni-directional self-attention
-            # can concat previous decoder key/value_states to current projected key/value_states (third "elif" case)
-            # if encoder bi-directional self-attention `past_key_value` is always `None`
             past_key_value = (key_states, value_states)
 
         proj_shape = (bsz * self.num_heads, -1, self.head_dim)
@@ -131,14 +116,16 @@ class BartAttention(ivy.Module):
 
         if attn_weights.shape != (bsz * self.num_heads, tgt_len, src_len):
             raise ValueError(
-                f"Attention weights should be of size {(bsz * self.num_heads, tgt_len, src_len)}, but is"
-                f" {attn_weights.shape}"
+                f"Attention weights should be of size "
+                f"{(bsz * self.num_heads, tgt_len, src_len)}, "
+                f"but is {attn_weights.shape}"
             )
 
         if attention_mask is not None:
             if attention_mask.shape != (bsz, 1, tgt_len, src_len):
                 raise ValueError(
-                    f"Attention mask should be of size {(bsz, 1, tgt_len, src_len)}, but is {attention_mask.shape}"
+                    f"Attention mask should be of size {(bsz, 1, tgt_len, src_len)}, "
+                    f"but is {attention_mask.shape}"
                 )
             attn_weights = (
                 attn_weights.shape[bsz, self.num_heads, tgt_len, src_len]
@@ -151,7 +138,8 @@ class BartAttention(ivy.Module):
         if layer_head_mask is not None:
             if layer_head_mask.shape != (self.num_heads,):
                 raise ValueError(
-                    f"Head mask for a single layer should be of size {(self.num_heads,)}, but is {layer_head_mask.shape}"
+                    f"Head mask for a single layer should be of size "
+                    f"{(self.num_heads,)}, but is {layer_head_mask.shape}"
                 )
             attn_weights = (
                 layer_head_mask.shape[1, -1, 1, 1]
@@ -181,15 +169,17 @@ class BartAttention(ivy.Module):
 
         if attn_output.shape != (bsz * self.num_heads, tgt_len, self.head_dim):
             raise ValueError(
-                f"`attn_output` should be of size {(bsz * self.num_heads, tgt_len, self.head_dim)}, but is"
-                f" {attn_output.shape}"
+                f"`attn_output` should be of size "
+                f"{(bsz * self.num_heads, tgt_len, self.head_dim)}, "
+                f"but is {attn_output.shape}"
             )
 
         attn_output = attn_output.shape[bsz, self.num_heads, tgt_len, self.head_dim]
         attn_output = ivy.swapaxes(attn_output, 1, 2)
 
-        # Use the `embed_dim` from the config (stored in the class) rather than `hidden_state` because `attn_output` can be
-        # partitioned across GPUs when using tensor-parallelism.
+        # Use the `embed_dim` from the config (stored in the class) rather than
+        # `hidden_state` because `attn_output` can be partitioned across GPUs
+        # when using tensor-parallelism.
         attn_output = ivy.reshape(attn_output, (bsz, tgt_len, self.embed_dim))
 
         attn_output = self.out_proj(attn_output)
@@ -238,28 +228,11 @@ class BartEncoderLayer(ivy.Module):
         output_attentions: Optional[bool] = False,
         use_cache: Optional[bool] = True,
     ) -> Tuple[ivy.Array, Optional[Tuple[ivy.Array, ivy.Array]]]:
-        """
-        Args:
-            hidden_states (`ivy.Array`): input to the layer of shape `(batch, seq_len, embed_dim)`
-            attention_mask (`ivy.Array`): attention mask of size
-                `(batch, 1, tgt_len, src_len)` where padding elements are indicated by very large negative values.
-            encoder_hidden_states (`ivy.Array`):
-                cross attention input to the layer of shape `(batch, seq_len, embed_dim)`
-            encoder_attention_mask (`ivy.Array`): encoder attention mask of size
-                `(batch, 1, tgt_len, src_len)` where padding elements are indicated by very large negative values.
-            layer_head_mask (`ivy.Array`): mask for attention heads in a given layer of size
-                `(encoder_attention_heads,)`.
-            cross_attn_layer_head_mask (`ivy.Array`): mask for cross-attention heads in a given layer of
-                size `(decoder_attention_heads,)`.
-            past_key_value (`Tuple(ivy.Array)`): cached past key and value projection states
-            output_attentions (`bool`, *optional*):
-                Whether or not to return the attentions tensors of all attention layers. See `attentions` under
-                returned tensors for more detail.
-        """
         residual = hidden_states
 
         # Self Attention
-        # decoder uni-directional self-attention cached key/values tuple is at positions 1,2
+        # decoder uni-directional self-attention cached key/values tuple
+        # is at positions 1,2
         self_attn_past_key_value = (
             past_key_value[:2] if past_key_value is not None else None
         )
@@ -283,7 +256,8 @@ class BartEncoderLayer(ivy.Module):
         if encoder_hidden_states is not None:
             residual = hidden_states
 
-            # cross_attn cached key/values tuple is at positions 3,4 of present_key_value tuple
+            # cross_attn cached key/values tuple is at positions 3,4
+            # of present_key_value tuple
             cross_attn_past_key_value = (
                 past_key_value[-2:] if past_key_value is not None else None
             )
@@ -372,32 +346,16 @@ class BartDecoderLayer(ivy.Module):
         output_attentions: Optional[bool] = False,
         use_cache: Optional[bool] = True,
     ) -> Tuple[ivy.Array, Optional[Tuple[ivy.Array, ivy.Array]]]:
-        """
-        Args:
-            hidden_states (`ivy.Array`): input to the layer of shape `(batch, seq_len, embed_dim)`
-            attention_mask (`ivy.Array`): attention mask of size
-                `(batch, 1, tgt_len, src_len)` where padding elements are indicated by very large negative values.
-            encoder_hidden_states (`ivy.Array`):
-                cross attention input to the layer of shape `(batch, seq_len, embed_dim)`
-            encoder_attention_mask (`ivy.Array`): encoder attention mask of size
-                `(batch, 1, tgt_len, src_len)` where padding elements are indicated by very large negative values.
-            layer_head_mask (`ivy.Array`): mask for attention heads in a given layer of size
-                `(encoder_attention_heads,)`.
-            cross_attn_layer_head_mask (`ivy.Array`): mask for cross-attention heads in a given layer of
-                size `(decoder_attention_heads,)`.
-            past_key_value (`Tuple(ivy.Array)`): cached past key and value projection states
-            output_attentions (`bool`, *optional*):
-                Whether or not to return the attentions tensors of all attention layers. See `attentions` under
-                returned tensors for more detail.
-        """
         residual = hidden_states
 
         # Self Attention
-        # decoder uni-directional self-attention cached key/values tuple is at positions 1,2
+        # decoder uni-directional self-attention cached key/values tuple
+        # is at positions 1,2
         self_attn_past_key_value = (
             past_key_value[:2] if past_key_value is not None else None
         )
-        # add present self-attn cache to positions 1,2 of present_key_value tuple
+        # add present self-attn cache to positions 1,2 of
+        # present_key_value tuple
         hidden_states, self_attn_weights, present_key_value = self.self_attn(
             hidden_states=hidden_states,
             past_key_value=self_attn_past_key_value,
@@ -417,7 +375,8 @@ class BartDecoderLayer(ivy.Module):
         if encoder_hidden_states is not None:
             residual = hidden_states
 
-            # cross_attn cached key/values tuple is at positions 3,4 of present_key_value tuple
+            # cross_attn cached key/values tuple is at positions 3,4
+            # of present_key_value tuple
             cross_attn_past_key_value = (
                 past_key_value[-2:] if past_key_value is not None else None
             )
