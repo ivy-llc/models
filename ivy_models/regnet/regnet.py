@@ -1,4 +1,5 @@
 import ivy
+import ivy_models
 from .layers import BlockParams, SimpleStemIN, ResBottleneckBlock, AnyStage
 from typing import Optional, Callable
 
@@ -77,3 +78,43 @@ class RegNet(ivy.Module):
         x = x.flatten(start_dim=1)
         x = self.fc(x)
         return x
+
+
+def _regnet_torch_weights_mapping(old_key, new_key):
+    new_mapping = new_key
+    if "weight" in old_key:
+        new_mapping = {"key_chain": new_key, "pattern": "b c h w -> h w c b"}
+    elif "bias" in old_key:
+        new_mapping = {"key_chain": new_key, "pattern": "h -> 1 h 1 1"}
+
+    return new_mapping
+
+
+def regnet_y_400mf(pretrained=True):
+    """RegNet-Y-400MF model"""
+    model = RegNet
+    if pretrained:
+        url = "https://download.pytorch.org/models/regnet_y_400mf-c65dace8.pth"
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url,
+            model,
+            raw_keys_to_prune=["num_batches_tracked"],
+            custom_mapping=_regnet_torch_weights_mapping,
+        )
+        model.v = w_clean
+    return model
+
+
+def regnet_y_800mf(pretrained=True):
+    """RegNet-Y-800MF model"""
+    model = RegNet
+    if pretrained:
+        url = "https://download.pytorch.org/models/regnet_y_400mf-e6988f5f.pth"
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url,
+            model,
+            raw_keys_to_prune=["num_batches_tracked"],
+            custom_mapping=_regnet_torch_weights_mapping,
+        )
+        model.v = w_clean
+    return model
