@@ -56,7 +56,7 @@ class DinoHead(BaseModel):
                     layers.append(ivy.GELU())
                 layers.append(ivy.Linear(hidden_dim, bottleneck_dim))
                 self.mlp = ivy.Sequential(*layers)
-            self.apply(self._init_weights)
+            self._init_weights(v)
             self.last_layer = nn.utils.weight_norm(ivy.Linear(bottleneck_dim, out_dim, bias=False))
             self.last_layer.weight_g.data.fill_(1)
             if norm_last_layer:
@@ -64,7 +64,6 @@ class DinoHead(BaseModel):
 
         def _init_weights(self, module):
             if isinstance(module, ivy.Linear):
-                ivy.trunc()
                 # trunc_normal_(module.weight, std=.02)
                 module.weight.data.normal_(mean=0.0, std=.02)
                 if isinstance(module, ivy.Linear) and module.bias is not None:
