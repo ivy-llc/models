@@ -174,7 +174,6 @@ class SqueezeExcitation(ivy.Module):
         scale_activation: Callable[..., ivy.Module] = ivy.sigmoid,
     ) -> None:
         super().__init__()
-        # _log_api_usage_once(self)
         self.avgpool = ivy.AdaptiveAvgPool2d(1)
         self.fc1 = ivy.Conv2D(input_channels, squeeze_channels, 1, strides=1, padding=0)
         self.fc2 = ivy.Conv2D(squeeze_channels, input_channels, 1, strides=1, padding=0)

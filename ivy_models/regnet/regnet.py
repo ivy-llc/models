@@ -1,12 +1,13 @@
 import ivy
 import ivy_models
+from ivy_models.base import BaseModel, BaseSpec
 from .layers import BlockParams, SimpleStemIN, ResBottleneckBlock, AnyStage
 from typing import Optional, Callable
 
 from collections import OrderedDict
 
 
-class RegNet(ivy.Module):
+class RegNetSpec(BaseSpec):
     def __init__(
         self,
         block_params: BlockParams,
@@ -17,25 +18,71 @@ class RegNet(ivy.Module):
         norm_layer: Optional[Callable[..., ivy.Module]] = None,
         activation: Optional[Callable[..., ivy.Module]] = None,
     ) -> None:
-        super().__init__()
+        super(RegNetSpec, self).__init__(
+            block_params=block_params,
+            num_classes=num_classes,
+            stem_width=stem_width,
+            stem_type=stem_type,
+            block_type=block_type,
+            norm_layer=norm_layer,
+            activation=activation,
+        )
 
-        if stem_type is None:
+
+class RegNet(BaseModel):
+    def __init__(
+        self,
+        block_params: BlockParams,
+        num_classes: int = 1000,
+        stem_width: int = 32,
+        stem_type: Optional[Callable[..., ivy.Module]] = None,
+        block_type: Optional[Callable[..., ivy.Module]] = None,
+        norm_layer: Optional[Callable[..., ivy.Module]] = None,
+        activation: Optional[Callable[..., ivy.Module]] = None,
+        spec=None,
+        v: ivy.Container = None,
+    ) -> None:
+        self.block_params = block_params
+        self.num_classes = num_classes
+        self.stem_width = stem_width
+        self.stem_type = stem_type
+        self.block_type = block_type
+        self.norm_layer = norm_layer
+        self.activation = activation
+
+        self.spec = (
+            spec
+            if spec and isinstance(spec, RegNetSpec)
+            else RegNetSpec(
+                block_params,
+                num_classes,
+                stem_width,
+                stem_type,
+                block_type,
+                norm_layer,
+                activation,
+            )
+        )
+        super(RegNet, self).__init__(v=v)
+
+    def _build(self, *args, **kwargs):
+        if self.stem_type is None:
             stem_type = SimpleStemIN
-        if norm_layer is None:
+        if self.norm_layer is None:
             norm_layer = ivy.BatchNorm2D
-        if block_type is None:
+        if self.block_type is None:
             block_type = ResBottleneckBlock
-        if activation is None:
+        if self.activation is None:
             activation = ivy.ReLU
 
         self.stem = stem_type(
             3,  # width_in
-            stem_width,
+            self.stem_width,
             norm_layer,
             activation,
         )
 
-        current_width = stem_width
+        current_width = self.stem_width
 
         blocks = []
         for i, (
@@ -44,7 +91,7 @@ class RegNet(ivy.Module):
             depth,
             group_width,
             bottleneck_multiplier,
-        ) in enumerate(block_params._get_expanded_params()):
+        ) in enumerate(self.block_params._get_expanded_params()):
             blocks.append(
                 (
                     f"block{i+1}",
@@ -58,7 +105,7 @@ class RegNet(ivy.Module):
                         activation,
                         group_width,
                         bottleneck_multiplier,
-                        block_params.se_ratio,
+                        self.block_params.se_ratio,
                         stage_index=i + 1,
                     ),
                 )
@@ -67,9 +114,12 @@ class RegNet(ivy.Module):
             current_width = width_out
 
         self.trunk_output = ivy.Sequential(OrderedDict(blocks))
-
         self.avgpool = ivy.AdaptiveAvgPool2d((1, 1))
-        self.fc = ivy.Linear(current_width, num_classes)
+        self.fc = ivy.Linear(current_width, self.num_classes)
+
+    @classmethod
+    def get_spec_class(self):
+        return RegNetSpec
 
     def _forward(self, x: ivy.Array) -> ivy.Array:
         x = self.stem(x)
@@ -90,9 +140,9 @@ def _regnet_torch_weights_mapping(old_key, new_key):
     return new_mapping
 
 
-def regnet_y_400mf(pretrained=True):
+def regnet_y_400mf(num_classes: int = 1000, stem_width: int = 32, pretrained=True):
     """RegNet-Y-400MF model"""
-    model = RegNet
+    model = RegNet(BlockParams, num_classes, stem_width)
     if pretrained:
         url = "https://download.pytorch.org/models/regnet_y_400mf-c65dace8.pth"
         w_clean = ivy_models.helpers.load_torch_weights(
@@ -105,9 +155,9 @@ def regnet_y_400mf(pretrained=True):
     return model
 
 
-def regnet_y_800mf(pretrained=True):
+def regnet_y_800mf(num_classes: int = 1000, stem_width: int = 32, pretrained=True):
     """RegNet-Y-800MF model"""
-    model = RegNet
+    model = RegNet(BlockParams, num_classes, stem_width)
     if pretrained:
         url = "https://download.pytorch.org/models/regnet_y_400mf-e6988f5f.pth"
         w_clean = ivy_models.helpers.load_torch_weights(
