@@ -3,13 +3,13 @@ import ivy
 import pytest
 import numpy as np
 
-from ivy_models.unet import unet_carvana
+from ivy_models import unet_carvana
 from ivy_models_tests import helpers
 
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_unet_img_segmentation(device, f, fw, batch_shape, load_weights):
+def test_unet_img_segmentation(device, fw, batch_shape, load_weights):
     """Test UNet image segmentation"""
     this_dir = os.path.dirname(os.path.realpath(__file__))
 

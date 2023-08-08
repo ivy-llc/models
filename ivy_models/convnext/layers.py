@@ -14,7 +14,7 @@ class ConvNeXtBlock(ivy.Module):
         self.dwconv = ivy.DepthwiseConv2D(
             self.dim, [7, 7], (1, 1), 3, data_format="NCHW"
         )
-        self.norm = ivy.LayerNorm([self.dim], eps=1e-6)
+        self.norm = ivy.LayerNorm(self.dim, eps=1e-6)
         self.pwconv1 = ivy.Linear(self.dim, 4 * self.dim)
         self.act = ivy.GELU()
         self.pwconv2 = ivy.Linear(4 * self.dim, self.dim)

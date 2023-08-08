@@ -16,7 +16,7 @@ from ivy_models.transformers.perceiver_io import (
 # --------#
 
 
-def test_feedforward(device, f, fw):
+def test_feedforward(device, fw):
     ivy.seed(seed_value=0)
     feedforward = FeedForward(4, device=device)
     x = ivy.random_uniform(shape=(1, 3, 4), device=device)
@@ -24,7 +24,7 @@ def test_feedforward(device, f, fw):
     assert list(ret.shape) == [1, 3, 4]
 
 
-def test_prenorm(device, f, fw):
+def test_prenorm(device, fw):
     ivy.seed(seed_value=0)
     att = ivy.MultiHeadAttention(16, device=device)
     prenorm = PreNorm(16, att, device=device)
@@ -38,7 +38,7 @@ def test_prenorm(device, f, fw):
 
 
 @pytest.mark.parametrize("load_weights", [True, False])
-def test_perceiver_io_img_classification(device, f, fw, load_weights):
+def test_perceiver_io_img_classification(device, fw, load_weights):
     # params
     input_dim = 3
     num_input_axes = 2
@@ -100,7 +100,7 @@ def test_perceiver_io_img_classification(device, f, fw, load_weights):
 
 
 @pytest.mark.parametrize("learn_query", [True, False])
-def test_perceiver_io_flow_prediction(device, f, fw, learn_query):
+def test_perceiver_io_flow_prediction(device, fw, learn_query):
     # params
     input_dim = 3
     num_input_axes = 3

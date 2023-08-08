@@ -77,7 +77,7 @@ def _alexnet_torch_weights_mapping(old_key, new_key):
     return new_mapping
 
 
-def alexnet(pretrained=True, num_classes=1000, dropout=0, data_format="NHWC"):
+def alexnet(pretrained=True, num_classes=1000, dropout=0, data_format="NCHW"):
     """Ivy AlexNet model"""
     model = AlexNet(num_classes=num_classes, dropout=dropout, data_format=data_format)
     if pretrained:
