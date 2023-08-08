@@ -2,7 +2,6 @@ import ivy
 import math
 
 
-
 class Embedding(ivy.Module):
     def __init__(
         self,
