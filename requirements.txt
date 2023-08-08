@@ -1,1 +1,1 @@
-ivy
+git+https://github.com/unifyai/ivy.git@master
