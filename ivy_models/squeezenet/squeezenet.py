@@ -48,11 +48,13 @@ class SqueezeNetSpec(BaseSpec):
         version: str = "1_0",
         num_classes: int = 1000,
         dropout: float = 0.5,
+        data_format: str = "NCHW",
     ) -> None:
         super(SqueezeNetSpec, self).__init__(
             version=version,
             num_classes=num_classes,
             dropout=dropout,
+            data_format=data_format,
         )
 
 
@@ -62,6 +64,7 @@ class SqueezeNet(BaseModel):
         version: str = "1_0",
         num_classes: int = 1000,
         dropout: float = 0.5,
+        data_format: str = "NCHW",
         spec=None,
         v=None,
     ) -> None:
@@ -72,6 +75,7 @@ class SqueezeNet(BaseModel):
                 version=version,
                 num_classes=num_classes,
                 dropout=dropout,
+                data_format=data_format,
             )
         )
         super().__init__(v=v)
@@ -129,7 +133,10 @@ class SqueezeNet(BaseModel):
     def get_spec_class(self):
         return SqueezeNetSpec
 
-    def _forward(self, x):
+    def _forward(self, x, data_format: str = "NCHW"):
+        data_format = data_format if data_format else self.spec.data_format
+        if data_format == "NHWC":
+            x = ivy.permute_dims(x, (0, 3, 1, 2))
         x = self.features(x)
         x = self.classifier(x)
         return ivy.flatten(x, start_dim=1)
@@ -148,10 +155,11 @@ def _squeezenet_torch_weights_mapping(old_key, new_key):
 def squeezenet1_0(
     num_classes: int = 1000,
     dropout: float = 0.5,
+    data_format: str = "NCHW",
     v=None,
     pretrained=True,
 ):
-    model = SqueezeNet("1_0", num_classes, dropout, v=v)
+    model = SqueezeNet("1_0", num_classes, dropout, data_format=data_format, v=v)
     if pretrained:
         url = "https://download.pytorch.org/models/squeezenet1_0-b66bff10.pth"
         w_clean = load_torch_weights(
@@ -167,10 +175,11 @@ def squeezenet1_0(
 def squeezenet1_1(
     num_classes: int = 1000,
     dropout: float = 0.5,
+    data_format: str = "NCHW",
     v=None,
     pretrained=True,
 ):
-    model = SqueezeNet("1_1", num_classes, dropout, v=v)
+    model = SqueezeNet("1_1", num_classes, dropout, data_format=data_format, v=v)
     if pretrained:
         url = "https://download.pytorch.org/models/squeezenet1_1-b8a52dc0.pth"
         w_clean = load_torch_weights(

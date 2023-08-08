@@ -17,5 +17,10 @@ from .efficientnet import *
 
 from .squeezenet import *
 from .densenet import *
+
+from . import bart
+from .bart import *
+
+from . import bert
 from .bert import *
 from .vit import *
