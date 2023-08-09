@@ -17,12 +17,14 @@ class BaseModel(ivy.Module):
         super(BaseModel, self).__init__(*args, **kwargs)
 
     def __setattr__(self, key, value):
+        prev_call = inspect.getframeinfo(inspect.currentframe().f_back)[0]
+        from_test = "ivy_models_tests" in prev_call
+        from_ivy_module = "ivy/stateful/module" in prev_call
         if (
             key == "v"
-            and hasattr(self, "v")
-            and self.v is not None
-            and "ivy_models_tests"
-            not in inspect.getframeinfo(inspect.currentframe().f_back)[0]
+            and "v" in self.__dict__.keys()
+            and self.__dict__["v"] is not None
+            and not (from_test or from_ivy_module)
         ):
             ivy.Container.cont_assert_identical_structure([self.v, value])
         self.__dict__[key] = value
