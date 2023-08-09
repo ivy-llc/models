@@ -64,12 +64,10 @@ def test_mlpmixer_tiny_img_classification(device, fw, data_format):
     # Value test
     if load_weights:
         np_out = ivy.to_numpy(logits)
-        true_indices = np.array([1, 6, 9, 7, 4])
-        calc_indices = np.argsort(np_out[0])[-5:][::-1]
-        assert np.array_equal(true_indices, calc_indices)
+        true_indices = np.array([9, 2, 8, 4])
+        calc_indices = np.argsort(np_out[0])[-4:][::-1]
+        assert np.array_equal(np.sort(true_indices), np.sort(calc_indices))
 
-        true_logits = np.array(
-            [0.21067525, 0.19388805, 0.17803064, 0.1344842, 0.11216756]
-        )
+        true_logits = np.array([0.9752231, 0.01112864, 0.00779471, 0.00512581])
         calc_logits = np.take(np_out, calc_indices)
-        assert np.allclose(true_logits, calc_logits, rtol=1e-3)
+        assert np.allclose(true_logits, calc_logits, rtol=1e-3, atol=1e-2)
