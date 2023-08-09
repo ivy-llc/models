@@ -67,19 +67,19 @@ class RegNet(BaseModel):
 
     def _build(self, *args, **kwargs):
         if self.stem_type is None:
-            stem_type = SimpleStemIN
+            self.stem_type = SimpleStemIN
         if self.norm_layer is None:
-            norm_layer = ivy.BatchNorm2D
+            self.norm_layer = ivy.BatchNorm2D
         if self.block_type is None:
-            block_type = ResBottleneckBlock
+            self.block_type = ResBottleneckBlock
         if self.activation is None:
-            activation = ivy.ReLU
+            self.activation = ivy.ReLU
 
-        self.stem = stem_type(
+        self.stem = self.stem_type(
             3,  # width_in
             self.stem_width,
-            norm_layer,
-            activation,
+            self.norm_layer,
+            self.activation,
         )
 
         current_width = self.stem_width
@@ -100,9 +100,9 @@ class RegNet(BaseModel):
                         width_out,
                         stride,
                         depth,
-                        block_type,
-                        norm_layer,
-                        activation,
+                        self.block_type,
+                        self.norm_layer,
+                        self.activation,
                         group_width,
                         bottleneck_multiplier,
                         self.block_params.se_ratio,
