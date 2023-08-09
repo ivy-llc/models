@@ -27,7 +27,7 @@ class BertEmbedding(ivy.Module):
 
     def _build(self, *args, **kwargs):
         self.word_embeddings = ivy.Embedding(
-            self.vocab_size, self.hidden_size, padding_idx=self.padding_idx
+            self.vocab_size, self.hidden_size, self.padding_idx
         )
         self.position_embeddings = ivy.Embedding(
             self.max_position_embeddings, self.hidden_size
