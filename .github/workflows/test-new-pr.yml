@@ -18,7 +18,7 @@ jobs:
           files: |
             "ivy_models_tests/"
           files_ignore: |
-            "!py"
+            "!.py"
 
       - name: Run tests if any files in ivy_models_tests changed
         if: steps.changed-files.outputs.any_changed == 'true'
