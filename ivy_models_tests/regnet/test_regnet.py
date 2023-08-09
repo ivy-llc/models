@@ -16,7 +16,8 @@ model = VARIANTS[model_var](pretrained=load_weights)
 v = ivy.to_numpy(model.v)
 
 
-def test_regnet(device, fw):
+def test_regnet_img_classification(device, fw):
+    """Test RegNet image classification."""
     num_classes = 1000
     batch_shape = [1]
     this_dir = os.path.dirname(os.path.realpath(__file__))
