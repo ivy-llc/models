@@ -41,7 +41,9 @@ class UNET(BaseModel):
     def get_spec_class(self):
         return UNetSpec
 
-    def _forward(self, x):
+    def _forward(self, x, data_format="NHWC"):
+        if data_format == "NCHW":
+            x = ivy.permute_dims(x, (0, 2, 3, 1))
         x1 = self.inc(x)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
