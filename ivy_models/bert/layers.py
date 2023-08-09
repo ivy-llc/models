@@ -2,51 +2,6 @@ import ivy
 import math
 
 
-class Embedding(ivy.Module):
-    def __init__(
-        self,
-        num_embedding: int,
-        embedding_dim: int,
-        padding_idx=None,
-        max_norm=None,
-        initializer=None,
-        v=None,
-    ):
-        self.num_embedding = num_embedding
-        self.embedding_dim = embedding_dim
-        self.padding_idx = padding_idx
-        self.max_norm = max_norm
-        self.W_initializer = (
-            initializer
-            if initializer is not None
-            else ivy.stateful.initializers.GlorotUniform()
-        )
-        super(Embedding, self).__init__(v=v)
-
-    def _create_variables(self, device, dtype=None):
-        v = {
-            "weight": self.W_initializer.create_variables(
-                (self.num_embedding, self.embedding_dim),
-                device,
-                self.embedding_dim,
-                self.num_embedding,
-                dtype=dtype,
-            )
-        }
-        return v
-
-    def _mask_embed(self, indices, embed):
-        mask = ivy.expand_dims(indices == self.padding_idx, axis=-1)
-        mask_val = ivy.array(0.0, dtype=embed.dtype)
-        return ivy.where(mask, mask_val, embed)
-
-    def _forward(self, indices):
-        emb = ivy.embedding(self.v.weight, indices, max_norm=self.max_norm)
-        if self.padding_idx is not None:
-            emb = self._mask_embed(indices, emb)
-        return emb
-
-
 class BertEmbedding(ivy.Module):
     def __init__(
         self,
@@ -71,13 +26,15 @@ class BertEmbedding(ivy.Module):
         super(BertEmbedding, self).__init__(v=v)
 
     def _build(self, *args, **kwargs):
-        self.word_embeddings = Embedding(
-            self.vocab_size, self.hidden_size, padding_idx=self.padding_idx
+        self.word_embeddings = ivy.Embedding(
+            self.vocab_size, self.hidden_size, self.padding_idx
         )
-        self.position_embeddings = Embedding(
+        self.position_embeddings = ivy.Embedding(
             self.max_position_embeddings, self.hidden_size
         )
-        self.token_type_embeddings = Embedding(self.type_token_size, self.hidden_size)
+        self.token_type_embeddings = ivy.Embedding(
+            self.type_token_size, self.hidden_size
+        )
         self.dropout = ivy.Dropout(self.drop_rate)
         self.LayerNorm = ivy.LayerNorm([self.hidden_size], eps=self.layer_norm_eps)
 

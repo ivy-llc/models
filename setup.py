@@ -114,20 +114,24 @@ long_description = "\n".join(lines)
 setup(
     name="ivy-models",
     version="1.1.9",
-    author="Ivy Team",
-    author_email="ivydl.team@gmail.com",
+    author="ivy",
+    author_email="hello@unify.ai",
     description=(
         "Collection of pre-trained models, " "compatible with any backend framework"
     ),
     long_description=long_description,
     long_description_content_type="text/x-rst",
-    url="https://lets-unify.ai/models",
+    url="https://unify.ai/docs/models/",
     project_urls={
-        "Docs": "https://lets-unify.ai/models/",
+        "Docs": "https://unify.ai/docs/models/",
         "Source": "https://github.com/unifyai/models",
     },
     packages=setuptools.find_packages(),
-    install_requires=[_strip(line) for line in open("requirements.txt", "r")],
+    install_requires=[
+        _strip(line)
+        for line in open("requirements.txt", "r")
+        if not line.startswith("git")
+    ],
     classifiers=["License :: OSI Approved :: Apache Software License"],
     license="Apache 2.0",
 )
