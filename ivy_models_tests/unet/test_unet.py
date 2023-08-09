@@ -20,9 +20,11 @@ def test_unet_img_segmentation(device, fw, data_format):
 
     # Load image
     img = helpers.load_and_preprocess_img(
-        os.path.join(this_dir, "..", "..", "images", "car.jpg"), 256, 224, data_format=data_format,
+        os.path.join(this_dir, "..", "..", "images", "car.jpg"),
+        256,
+        224,
+        data_format=data_format,
     )
-
 
     # Perform inference
     model.v = ivy.asarray(v)
