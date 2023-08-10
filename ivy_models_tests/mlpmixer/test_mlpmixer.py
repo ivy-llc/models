@@ -17,7 +17,6 @@ load_weights = True
 model = mlpmixer(pretrained=load_weights)
 v = ivy.to_numpy(model.v)
 
-
 @pytest.mark.parametrize("data_format", ["NHWC", "NCHW"])
 def test_mlpmixer_tiny_img_classification(device, fw, data_format):
     """Test MLPMixer image classification."""
