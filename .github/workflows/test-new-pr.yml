@@ -16,9 +16,7 @@ jobs:
         uses: tj-actions/changed-files@v37
         with:
           files: |
-            "ivy_models_tests/"
-          files_ignore: |
-            "!*.py"
+            "ivy_models_tests/**/*.py"
 
       - name: Run tests if any files in ivy_models_tests changed
         if: steps.changed-files.outputs.any_changed == 'true'
