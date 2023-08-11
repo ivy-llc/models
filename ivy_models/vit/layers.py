@@ -1,7 +1,6 @@
 from typing import Any, Callable, List, NamedTuple, Optional, Tuple, Union, Sequence
 import collections
 from itertools import repeat
-from collections import OrderedDict
 from functools import partial
 from ivy.stateful.initializers import Zeros
 import ivy
@@ -210,7 +209,7 @@ class VIT_EncoderBlock(ivy.Module):
         self.num_heads = num_heads
         self.hidden_dim = hidden_dim
         self.mlp_dim = mlp_dim
-        self.dropout = dropout
+        self.dropout_p = dropout
         self.attention_dropout = attention_dropout
         self.norm_layer = norm_layer
 
@@ -224,19 +223,19 @@ class VIT_EncoderBlock(ivy.Module):
             num_heads=self.num_heads,
             dropout_rate=self.attention_dropout,
         )
-        self.dropout = ivy.Dropout(self.dropout)
+        self.dropout = ivy.Dropout(self.dropout_p)
 
         # MLP block
         self.ln_2 = self.norm_layer(self.hidden_dim)
-        self.mlp = VIT_MLPBlock(self.hidden_dim, self.mlp_dim, self.dropout)
+        self.mlp = VIT_MLPBlock(self.hidden_dim, self.mlp_dim, self.dropout_p)
 
     def _forward(self, input):
         ivy.utils.assertions.check_true(
-            input.dim() == 3,
+            input.get_num_dims() == 3,
             f"Expected (batch_size, seq_length, hidden_dim) got {input.shape}",
         )
         x = self.ln_1(input)
-        x, _ = self.self_attention(x, x, x, need_weights=False)
+        x = self.self_attention(x, x, x)
         x = self.dropout(x)
         x = x + input
 
@@ -264,31 +263,33 @@ class VIT_Encoder(ivy.Module):
         self._pos_embedding_shape = (1, seq_length, hidden_dim)
         self.pos_embedding = Zeros()  # from BERT
         self.dropout = ivy.Dropout(dropout)
-        layers: OrderedDict[str, ivy.Module] = OrderedDict()
+        layers = []
         for i in range(num_layers):
-            layers[f"encoder_layer_{i}"] = VIT_EncoderBlock(
+            layers.append(VIT_EncoderBlock(
                 num_heads,
                 hidden_dim,
                 mlp_dim,
                 dropout,
                 attention_dropout,
                 norm_layer,
-            )
-        self.layers = ivy.Sequential(layers)
+            ))
+        self.layers = ivy.Sequential(
+            *layers
+        )
         self.ln = norm_layer(hidden_dim)
         super().__init__()
 
     def _create_variables(self, device, dtype=None):
         return {
-            "pos_embeddin": self.pos_embedding.create_variables(
+            "pos_embedding": self.pos_embedding.create_variables(
                 self._pos_embedding_shape, device, dtype=dtype
             )
         }
 
     def _forward(self, input):
         ivy.utils.assertions.check_true(
-            input.dim() == 3,
+            input.get_num_dims() == 3,
             f"Expected (batch_size, seq_length, hidden_dim) got {input.shape}",
         )
-        input = input + self.pos_embedding
+        input = input + self.v.pos_embedding
         return self.ln(self.layers(self.dropout(input)))
