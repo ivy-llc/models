@@ -12,7 +12,6 @@ VARIANTS = {
     "squeezenet1_1": squeezenet1_1,
 }
 
-# ivy.seed(seed_value=42)
 load_weights = random.choice([False, True])
 model_var = random.choice(list(VARIANTS.keys()))
 model = VARIANTS[model_var](dropout=0, pretrained=load_weights)
