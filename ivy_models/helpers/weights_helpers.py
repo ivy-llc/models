@@ -3,6 +3,7 @@ import ivy
 import torch
 import urllib
 import os
+import copy
 
 
 def _prune_keys(raw, ref, raw_keys_to_prune=[], ref_keys_to_prune=[]):
@@ -161,3 +162,31 @@ def load_torch_weights(
     if ref_keys_to_prune:
         w_clean = ivy.Container.cont_combine(w_clean, pruned_ref)
     return ivy.asarray(w_clean)
+
+
+def _unflatten_set(container, name, to_set, split_on="__"):
+    splits = name.split(split_on)
+    cont = container
+    for sp in splits[:-1]:
+        cont = cont.setdefault(sp, {})
+    cont[splits[-1]] = to_set
+
+
+def load_transformers_weights(hf_repo, model, map_fn, split_on="__"):
+    from transformers import AutoModel
+
+    base = AutoModel.from_pretrained(hf_repo)
+    ref_weights = base.state_dict()
+
+    ivy.set_backend("torch")
+    ref_weights = ivy.to_numpy(ivy.Container(ref_weights))
+    old_mapping = copy.deepcopy(model.v)
+    param_names = old_mapping.cont_flatten_key_chains().keys()
+    mapping_list = map(lambda x: map_fn(x), param_names)
+    mapping = dict(zip(param_names, mapping_list))
+    ivy.previous_backend()
+
+    for old_name, ref_name in mapping.items():
+        to_set = ivy.asarray(ref_weights[ref_name])
+        _unflatten_set(old_mapping, old_name, to_set, split_on)
+    return old_mapping
