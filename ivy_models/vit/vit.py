@@ -5,7 +5,6 @@ from ivy_models.vit.layers import (
     ConvStemConfig,
     List,
     Optional,
-    OrderedDict,
     VIT_Encoder,
     Zeros,
     ivy,
@@ -28,6 +27,7 @@ class VisionTransformerSpec(BaseSpec):
         num_classes: int = 1000,
         representation_size: Optional[int] = None,
         norm_layer: Callable[..., ivy.Module] = partial(ivy.LayerNorm, eps=1e-6),
+        data_format: str="NHWC",
         conv_stem_configs: Optional[List[ConvStemConfig]] = None,
     ):
         ivy.utils.assertions.check_true(
@@ -46,6 +46,7 @@ class VisionTransformerSpec(BaseSpec):
             num_classes=num_classes,
             representation_size=representation_size,
             norm_layer=norm_layer,
+            data_format=data_format,
             conv_stem_configs=conv_stem_configs,
         )
 
@@ -67,6 +68,7 @@ class VisionTransformer(BaseModel):
         representation_size: Optional[int] = None,
         norm_layer: Callable[..., ivy.Module] = partial(ivy.LayerNorm, eps=1e-6),
         conv_stem_configs: Optional[List[ConvStemConfig]] = None,
+        data_format: str="NHWC",
         spec=None,
         v=None,
     ):
@@ -85,6 +87,7 @@ class VisionTransformer(BaseModel):
                 num_classes=num_classes,
                 representation_size=representation_size,
                 norm_layer=norm_layer,
+                data_format=data_format,
                 conv_stem_configs=conv_stem_configs,
             )
         )
@@ -93,22 +96,22 @@ class VisionTransformer(BaseModel):
     def _build(self, *args, **kwargs):
         if self.spec.conv_stem_configs is not None:
             # As per https://arxiv.org/abs/2106.14881
-            seq_proj = OrderedDict()
+            seq_proj = []
             prev_channels = 3
             for i, conv_stem_layer_config in enumerate(self.spec.conv_stem_configs):
-                seq_proj[f"conv_bn_relu_{i}"] = Conv2dNormActivation(
+                seq_proj.append(Conv2dNormActivation(
                     in_channels=prev_channels,
                     out_channels=conv_stem_layer_config.out_channels,
                     kernel_size=conv_stem_layer_config.kernel_size,
                     stride=conv_stem_layer_config.stride,
                     norm_layer=conv_stem_layer_config.norm_layer,
                     activation_layer=conv_stem_layer_config.activation_layer,
-                )
+                ))
                 prev_channels = conv_stem_layer_config.out_channels
-            seq_proj["conv_last"] = ivy.Conv2D(
+            seq_proj.append(ivy.Conv2D(
                 prev_channels, self.spec.hidden_dim, [1, 1], 1, 0
-            )
-            self.conv_proj: ivy.Module = ivy.Sequential(seq_proj)
+            ))
+            self.conv_proj: ivy.Module = ivy.Sequential(*seq_proj)
         else:
             self.conv_proj = ivy.Conv2D(
                 3,
@@ -137,21 +140,21 @@ class VisionTransformer(BaseModel):
         )
         self.seq_length = seq_length
 
-        heads_layers: OrderedDict[str, ivy.Module] = OrderedDict()
+        heads_layers = []
         if self.spec.representation_size is None:
-            heads_layers["head"] = ivy.Linear(
+            heads_layers.append(ivy.Linear(
                 self.spec.hidden_dim, self.spec.num_classes
-            )
+            ))
         else:
-            heads_layers["pre_logits"] = ivy.Linear(
+            heads_layers.append(ivy.Linear(
                 self.spec.hidden_dim, self.spec.representation_size
-            )
-            heads_layers["act"] = ivy.tanh()
-            heads_layers["head"] = ivy.Linear(
+            ))
+            heads_layers.append(ivy.tanh())
+            heads_layers.append(ivy.Linear(
                 self.spec.representation_size, self.spec.num_classes
-            )
+            ))
 
-        self.heads = ivy.Sequential(heads_layers)
+        self.heads = ivy.Sequential(*heads_layers)
 
     def _create_variables(self, device, dtype=None):
         return {
@@ -161,7 +164,7 @@ class VisionTransformer(BaseModel):
         }
 
     def _process_input(self, x):
-        n, c, h, w = x.shape
+        n, h, w, c = x.shape
         p = self.spec.patch_size
         ivy.utils.assertions.check_true(
             h == self.spec.image_size,
@@ -174,16 +177,10 @@ class VisionTransformer(BaseModel):
         n_h = h // p
         n_w = w // p
 
-        # (n, c, h, w) -> (n, self.hidden_dim, n_h, n_w)
+        # (n, h, w, c) -> (n, n_h, n_w, self.hidden_dim)
         x = self.conv_proj(x)
-        # (n, self.hidden_dim, n_h, n_w) -> (n, self.hidden_dim, (n_h * n_w))
-        x = x.reshape(n, self.spec.hidden_dim, n_h * n_w)
-
-        # (n, self.hidden_dim, (n_h * n_w)) -> (n, (n_h * n_w), self.hidden_dim)
-        # The self attention layer expects inputs in the format (N, S, E)
-        # where S is the source sequence length, N is the batch size, E is the
-        # embedding dimension
-        x = x.permute(0, 2, 1)
+        # (n, n_h, n_w, self.hidden_dim) -> (n, (n_h * n_w), self.hidden_dim)
+        x = x.reshape(shape=(n, n_h * n_w, self.spec.hidden_dim))
 
         return x
 
@@ -191,13 +188,16 @@ class VisionTransformer(BaseModel):
     def get_spec_class(self):
         return VisionTransformerSpec
 
-    def _forward(self, x):
+    def _forward(self, x, data_format: str="NHWC"):
+        data_format = data_format if data_format else self.spec.data_format
+        if data_format == "NCHW":
+            x = ivy.permute_dims(x, (0, 2, 3, 1))
         # Reshape and permute the input tensor
         x = self._process_input(x)
         n = x.shape[0]
 
         # Expand the class token to the full batch
-        batch_class_token = self.class_token.expand(n, -1, -1)
+        batch_class_token = self.v.class_token.expand((n, -1, -1))
         x = ivy.concat([batch_class_token, x], axis=1)
 
         x = self.encoder(x)
@@ -227,6 +227,7 @@ def _vision_transformer(
     num_heads: int,
     hidden_dim: int,
     mlp_dim: int,
+    data_format: str="NHWC",
     v=None,
 ) -> VisionTransformer:
     model = VisionTransformer(
@@ -236,15 +237,16 @@ def _vision_transformer(
         num_heads=num_heads,
         hidden_dim=hidden_dim,
         mlp_dim=mlp_dim,
+        data_format=data_format,
         v=v,
     )
 
     return model
 
 
-def vit_b_16(pretrained=True) -> VisionTransformer:
+def vit_b_16(data_format="NHWC", pretrained=True) -> VisionTransformer:
     model = _vision_transformer(
-        patch_size=16, num_layers=12, num_heads=12, hidden_dim=768, mlp_dim=3072
+        patch_size=16, num_layers=12, num_heads=12, hidden_dim=768, mlp_dim=3072, data_format=data_format
     )
     if pretrained:
         url = "https://download.pytorch.org/models/vit_b_16-c867db91.pth"
@@ -258,9 +260,9 @@ def vit_b_16(pretrained=True) -> VisionTransformer:
     return model
 
 
-def vit_b_32(pretrained=True) -> VisionTransformer:
+def vit_b_32(data_format="NHWC", pretrained=True) -> VisionTransformer:
     ref_model = _vision_transformer(
-        patch_size=32, num_layers=12, num_heads=12, hidden_dim=768, mlp_dim=3072
+        patch_size=32, num_layers=12, num_heads=12, hidden_dim=768, mlp_dim=3072, data_format=data_format
     )
     if pretrained:
         url = "https://download.pytorch.org/models/vit_b_32-d86f8d99.pth"
@@ -274,9 +276,9 @@ def vit_b_32(pretrained=True) -> VisionTransformer:
     return ref_model
 
 
-def vit_l_16(pretrained=True) -> VisionTransformer:
+def vit_l_16(data_format="NHWC", pretrained=True) -> VisionTransformer:
     ref_model = _vision_transformer(
-        patch_size=16, num_layers=24, num_heads=16, hidden_dim=1024, mlp_dim=4096
+        patch_size=16, num_layers=24, num_heads=16, hidden_dim=1024, mlp_dim=4096, data_format=data_format
     )
     if pretrained:
         url = "https://download.pytorch.org/models/vit_l_16-852ce7e3.pth"
@@ -290,9 +292,9 @@ def vit_l_16(pretrained=True) -> VisionTransformer:
     return ref_model
 
 
-def vit_l_32(pretrained=True) -> VisionTransformer:
+def vit_l_32(data_format="NHWC", pretrained=True) -> VisionTransformer:
     ref_model = _vision_transformer(
-        patch_size=32, num_layers=24, num_heads=16, hidden_dim=1024, mlp_dim=4096
+        patch_size=32, num_layers=24, num_heads=16, hidden_dim=1024, mlp_dim=4096, data_format=data_format
     )
     if pretrained:
         url = "https://download.pytorch.org/models/vit_l_32-c7638314.pth"
@@ -306,12 +308,12 @@ def vit_l_32(pretrained=True) -> VisionTransformer:
     return ref_model
 
 
-def vit_h_14(pretrained=True) -> VisionTransformer:
+def vit_h_14(data_format="NHWC", pretrained=True) -> VisionTransformer:
     ref_model = _vision_transformer(
-        patch_size=14, num_layers=12, num_heads=14, hidden_dim=768, mlp_dim=3072
+        patch_size=14, num_layers=32, num_heads=16, hidden_dim=1280, mlp_dim=5120, data_format=data_format
     )
     if pretrained:
-        url = "https://download.pytorch.org/models/vit_h_14_swag-80465313.pth"
+        url = "https://download.pytorch.org/models/vit_h_14_lc_swag-c1eb923e.pth"
         w_clean = load_torch_weights(
             url,
             ref_model,
