@@ -313,7 +313,7 @@ def vit_h_14(data_format="NHWC", pretrained=True) -> VisionTransformer:
         patch_size=14, num_layers=32, num_heads=16, hidden_dim=1280, mlp_dim=5120, data_format=data_format
     )
     if pretrained:
-        url = "https://download.pytorch.org/models/vit_h_14_swag-80465313.pth"
+        url = "https://download.pytorch.org/models/vit_h_14_lc_swag-c1eb923e.pth"
         w_clean = load_torch_weights(
             url,
             ref_model,

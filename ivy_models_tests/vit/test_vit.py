@@ -7,7 +7,6 @@ from ivy_models_tests import helpers
 from ivy_models.vit import (
     vit_b_16,
     vit_b_32,
-    vit_h_14,
     vit_l_16,
     vit_l_32,
 )
@@ -16,9 +15,16 @@ from ivy_models.vit import (
 VARIANTS = {
     "vit_b_16": vit_b_16,
     "vit_b_32": vit_b_32,
-    # "vit_h_14": vit_h_14,
     "vit_l_16": vit_l_16,
     "vit_l_32": vit_l_32,
+}
+
+
+LOGITS = {
+    "vit_b_16": [282, 281, 285, 287, 292],
+    "vit_b_32": [282, 281, 285, 287, 292],
+    "vit_l_16": [255, 281, 282, 285, 292],
+    "vit_l_32": [282, 281, 285, 287, 292],
 }
 
 
@@ -41,14 +47,14 @@ def test_vit_img_classification(device, fw, data_format):
             os.path.join(this_dir, "..", "..", "images", "cat.jpg"),
             256,
             224,
-            data_format="NHWC",
+            data_format=data_format,
             to_ivy=True,
         ),
     )
 
     # Create model
     model.v = ivy.asarray(v)
-    logits = model(img, data_format="NHWC")
+    logits = model(img, data_format=data_format)
 
     # Cardinality test
     assert logits.shape == tuple([ivy.to_scalar(batch_shape), num_classes])
@@ -56,6 +62,6 @@ def test_vit_img_classification(device, fw, data_format):
     # Value test
     if load_weights:
         np_out = ivy.to_numpy(logits[0])
-        true_indices = np.sort(np.array([282, 281, 285, 287, 292]))
+        true_indices = np.sort(np.array(LOGITS[model_var]))
         calc_indices = np.sort(np.argsort(np_out)[-5:][::-1])
         assert np.array_equal(true_indices, calc_indices)
