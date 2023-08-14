@@ -91,7 +91,15 @@ class RegNet(BaseModel):
             depth,
             group_width,
             bottleneck_multiplier,
-        ) in enumerate(self.block_params._get_expanded_params()):
+        ) in enumerate(
+            zip(
+                self.block_params.widths,
+                self.block_params.strides,
+                self.block_params.depths,
+                self.block_params.group_widths,
+                self.block_params.bottleneck_multipliers,
+            )
+        ):
             blocks.append(
                 (
                     f"block{i+1}",
