@@ -265,17 +265,17 @@ class VIT_Encoder(ivy.Module):
         self.dropout = ivy.Dropout(dropout)
         layers = []
         for i in range(num_layers):
-            layers.append(VIT_EncoderBlock(
-                num_heads,
-                hidden_dim,
-                mlp_dim,
-                dropout,
-                attention_dropout,
-                norm_layer,
-            ))
-        self.layers = ivy.Sequential(
-            *layers
-        )
+            layers.append(
+                VIT_EncoderBlock(
+                    num_heads,
+                    hidden_dim,
+                    mlp_dim,
+                    dropout,
+                    attention_dropout,
+                    norm_layer,
+                )
+            )
+        self.layers = ivy.Sequential(*layers)
         self.ln = norm_layer(hidden_dim)
         super().__init__()
 
