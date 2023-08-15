@@ -1,166 +1,131 @@
-import ivy
-import ivy_models
 from ivy_models.base import BaseModel, BaseSpec
-from utils import trunc_normal_
-from torchvision import transforms
-from ivy_models_tests.helpers import image_helpers
-from PIL import Image
+import ivy
+from ivy_models.vit.vit import VisionTransformer
+from ivy_models.dino.layers import MultiCropWrapper, DINOHead, DINOBackbone
+from ivy_models.vit.layers import partial, ConvStemConfig
 
-class DinoHeadSpec(BaseSpec):
-    """Dino Head Spec Class"""
-    def __init__(
-            self,
-            in_dim: int,
-            out_dim: int,
-            use_bn: bool = False,
-            norm_last_layer: bool = True,
-            nlayers: int = 3,
-            hidden_dim: int = 2048,
-            bottleneck_dim: int = 256,
-        ) -> None:
-        super(DinoHeadSpec, self).__init__(
-            in_dim=in_dim,
-            out_dim=out_dim,
-            use_bn=use_bn,
-            norm_last_layer=norm_last_layer,
-            nlayers=nlayers,
-            hidden_dim=hidden_dim,
-            bottleneck_dim=bottleneck_dim,
+class DINOConfig(BaseSpec):
+    def __init__(self, image_size: int,
+    patch_size: int,
+    num_layers: int,
+    num_heads: int,
+    hidden_dim: int,
+    mlp_dim: int,
+    in_dim: int = 0,
+    dropout: float = 0.0,
+    attention_dropout: float = 0.0,
+    num_classes: int = 1000,
+    representation_size: ivy.Optional[int] = None,
+    norm_layer: ivy.Callable[..., ivy.Module] = partial(ivy.LayerNorm, eps=1e-6),
+    conv_stem_configs: ivy.Optional[ivy.List[ConvStemConfig]] = None,
+    out_dim: int = 65536,
+    use_bn: bool = False,
+    norm_last_layer: bool = True,
+    nlayers: int = 3,
+    hidden_dim_: int = 2048,
+    bottleneck_dim: int = 256,
+    _weight_init: ivy.Initializer = ivy.GlorotUniform(),
+    _bias_init: ivy.Initializer = ivy.Zeros(),
+    with_bias: bool = True,
+    device=None,
+    dtype=None
+    ):
+        super(DINOConfig, self).__init__()
+        self.image_size = image_size
+        self.patch_size = patch_size
+        self.num_layers = num_layers
+        self.num_heads = num_heads
+        self.hidden_dim = hidden_dim
+        self.mlp_dim = mlp_dim
+        self.in_dim = in_dim
+        self.dropout = dropout
+        self.attention_dropout = attention_dropout
+        self.num_classes = num_classes
+        self.representation_size = representation_size
+        self.norm_layer = norm_layer
+        self.conv_stem_configs = conv_stem_configs
+        self.out_dim = out_dim
+        self.use_bn = use_bn
+        self.norm_last_layer = norm_last_layer
+        self.nlayers = nlayers
+        self.hidden_dim_ = hidden_dim_
+        self.bottleneck_dim = bottleneck_dim
+        self._weight_init = _weight_init
+        self._bias_init = _bias_init
+        self.with_bias = with_bias
+        self.device = device
+        self.dtype = dtype
+
+    def get(self, *attr_names):
+        new_dict = {}
+        for name in attr_names:
+            new_dict[name] = getattr(self, name)
+        return new_dict
+
+    def get_vit_attrs(self):
+        return self.get(
+            "image_size",
+            "patch_size",
+            "num_layers",
+            "num_heads",
+            "hidden_dim",
+            "mlp_dim",
+            "dropout",
+            "attention_dropout",
+            "num_classes",
+            "representation_size",
+            "norm_layer",
+            "conv_stem_configs"
         )
 
-class DinoHead(BaseModel):
-    """DINO architecture"""
+    def get_head_attrs(self):
+        return self.get(
+            "in_dim",
+            "out_dim",
+            "use_bn",
+            "norm_last_layer",
+            "nlayers",
+            "hidden_dim_",
+            "bottleneck_dim",
+            "_weight_init",
+            "_bias_init",
+            "with_bias"
+        )
+
+class DINONet(BaseModel):
+
     def __init__(
             self,
-            in_dim: int,
-            out_dim: int,
-            use_bn: bool = False,
-            norm_last_layer : bool = True,
-            nlayers: int = 3,
-            hidden_dim: int = 2048,
-            bottleneck_dim: int = 256,
-            spec = None,
+            config: DINOConfig,
             v: ivy.Container = None,
-        ) -> None:
-        self.spec = (
-            spec
-            if spec and isinstance(spec, DinoHeadSpec)
-            else DinoHeadSpec(
-                in_dim, out_dim, use_bn, norm_last_layer, nlayers, hidden_dim, bottleneck_dim
-            )
-        )
-        super(DinoHead, self).__init__(v=v)
-        # TODO: add batchnorm 1d instead of 2d
-        def _build(self, *args, **kwargs):
-            nlayers = max(self.nlayers, 1)
-            if nlayers ==1:
-                self.mlp = ivy.Linear(in_dim, bottleneck_dim)
-            else:
-                layers = [ivy.Linear(in_dim, bottleneck_dim)]
-                if use_bn:
-                    layers.append(ivy.BatchNorm2D(hidden_dim))
-                layers.append(ivy.GELU())
-                for _ in range(nlayers-2):
-                    layers.append(ivy.Linear(hidden_dim, hidden_dim))
-                    if use_bn:
-                        layers.append(ivy.BatchNorm2D(hidden_dim))
-                    layers.append(ivy.GELU())
-                layers.append(ivy.Linear(hidden_dim, bottleneck_dim))
-                self.mlp = ivy.Sequential(*layers)
-            self._init_weights(v)
-            # TODO: weight normalization
-            self.last_layer = ivy.LayerNorm(ivy.Linear(bottleneck_dim, out_dim, bias=False))
-            self.last_layer.weight_g.data.fill_(1)
-            if norm_last_layer:
-                self.last_layer.weight_g.requires_grad = False
+    ) -> None:
+        self.config = config
+        super(DINONet, self).__init__(v=v)
 
-        def _init_weights(self, module):
-            if isinstance(module, ivy.Linear):
-                # trunc_normal_(module.weight, std=.02)
-                module.weight.data.normal_(mean=0.0, std=.02)
-                if isinstance(module, ivy.Linear) and module.bias is not None:
-                    module.bias.data.zero_()
+    @classmethod
+    def get_spec_class(self):
+        return DINOConfig
 
-        def _forward(self, x):
-            x = self.mlp(x)
-            x = ivy.functional.lp_normalize(x, p = 2., axis = 1)
-            x = self.last_layer(x)
-            return x
-
-#TODO: DINOLOSS losses functional not here
-class DataAugmentationDINO(object):
-    def __init__(self, global_crops_scale, local_crops_scale, local_crops_number):
-        flip_and_color_jitter = transforms.Compose([
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.RandomApply(
-                [transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1)],
-                p=0.8
-            ),
-            transforms.RandomGrayscale(p=0.2),
-        ])
-        normalize = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        ])
-
-        self.global_crop_1 = transforms.Compose([
-            transforms.RandomResizedCrop(224, scale=global_crops_scale, interpolation=Image.BICUBIC),
-            flip_and_color_jitter,
-            image_helpers.GaussianBlur(1.0),
-            normalize,
-        ])
-
-        self.global_crop_2 = transforms.Compose([
-            transforms.RandomResizedCrop(224, scale = global_crops_scale, interpolation=Image.BICUBIC),
-            flip_and_color_jitter,
-            image_helpers.GaussianBlur(0.1),
-            image_helpers.Solarization(0.2),
-            normalize,
-        ])
-
-        self.local_coprs_number = local_crops_number
-        self.local_crop = transforms.Compose([
-            transforms.RandomResizedCrop(96, scale=local_crops_scale, interpolation=Image.BICUBIC),
-            flip_and_color_jitter,
-            image_helpers.GaussianBlur(p=0.5),
-            normalize,
-        ])
-
-    def __call__(self, image):
-        crops = []
-        crops.append(self.global_crop_1(image))
-        crops.append(self.global_crop_2(image))
-        for _ in range(self.local_crops_number):
-            crops.append(self.local_crop(image))
-        return crops
-
-
-class MultiCropWrapper(ivy.Module):
-
-    def __init__(self, backbone, head):
-        super(MultiCropWrapper, self).__init__()
-        backbone.fc, backbone.head = ivy.Identity, ivy.Identity
-        self.backbone = backbone
-        self.head = head
-
+    def _build(self):
+        self.student = DINOBackbone(**self.config.get_vit_attrs())
+        self.teacher = DINOBackbone(**self.config.get_vit_attrs())
+        self.config.in_dim = self.config.hidden_dim * self.config.num_heads
+        self.teacher_head = DINOHead(**self.config.get_head_attrs())
+        self.student_head = DINOHead(**self.config.get_head_attrs())
 
     def _forward(self, x):
-        if not isinstance(x, list):
-            x = [x]
-        idx_crops = ivy.cumsum(ivy.unique_consecutive(
-            ivy.array([inp.shape[-1] for inp in x]),
-            return_counts=True,
-        )[1], 0)
+        return {
+            "student_output": self.student_head(self.student),
+            "teacher_output": self.teacher_head(self.teacher)
+        }
 
-        start_idx, output = 0, ivy.empty(0).to(x[0].device)
-        for end_idx in idx_crops:
-            _out = self.backbone(ivy.cat(x[start_idx: end_idx]))
-            # The output is a tuple with XCiT model. See:
-            # https://github.com/facebookresearch/xcit/blob/master/xcit.py#L404-L405
-            if isinstance(_out, tuple):
-                _out = _out[0]
-            # accumulate outputs
-            output = ivy.cat((output, _out))
-            start_idx = end_idx
-            # Run the head forward on the concatenated features.
-        return self.head(output)
+
+def dino_base(pretrained=False):
+    # instantiate the hyperparameters same as bert
+    # set the dropout rate to 0.0 to avoid stochasticity in the output
+    config = DINOConfig(
+        image_size = 224, patch_size=16, num_layers=12, num_heads=12, hidden_dim=768, mlp_dim=3072,
+    )
+    model = DINONet(config)
+    return model
+

@@ -20,6 +20,7 @@ def _no_grad_trunc_normal_(tensor, mean, std, a, b):
     tensor = ivy.clip(tensor, a, b)
     return tensor
 
+# TODO: Add this to ivy functions
 def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
     return _no_grad_trunc_normal_(tensor, mean, std, a, b)
 
