@@ -38,15 +38,13 @@ def run_model():
         os.path.join(this_dir, "..", "..", "images", "cat.jpg"),
         256,
         224,
-        data_format="NHWC",
+        data_format="NCHW",
         to_ivy=True,
     )
 
     model = dino_base()
 
     try:
-        print(type(img))
-        print(model.v)
         model.v = ivy.asarray(model.v)
         logits = model(img)
         print("LOGITS")

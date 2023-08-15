@@ -47,22 +47,21 @@ class DINOBackbone(ivy.Module):
                                           num_heads=self.num_heads, hidden_dim=self.hidden_dim, mlp_dim=self.mlp_dim)
 
     def _forward(self, x):
-        if not isinstance(x, list):
-            x = [x]
+        # if not isinstance(x, list):
+        #     x = [x]
         idx_crops = ivy.cumsum(ivy.unique_consecutive(
             ivy.array([inp.shape[-1] for inp in x]),
-            return_counts=True,
-        )[1], 0)
-
-        start_idx, output = 0, ivy.empty(0).to(x[0].device)
-        for end_idx in idx_crops:
-            _out = self.backbone(ivy.cat(x[start_idx: end_idx]))
-
-            if isinstance(_out, tuple):
-                _out = _out[0]
-            # accumulate outputs
-            output = ivy.cat((output, _out))
-            start_idx = end_idx
+        )[2], 0)
+        start_idx, output = 0, ivy.empty(0, device=x[0].device)
+        # for end_idx in idx_crops.tolist():
+        _out = self.backbone(x)
+        # if isinstance(_out, tuple):
+        #     _out = _out[0]
+        # # accumulate outputs
+        # output = ivy.concat((output, _out))
+        # start_idx = end_idx
+        # CHANGE BACK FOR LOOP HERE
+        output = _out
         return output
 
 class DINOHead(ivy.Module):
@@ -136,7 +135,6 @@ class DINOHead(ivy.Module):
             self.mlp = ivy.Sequential(*layers)
         # TODO: weight normalization
         self.last_layer = ivy.Linear(self.bottleneck_dim, self.out_dim)
-        print(dir(self.last_layer))
         self.last_layer.v.w = ivy.full_like(self.last_layer.v.w, 1.0)
         # if self.norm_last_layer:
         #     self.last_layer.v.w.requires_grad = False

@@ -115,8 +115,8 @@ class DINONet(BaseModel):
 
     def _forward(self, x):
         return {
-            "student_output": self.student_head(self.student),
-            "teacher_output": self.teacher_head(self.teacher)
+            "student_output": self.student_head(self.student(x)),
+            "teacher_output": self.teacher_head(self.teacher(x))
         }
 
 
