@@ -13,7 +13,7 @@ class DINOBackbone(ivy.Module):
 
     def __init__(
             self,
-            image_size: int,
+            img_size: int,
             patch_size: int,
             num_layers: int,
             num_heads: int,
@@ -28,7 +28,7 @@ class DINOBackbone(ivy.Module):
             spec=None,
             v: ivy.Container = None,
     ):
-        self.image_size = image_size
+        self.img_size = img_size
         self.patch_size = patch_size
         self.num_layers = num_layers
         self.num_heads = num_heads
@@ -43,7 +43,8 @@ class DINOBackbone(ivy.Module):
         super(DINOBackbone, self).__init__(v=v)
 
     def _build(self, *args, **kwargs):
-        self.backbone = VisionTransformer(image_size = self.image_size, patch_size=self.patch_size, num_layers=self.num_layers,
+        self.backbone = VisionTransformer(image_size=self.img_size, patch_size=self.patch_size,
+                                          num_layers=self.num_layers,
                                           num_heads=self.num_heads, hidden_dim=self.hidden_dim, mlp_dim=self.mlp_dim)
 
     def _forward(self, x):
@@ -136,8 +137,8 @@ class DINOHead(ivy.Module):
         # TODO: weight normalization
         self.last_layer = ivy.Linear(self.bottleneck_dim, self.out_dim)
         self.last_layer.v.w = ivy.full_like(self.last_layer.v.w, 1.0)
-        # if self.norm_last_layer:
-        #     self.last_layer.v.w.requires_grad = False
+        if self.norm_last_layer:
+            self.last_layer.v.w.requires_grad = False
 
     # def _init_weights(self, module):
     #     # if isinstance(module, ivy.Linear):
@@ -148,6 +149,7 @@ class DINOHead(ivy.Module):
     #     return module
 
     def _forward(self, x):
+        print(x.shape)
         x = self.mlp(x)
         x = ivy.functional.lp_normalize(x, p = 2., axis = 1)
         x = self.last_layer(x)

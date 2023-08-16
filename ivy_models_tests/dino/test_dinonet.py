@@ -38,7 +38,7 @@ def run_model():
         os.path.join(this_dir, "..", "..", "images", "cat.jpg"),
         256,
         224,
-        data_format="NCHW",
+        data_format="NHWC",
         to_ivy=True,
     )
 

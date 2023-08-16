@@ -5,7 +5,7 @@ from ivy_models.dino.layers import MultiCropWrapper, DINOHead, DINOBackbone
 from ivy_models.vit.layers import partial, ConvStemConfig
 
 class DINOConfig(BaseSpec):
-    def __init__(self, image_size: int,
+    def __init__(self, img_size: int,
     patch_size: int,
     num_layers: int,
     num_heads: int,
@@ -21,7 +21,7 @@ class DINOConfig(BaseSpec):
     out_dim: int = 65536,
     use_bn: bool = False,
     norm_last_layer: bool = True,
-    nlayers: int = 3,
+    nlayers: int = 1,
     hidden_dim_: int = 2048,
     bottleneck_dim: int = 256,
     _weight_init: ivy.Initializer = ivy.GlorotUniform(),
@@ -31,7 +31,7 @@ class DINOConfig(BaseSpec):
     dtype=None
     ):
         super(DINOConfig, self).__init__()
-        self.image_size = image_size
+        self.img_size = img_size
         self.patch_size = patch_size
         self.num_layers = num_layers
         self.num_heads = num_heads
@@ -64,7 +64,7 @@ class DINOConfig(BaseSpec):
 
     def get_vit_attrs(self):
         return self.get(
-            "image_size",
+            "img_size",
             "patch_size",
             "num_layers",
             "num_heads",
@@ -109,7 +109,7 @@ class DINONet(BaseModel):
     def _build(self):
         self.student = DINOBackbone(**self.config.get_vit_attrs())
         self.teacher = DINOBackbone(**self.config.get_vit_attrs())
-        self.config.in_dim = self.config.hidden_dim * self.config.num_heads
+        self.config.in_dim = self.config.num_classes
         self.teacher_head = DINOHead(**self.config.get_head_attrs())
         self.student_head = DINOHead(**self.config.get_head_attrs())
 
@@ -123,8 +123,11 @@ class DINONet(BaseModel):
 def dino_base(pretrained=False):
     # instantiate the hyperparameters same as bert
     # set the dropout rate to 0.0 to avoid stochasticity in the output
-    config = DINOConfig(
-        image_size = 224, patch_size=16, num_layers=12, num_heads=12, hidden_dim=768, mlp_dim=3072,
+    config = DINOConfig(img_size = 224, patch_size=16,
+        num_layers=12,
+        num_heads=12,
+        hidden_dim=768,
+        mlp_dim=3072, out_dim = 65536,
     )
     model = DINONet(config)
     return model
