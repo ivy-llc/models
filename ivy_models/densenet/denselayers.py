@@ -40,9 +40,7 @@ class DenseNetLayer(ivy.Module):
 
     def bn_function(self, inputs):
         concated_features = ivy.concat(inputs, axis=1)
-        bottleneck_output = self.conv1(
-            self.relu1(self.norm1(concated_features))
-        )  # noqa: T484
+        bottleneck_output = self.conv1(self.relu1(self.norm1(concated_features)))
         return bottleneck_output
 
     # allowing it to take either a List[Tensor] or single Tensor
@@ -92,7 +90,7 @@ class DenseNetBlock(ivy.Module):
 
     def _forward(self, init_features):
         features = [init_features]
-        for name, layer in self.layers:
+        for name, layer in self.layers.items():
             new_features = layer(features)
             features.append(new_features)
         return ivy.concat(features, axis=1)
@@ -117,4 +115,4 @@ class DenseNetTransition(ivy.Sequential):
             with_bias=False,
             data_format="NCHW",
         )
-        self.pool = ivy.AvgPool2D(2, 2, 0)
+        self.pool = ivy.AvgPool2D(2, 2, 0, data_format="NCHW")

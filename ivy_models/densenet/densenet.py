@@ -116,7 +116,7 @@ class DenseNet(BaseModel):
         # Final batch norm
         layers["norm5"] = ivy.BatchNorm2D(num_features)
 
-        self.features = ivy.Sequential(layers)
+        self.features = layers  # ivy.Sequential(layers)
 
         # Linear layer
         self.classifier = ivy.Linear(num_features, self.spec.num_classes)
@@ -126,7 +126,9 @@ class DenseNet(BaseModel):
         return DenseNetLayerSpec
 
     def _forward(self, x):
-        features = self.features(x)
+        templist = list(self.features.values())
+        layers = ivy.Sequential(*templist)
+        features = layers(x)
         out = ivy.relu(features)
         out = ivy.adaptive_avg_pool2d(out, (1, 1))
         out = ivy.flatten(out, axis=1)
