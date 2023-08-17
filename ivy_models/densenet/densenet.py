@@ -84,12 +84,14 @@ class DenseNet(BaseModel):
                         2,
                         3,
                         with_bias=False,
-                        data_format="NCHW",
                     ),
                 ),
-                ("norm0", ivy.BatchNorm2D(self.spec.num_init_features)),
+                (
+                    "norm0",
+                    ivy.BatchNorm2D(self.spec.num_init_features),
+                ),
                 ("relu0", ivy.ReLU()),
-                ("pool0", ivy.MaxPool2D(3, 2, 1, data_format="NCHW")),
+                ("pool0", ivy.MaxPool2D(3, 2, 1)),
             ]
         )
 
@@ -215,4 +217,5 @@ def densenet201(v=None, pretrained=True):
 
 if __name__ == "__main__":
     ivy.set_torch_backend()
-    model = densenet121()
+    model = densenet(32, (6, 12, 24, 16), 64)
+    print(model.v)
