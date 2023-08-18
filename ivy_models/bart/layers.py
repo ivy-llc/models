@@ -30,7 +30,11 @@ class BartAttention(ivy.Module):
         dropout: float = 0.0,
         is_decoder: bool = False,
         with_bias: bool = True,
+        /,
+        *,
+        device=None,
         v=None,
+        dtype=None,
     ):
         self.training = True
         self.embed_dim = embed_dim
@@ -47,7 +51,7 @@ class BartAttention(ivy.Module):
         self.is_decoder = is_decoder
 
         self._build(with_bias=with_bias)
-        super(BartAttention, self).__init__(v=v)
+        ivy.Module.__init__(self, device=device, v=v, dtype=dtype)
 
     def _build(self, *args, **kwargs):
         with_bias = kwargs.get("with_bias")
