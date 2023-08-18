@@ -25,7 +25,7 @@ class BartLearnedPositionalEmbedding(ivy.Embedding):
 
 
 class BartAttention(ivy.Module):
-    def init(
+    def __init__(
         self,
         embed_dim: int,
         num_heads: int,
@@ -49,7 +49,7 @@ class BartAttention(ivy.Module):
         self.is_decoder = is_decoder
 
         self._build(with_bias=with_bias)
-        super(BartAttention, self).__init__()
+        super(BartAttention, self).__init__(v=v)
 
     def _build(self, *args, **kwargs):
         with_bias = kwargs["with_bias"]
