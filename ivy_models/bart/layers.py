@@ -1,7 +1,8 @@
 import ivy
 from typing import Optional, Tuple
 from .config_bart import BartConfig
-from .activations import ACT2FN
+
+# from .activations import ACT2FN
 
 
 class BartLearnedPositionalEmbedding(ivy.Embedding):
@@ -200,7 +201,7 @@ class BartEncoderLayer(ivy.Module):
             is_decoder=True,
         )
         self.dropout = config.dropout
-        self.activation_fn = ACT2FN[config.activation_function]
+        self.activation_fn = getattr(ivy, config.activation_function)
         self.activation_dropout = config.activation_dropout
 
         self.self_attn_layer_norm = ivy.LayerNorm(self.embed_dim)
@@ -318,7 +319,7 @@ class BartDecoderLayer(ivy.Module):
             is_decoder=True,
         )
         self.dropout = config.dropout
-        self.activation_fn = ACT2FN[config.activation_function]
+        self.activation_fn = getattr(ivy, config.activation_function)
         self.activation_dropout = config.activation_dropout
 
         self.self_attn_layer_norm = ivy.LayerNorm(self.embed_dim)
