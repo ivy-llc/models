@@ -199,17 +199,19 @@ class BartEncoderLayer(ivy.Module):
         self.activation_fn = getattr(ivy, config.activation_function)
         self.activation_dropout = config.activation_dropout
 
-        self._build(config=config)
+        self._build(config=config, v=v)
         super(BartEncoderLayer, self).__init__(v=v)
 
     def _build(self, *args, **kwargs):
         config = kwargs["config"]
+        v = kwargs["v"]
 
         self.self_attn = BartAttention(
             embed_dim=self.embed_dim,
             num_heads=config.decoder_attention_heads,
             dropout=config.attention_dropout,
             is_decoder=True,
+            v=v,
         )
         self.self_attn_layer_norm = ivy.LayerNorm(self.embed_dim)
         self.encoder_attn = BartAttention(
@@ -217,6 +219,7 @@ class BartEncoderLayer(ivy.Module):
             config.decoder_attention_heads,
             dropout=config.attention_dropout,
             is_decoder=True,
+            v=v,
         )
         self.encoder_attn_layer_norm = ivy.LayerNorm(self.embed_dim)
         self.fc1 = ivy.Linear(self.embed_dim, config.decoder_ffn_dim)
