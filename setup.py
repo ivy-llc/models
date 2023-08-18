@@ -30,7 +30,7 @@ def _replace_logos_html(txt):
     backends_chunk = chunks[2]
     bc = backends_chunk.split("\n\n")
     img_str = (
-        ".. image:: https://github.com/unifyai/unifyai.github.io/blob/master/img/externally_linked/logos/supported/frameworks.png?raw=true\n"  # noqa
+        ".. image:: https://github.com/unifyai/unifyai.github.io/blob/main/img/externally_linked/logos/supported/frameworks.png?raw=true\n"  # noqa
         "   :width: 100%"
     )
     backends_chunk = "\n\n".join(bc[0:1] + [img_str] + bc[2:])
@@ -39,7 +39,7 @@ def _replace_logos_html(txt):
     libraries_chunk = chunks[3]
     lc = libraries_chunk.split("\n\n")
     img_str = (
-        ".. image:: https://github.com/unifyai/unifyai.github.io/blob/master/img/externally_linked/ivy_libraries.png?raw=true\n"  # noqa
+        ".. image:: https://github.com/unifyai/unifyai.github.io/blob/main/img/externally_linked/ivy_libraries.png?raw=true\n"  # noqa
         "   :width: 100%"
     )
     libraries_chunk = "\n\n".join(lc[0:1] + [img_str] + lc[2:])
@@ -114,20 +114,24 @@ long_description = "\n".join(lines)
 setup(
     name="ivy-models",
     version="1.1.9",
-    author="Ivy Team",
-    author_email="ivydl.team@gmail.com",
+    author="ivy",
+    author_email="hello@unify.ai",
     description=(
         "Collection of pre-trained models, " "compatible with any backend framework"
     ),
     long_description=long_description,
     long_description_content_type="text/x-rst",
-    url="https://lets-unify.ai/models",
+    url="https://unify.ai/docs/models/",
     project_urls={
-        "Docs": "https://lets-unify.ai/models/",
+        "Docs": "https://unify.ai/docs/models/",
         "Source": "https://github.com/unifyai/models",
     },
     packages=setuptools.find_packages(),
-    install_requires=[_strip(line) for line in open("requirements.txt", "r")],
+    install_requires=[
+        _strip(line)
+        for line in open("requirements.txt", "r")
+        if not line.startswith("git")
+    ],
     classifiers=["License :: OSI Approved :: Apache Software License"],
     license="Apache 2.0",
 )
