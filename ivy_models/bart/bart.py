@@ -43,24 +43,29 @@ class BartEncoder(ivy.Module):
         self.max_source_positions = config.max_position_embeddings
         self.embed_scale = ivy.sqrt(embed_dim) if config.scale_embedding else 1.0
 
+        self._build(embed_tokens=embed_tokens, embed_dim=embed_dim)
+        super(BartEncoder, self).__init__(v=v)
+
+    def _build(self, *args, **kwargs):
+        embed_dim = kwargs.get("embed_dim", None)
+        embed_tokens = kwargs.get("embed_tokens", None)
+
         self.embed_tokens = ivy.Embedding(
-            config.vocab_size, embed_dim, self.padding_idx
+            self.config.vocab_size, embed_dim, self.padding_idx
         )
 
         if embed_tokens is not None:
             self.embed_tokens.v.w = embed_tokens.v.w
 
         self.embed_positions = BartLearnedPositionalEmbedding(
-            config.max_position_embeddings,
+            self.config.max_position_embeddings,
             embed_dim,
         )
 
         self.layers = [
-            BartEncoderLayer(config) for _ in range(config.encoder_layers)
-        ]  # TODO: Do we need ModuleList class like in PyTorch?
+            BartEncoderLayer(self.config) for _ in range(self.config.encoder_layers)
+        ]
         self.layernorm_embedding = ivy.LayerNorm(embed_dim)
-
-        super(BartEncoder, self).__init__(v=v)
 
     def get_input_embeddings(self):
         return self.embed_tokens
@@ -244,21 +249,28 @@ class BartDecoder(ivy.Module):
         self.max_target_positions = config.max_position_embeddings
         self.embed_scale = ivy.sqrt(config.d_model) if config.scale_embedding else 1.0
 
+        self._build(embed_tokens=embed_tokens)
+
+        super(BartDecoder, self).__init__(v=v)
+
+    def _bulid(self, *args, **kwargs):
         self.embed_tokens = ivy.Embedding(
-            config.vocab_size, config.d_model, self.padding_idx
+            self.config.vocab_size, self.config.d_model, self.padding_idx
         )
+
+        embed_tokens = kwargs.get("embed_tokens", None)
 
         if embed_tokens is not None:
             self.embed_tokens.v.w = embed_tokens.v.w
 
         self.embed_positions = BartLearnedPositionalEmbedding(
-            config.max_position_embeddings,
-            config.d_model,
+            self.config.max_position_embeddings,
+            self.config.d_model,
         )
-        self.layers = [BartDecoderLayer(config) for _ in range(config.decoder_layers)]
-        self.layernorm_embedding = ivy.LayerNorm(config.d_model)
-
-        super(BartDecoder, self).__init__(v=v)
+        self.layers = [
+            BartDecoderLayer(self.config) for _ in range(self.config.decoder_layers)
+        ]
+        self.layernorm_embedding = ivy.LayerNorm(self.config.d_model)
 
     def get_input_embeddings(self):
         return self.embed_tokens
@@ -545,17 +557,18 @@ class BartModel(BaseModel):
 
     def __init__(self, config: BartConfig, v=None):
         self.config = config
-        padding_idx, vocab_size = config.pad_token_id, config.vocab_size
-        self.shared = ivy.Embedding(vocab_size, config.d_model, padding_idx)
-
-        self.encoder = BartEncoder(config, self.shared)
-        self.decoder = BartDecoder(config, self.shared)
-
         super(BartModel, self).__init__(v=v)
 
     @classmethod
     def get_spec_class(self):
         return BartConfig
+
+    def _bulid(self, *args, **kwargs):
+        padding_idx, vocab_size = self.config.pad_token_id, self.config.vocab_size
+        self.shared = ivy.Embedding(vocab_size, self.config.d_model, padding_idx)
+
+        self.encoder = BartEncoder(self.config, self.shared)
+        self.decoder = BartDecoder(self.config, self.shared)
 
     def get_input_embeddings(self):
         return self.shared
