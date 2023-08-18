@@ -162,9 +162,7 @@ class BartAttention(ivy.Module):
         else:
             attn_weights_reshaped = None
 
-        attn_probs = ivy.functional.dropout(
-            attn_weights, p=self.dropout, training=self.training
-        )
+        attn_probs = ivy.dropout(attn_weights, p=self.dropout, training=self.training)
 
         attn_output = ivy.matmul(attn_probs, value_states)
 
@@ -364,7 +362,7 @@ class BartDecoderLayer(ivy.Module):
             layer_head_mask=layer_head_mask,
             output_attentions=output_attentions,
         )
-        hidden_states = ivy.functional.dropout(
+        hidden_states = ivy.dropout(
             hidden_states, p=self.dropout, training=self.training
         )
         hidden_states = residual + hidden_states
@@ -393,7 +391,7 @@ class BartDecoderLayer(ivy.Module):
                 past_key_value=cross_attn_past_key_value,
                 output_attentions=output_attentions,
             )
-            hidden_states = ivy.functional.dropout(
+            hidden_states = ivy.dropout(
                 hidden_states, p=self.dropout, training=self.training
             )
             hidden_states = residual + hidden_states

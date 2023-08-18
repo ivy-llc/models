@@ -249,7 +249,7 @@ class BartDecoder(ivy.Module):
         )
 
         if embed_tokens is not None:
-            self.embed_tokens.weight = embed_tokens.weight
+            self.embed_tokens.v.w = embed_tokens.v.w
 
         self.embed_positions = BartLearnedPositionalEmbedding(
             config.max_position_embeddings,
@@ -541,7 +541,7 @@ class BartDecoder(ivy.Module):
 
 
 class BartModel(BaseModel):
-    _tied_weights_keys = ["encoder.embed_tokens.weight", "decoder.embed_tokens.weight"]
+    _tied_weights_keys = ["encoder.embed_tokens.v.w", "decoder.embed_tokens.v.w"]
 
     def __init__(self, config: BartConfig, v=None):
         self.config = config
@@ -552,6 +552,10 @@ class BartModel(BaseModel):
         self.decoder = BartDecoder(config, self.shared)
 
         super(BartModel, self).__init__(v=v)
+
+    @classmethod
+    def get_spec_class(self):
+        return BartConfig
 
     def get_input_embeddings(self):
         return self.shared
