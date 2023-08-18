@@ -48,16 +48,15 @@ class BartAttention(ivy.Module):
         self.scaling = self.head_dim**-0.5
         self.is_decoder = is_decoder
 
+        self._build(with_bias=with_bias)
+        super(BartAttention, self).__init__()
+
+    def _build(self, *args, **kwargs):
+        with_bias = kwargs["with_bias"]
         self.k_proj = ivy.Linear(self.embed_dim, self.embed_dim, with_bias=with_bias)
         self.v_proj = ivy.Linear(self.embed_dim, self.embed_dim, with_bias=with_bias)
         self.q_proj = ivy.Linear(self.embed_dim, self.embed_dim, with_bias=with_bias)
         self.out_proj = ivy.Linear(self.embed_dim, self.embed_dim, with_bias=with_bias)
-
-        # self._build(with_bias=with_bias)
-        super(BartAttention, self).__init__(v=v)
-
-    # def _build(self, *args, **kwargs):
-    #     with_bias = kwargs["with_bias"]
 
     def _shape(self, tensor: ivy.Array, seq_len: int, bsz: int):
         return ivy.swapaxes(
