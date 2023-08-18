@@ -2,8 +2,6 @@ import ivy
 from typing import Optional, Tuple
 from .config_bart import BartConfig
 
-# from .activations import ACT2FN
-
 
 class BartLearnedPositionalEmbedding(ivy.Embedding):
     def __init__(self, num_embeddings: int, embedding_dim: int):
@@ -52,7 +50,7 @@ class BartAttention(ivy.Module):
         super(BartAttention, self).__init__(v=v)
 
     def _build(self, *args, **kwargs):
-        with_bias = kwargs["with_bias"]
+        with_bias = kwargs.get("with_bias")
         self.k_proj = ivy.Linear(self.embed_dim, self.embed_dim, with_bias=with_bias)
         self.v_proj = ivy.Linear(self.embed_dim, self.embed_dim, with_bias=with_bias)
         self.q_proj = ivy.Linear(self.embed_dim, self.embed_dim, with_bias=with_bias)
@@ -203,7 +201,7 @@ class BartEncoderLayer(ivy.Module):
         super(BartEncoderLayer, self).__init__(v=v)
 
     def _build(self, *args, **kwargs):
-        config = kwargs["config"]
+        config = kwargs.get("config")
 
         self.self_attn = BartAttention(
             embed_dim=self.embed_dim,
@@ -326,7 +324,7 @@ class BartDecoderLayer(ivy.Module):
         super(BartDecoderLayer, self).__init__(v=v)
 
     def _build(self, *args, **kwargs):
-        config = kwargs["config"]
+        config = kwargs.get("config")
 
         self.self_attn = BartAttention(
             embed_dim=self.embed_dim,
@@ -457,10 +455,10 @@ class BartClassificationHead(ivy.Module):
         super(BartClassificationHead, self).__init__(v=v)
 
     def _build(self, *args, **kwargs):
-        input_dim = kwargs["input_dim"]
-        inner_dim = kwargs["inner_dim"]
-        num_classes = kwargs["num_classes"]
-        pooler_dropout = kwargs["pooler_dropout"]
+        input_dim = kwargs.get("input_dim")
+        inner_dim = kwargs.get("inner_dim")
+        num_classes = kwargs.get("num_classes")
+        pooler_dropout = kwargs.get("pooler_dropout")
         self.dense = ivy.Linear(input_dim, inner_dim)
         self.dropout = ivy.Dropout(p=pooler_dropout)
         self.out_proj = ivy.Linear(inner_dim, num_classes)
