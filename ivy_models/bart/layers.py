@@ -190,6 +190,7 @@ class BartAttention(ivy.Module):
 
 class BartEncoderLayer(ivy.Module):
     def __init__(self, config: BartConfig, v=None):
+        self._config = config
         self.training = True
         self.embed_dim = config.d_model
 
@@ -197,28 +198,25 @@ class BartEncoderLayer(ivy.Module):
         self.activation_fn = getattr(ivy, config.activation_function)
         self.activation_dropout = config.activation_dropout
 
-        self._build(config=config)
         super(BartEncoderLayer, self).__init__(v=v)
 
     def _build(self, *args, **kwargs):
-        config = kwargs.get("config")
-
         self.self_attn = BartAttention(
             embed_dim=self.embed_dim,
-            num_heads=config.decoder_attention_heads,
-            dropout=config.attention_dropout,
+            num_heads=self._config.decoder_attention_heads,
+            dropout=self._config.attention_dropout,
             is_decoder=True,
         )
         self.self_attn_layer_norm = ivy.LayerNorm(self.embed_dim)
         self.encoder_attn = BartAttention(
-            self.embed_dim,
-            config.decoder_attention_heads,
-            dropout=config.attention_dropout,
+            embed_dim=self.embed_dim,
+            num_heads=self._config.decoder_attention_heads,
+            dropout=self._config.attention_dropout,
             is_decoder=True,
         )
         self.encoder_attn_layer_norm = ivy.LayerNorm(self.embed_dim)
-        self.fc1 = ivy.Linear(self.embed_dim, config.decoder_ffn_dim)
-        self.fc2 = ivy.Linear(config.decoder_ffn_dim, self.embed_dim)
+        self.fc1 = ivy.Linear(self.embed_dim, self._config.decoder_ffn_dim)
+        self.fc2 = ivy.Linear(self._config.decoder_ffn_dim, self.embed_dim)
         self.final_layer_norm = ivy.LayerNorm(self.embed_dim)
 
     def _forward(
@@ -313,6 +311,7 @@ class BartEncoderLayer(ivy.Module):
 
 class BartDecoderLayer(ivy.Module):
     def __init__(self, config: BartConfig, v=None):
+        self._config = config
         self.training = True
         self.embed_dim = config.d_model
 
@@ -320,28 +319,25 @@ class BartDecoderLayer(ivy.Module):
         self.activation_fn = getattr(ivy, config.activation_function)
         self.activation_dropout = config.activation_dropout
 
-        self._build(config=config)
         super(BartDecoderLayer, self).__init__(v=v)
 
     def _build(self, *args, **kwargs):
-        config = kwargs.get("config")
-
         self.self_attn = BartAttention(
             embed_dim=self.embed_dim,
-            num_heads=config.decoder_attention_heads,
-            dropout=config.attention_dropout,
+            num_heads=self._config.decoder_attention_heads,
+            dropout=self._config.attention_dropout,
             is_decoder=True,
         )
         self.self_attn_layer_norm = ivy.LayerNorm(self.embed_dim)
         self.encoder_attn = BartAttention(
-            self.embed_dim,
-            config.decoder_attention_heads,
-            dropout=config.attention_dropout,
+            embed_dim=self.embed_dim,
+            num_heads=self._config.decoder_attention_heads,
+            dropout=self._config.attention_dropout,
             is_decoder=True,
         )
         self.encoder_attn_layer_norm = ivy.LayerNorm(self.embed_dim)
-        self.fc1 = ivy.Linear(self.embed_dim, config.decoder_ffn_dim)
-        self.fc2 = ivy.Linear(config.decoder_ffn_dim, self.embed_dim)
+        self.fc1 = ivy.Linear(self.embed_dim, self._config.decoder_ffn_dim)
+        self.fc2 = ivy.Linear(self._config.decoder_ffn_dim, self.embed_dim)
         self.final_layer_norm = ivy.LayerNorm(self.embed_dim)
 
     def _forward(
