@@ -1,7 +1,8 @@
 import ivy
-from typing import *
+from typing import Optional, Callable, List, Tuple
 
-class BasicConv2d(ivy.Module):
+
+class Inception_BasicConv2d(ivy.Module):
     """
     Conv block used in the InceptionV3 architecture.
 
@@ -31,11 +32,11 @@ class BasicConv2d(ivy.Module):
         x = ivy
         
         
-class InceptionAux(ivy.Module):
+class Inception_InceptionAux(ivy.Module):
     def __init__(self, in_channels: int, num_classes: int, conv_block: Optional[Callable[..., ivy.Module]] = None) -> None:
         super().__init__()
         if conv_block is None:
-            self.conv_block = BasicConv2d
+            self.conv_block = Inception_BasicConv2d
         self.in_channels = in_channels
         self.num_classes = num_classes
 
@@ -47,44 +48,62 @@ class InceptionAux(ivy.Module):
         self.fc.stddev = 0.001 
         
     def _forward(self, x):
+      def forward(self, x):
+        # N x 3 x 299 x 299
+        x = self.conv2d_1a(x)
+        # N x 32 x 149 x 149
+        x = self.conv2d_2a(x)
+        # N x 32 x 147 x 147
+        x = self.conv2d_2b(x)
+        # N x 64 x 147 x 147
+        x = ivy.max_pool2d(x, 3, 2, 'valid', data_format='NHWC')
+        # N x 64 x 73 x 73
+        x = self.conv2d_3b(x)
+        # N x 80 x 73 x 73
+        x = self.conv2d_4a(x)
+        # N x 192 x 71 x 71
+        x = ivy.max_pool2d(x, 3, 2, 'valid', data_format='NHWC')
+        # N x 192 x 35 x 35
+        x = self.mixed_5b(x)
+        # N x 256 x 35 x 35
+        x = self.mixed_5c(x)
+        # N x 288 x 35 x 35
+        x = self.mixed_5d(x)
+        # N x 288 x 35 x 35
+        x = self.mixed_6a(x)
         # N x 768 x 17 x 17
-        x = ivy.avg_pool2d(x, [5,5], 3, 'valid', data_format='NHWC')
-
-        # N x 768 x 5 x 5
-        x = self.conv0(x)
-        #display("InceptionAux | done 2/8")
-
-        # N x 128 x 5 x 5
-        x = self.conv1(x)
-        #display("InceptionAux | done 3/8")
-
-        # N x 768 x 1 x 1
-        # Adaptive average pooling
-        #display(f"InceptionAux | input shape to adaptive_avg_pool2d is:{x.shape}")
-        x = ivy.permute_dims(x, (0, 3, 1, 2))
-        #display(f"InceptionAux | permuted input shape to adaptive_avg_pool2d is:{x.shape}")
-        x = ivy.adaptive_avg_pool2d(x, (1, 1))
-        #display(f"InceptionAux | output shape from adaptive_avg_pool2d is:{x.shape}")
-        x = ivy.permute_dims(x, (0, 2, 3, 1))
-        #display(f"InceptionAux | permuted output shape from adaptive_avg_pool2d is:{x.shape}")
-        #display("InceptionAux | done 4/8")
-
-        # N x 768 x 1 x 1
+        x = self.mixed_6b(x)
+        # N x 768 x 17 x 17
+        x = self.mixed_6c(x)
+        # N x 768 x 17 x 17
+        x = self.mixed_6d(x)
+        # N x 768 x 17 x 17
+        x = self.mixed_6e(x)
+        # N x 768 x 17 x 17
+        aux = self.aux_logits(x)
+        # N x 768 x 17 x 17
+        x = self.mixed_7a(x)
+        # N x 1280 x 8 x 8
+        x = self.mixed_7b(x)
+        # N x 2048 x 8 x 8
+        x = self.mixed_7c(x)
+        # N x 2048 x 8 x 8
+        x = ivy.avg_pool2d(x, 8, 1, 'valid', data_format='NHWC')
+        # N x 2048 x 1 x 1
         x = ivy.flatten(x, start_dim=1)
-        #display("InceptionAux | done 5/8")
-
-        # N x 768
+        # N x 2048
+        x = self.dropout(x)
+        # N x 2048
         x = self.fc(x)
-        #display("InceptionAux | done 8/8")
-        # N x 1000
-        return x
+        # N x 1000 (num_classes)
+        return x, aux
 
 
-class InceptionE(ivy.Module):
+class Inception_InceptionE(ivy.Module):
     def __init__(self, in_channels: int, conv_block: Optional[Callable[..., ivy.Module]] = None) -> None:
         super().__init__()
         if conv_block is None:
-            self.conv_block = BasicConv2d
+            self.conv_block = Inception_BasicConv2d
         self.in_channels = in_channels
 
     def _build(self, *args, **kwargs):
@@ -101,337 +120,166 @@ class InceptionE(ivy.Module):
 
         self.branch_pool = self.conv_block(self.in_channels, 192, kernel_size=[1,1])
 
-#         self.avg_pool = ivy.AvgPool2D([3,3], (1,1), [[1,1],[1,1]])
-
     def _forward(self, x: ivy.Array) -> List[ivy.Array]:
-        #display(f"input shape is:{x.shape}")
-
         branch1x1 = self.branch1x1(x)
-        #display(f"1/20, branch1x1 output shape is:{branch1x1.shape}")
-
+        
         branch3x3 = self.branch3x3_1(x)
-        #display(f"2/20, branch3x3 output shape is:{branch3x3.shape}")
         branch3x3 = ivy.concat([self.branch3x3_2a(branch3x3), self.branch3x3_2b(branch3x3),], axis=3)
-        #display(f"3/20, branch3x3 output shape is:{branch3x3.shape}")
-
         branch3x3dbl = self.branch3x3dbl_1(x)
-        #display(f"4/20, branch3x3dbl output shape is:{branch3x3dbl.shape}")
         branch3x3dbl = self.branch3x3dbl_2(branch3x3dbl)
-        #display(f"5/20, branch3x3dbl output shape is:{branch3x3dbl.shape}")
         branch3x3dbl = ivy.concat([self.branch3x3dbl_3a(branch3x3dbl), self.branch3x3dbl_3b(branch3x3dbl),], axis=3)
-        #display(f"6/20, branch3x3dbl output shape is:{branch3x3dbl.shape}")
-
-        #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-        import pprint
-        # pprint.pprint(x)
-
-        #--------------------------------
-        import json
-        import numpy as np
-
-        # Create a NumPy array
-        arr = np.array(x)
-
-        # Convert the NumPy array to a Python list
-        arr_list = arr.tolist()
-
-        # Define the path and filename for the JSON file
-        file_path = '/content/file.json'
-
-        # Save the NumPy array as JSON
-        with open(file_path, 'w') as json_file:
-            json.dump(arr_list, json_file)
-        #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
 
         branch_pool = ivy.avg_pool2d(x, [3,3], (1,1), [(1,1),(1,1)])
-#         branch_pool = self.avg_pool(x)
         branch_pool = self.branch_pool(branch_pool)
-        #display(f"7/20, branch_pool output shape is:{branch_pool.shape}")
 
         outputs = [branch1x1, branch3x3, branch3x3dbl, branch_pool]
         outputs = ivy.concat(outputs, axis=3)
-        #display(f"20/20")
+        
         return outputs
     
     
-class InceptionD(ivy.Module):
+class Inception_InceptionD(ivy.Module):
     def __init__(self, in_channels: int, conv_block: Optional[Callable[..., ivy.Module]] = None) -> None:
         super().__init__()
         if conv_block is None:
-            self.conv_block = BasicConv2d
+            self.conv_block = Inception_BasicConv2d
         self.in_channels = in_channels
 
     def _build(self, *args, **kwargs):
         self.branch3x3_1 = self.conv_block(self.in_channels, 192, kernel_size=[1,1])
-        #display(f"layer 1/6 built")
         self.branch3x3_2 = self.conv_block(192, 320, kernel_size=[3,3], stride=2)
-        #display(f"layer 2/6 built")
 
         self.branch7x7x3_1 = self.conv_block(self.in_channels, 192, kernel_size=[1,1])
-        #display(f"layer 3/6 built")
         self.branch7x7x3_2 = self.conv_block(192, 192, kernel_size=[1,7], padding=[[0,0], [3,3]])
-        #display(f"layer 4/6 built")
         self.branch7x7x3_3 = self.conv_block(192, 192, kernel_size=[7,1], padding=[[3,3], [0,0]])
-        #display(f"layer 5/6 built")
         self.branch7x7x3_4 = self.conv_block(192, 192, kernel_size=[3,3], stride=2)
-        #display(f"layer 6/6 built")
 
     def _forward(self, x: ivy.Array) -> List[ivy.Array]:
-        #display(f"input shape is:{x.shape}")
-
         branch3x3 = self.branch3x3_1(x)
-        #display(f"one 1/20, output shape is:{branch3x3.shape}")
         branch3x3 = self.branch3x3_2(branch3x3)
-        #display(f"one 2/20, output shape is:{branch3x3.shape}")
 
         branch7x7x3 = self.branch7x7x3_1(x)
-        #display(f"one 3/20, output shape is:{branch7x7x3.shape}")
         branch7x7x3 = self.branch7x7x3_2(branch7x7x3)
-        #display(f"one 4/20, output shape is:{branch7x7x3.shape}")
         branch7x7x3 = self.branch7x7x3_3(branch7x7x3)
-        #display(f"one 5/20, output shape is:{branch7x7x3.shape}")
         branch7x7x3 = self.branch7x7x3_4(branch7x7x3)
-        #display(f"one 6/20, output shape is:{branch7x7x3.shape}")
 
         branch_pool = ivy.max_pool2d(x, [3,3], 2, 0)
-        #display(f"one 7/20, output shape is:{branch_pool.shape}")
 
         outputs = [branch3x3, branch7x7x3, branch_pool]
         outputs = ivy.concat(outputs, axis=3)
-        #display(f"one 20/20")
 
         return outputs
     
     
-class InceptionC(ivy.Module):
+class Inception_InceptionC(ivy.Module):
     def __init__(self, in_channels: int, channels_7x7: int, conv_block: Optional[Callable[..., ivy.Module]] = None) -> None:
         super().__init__()
         if conv_block is None:
-            self.conv_block = BasicConv2d
+            self.conv_block = Inception_BasicConv2d
         self.in_channels = in_channels
         self.channels_7x7 = channels_7x7
 
     def _build(self, *args, **kwargs):
         self.branch1x1 = self.conv_block(self.in_channels, 192, kernel_size=[1,1])
-        #display(f"layer 1/10 built")
 
         c7 = self.channels_7x7
         self.branch7x7_1 = self.conv_block(self.in_channels, c7, kernel_size=[1,1])
-        #display(f"layer 2/10 built")
         self.branch7x7_2 = self.conv_block(c7, c7, kernel_size=[1, 7], padding=[[0,0],[3,3]])
-        #display(f"layer 3/10 built")
         self.branch7x7_3 = self.conv_block(c7, 192, kernel_size=[7, 1], padding=[[3,3],[0,0]])
-        #display(f"layer 4/10 built")
         self.branch7x7dbl_1 = self.conv_block(self.in_channels, c7, kernel_size=[1,1])
-        #display(f"layer 5/10 built")
         self.branch7x7dbl_2 = self.conv_block(c7, c7, kernel_size=[7, 1], padding=[[3,3],[0,0]])
-        #display(f"layer 6/10 built")
         self.branch7x7dbl_3 = self.conv_block(c7, c7, kernel_size=[1, 7], padding=[[0,0],[3,3]])
-        #display(f"layer 7/10 built")
         self.branch7x7dbl_4 = self.conv_block(c7, c7, kernel_size=[7, 1], padding=[[3,3],[0,0]])
-        #display(f"layer 8/10 built")
         self.branch7x7dbl_5 = self.conv_block(c7, 192, kernel_size=[1, 7], padding=[[0,0],[3,3]])
-        #display(f"layer 9/10 built")
 
         self.branch_pool = self.conv_block(self.in_channels, 192, kernel_size=[1,1])
-        #display(f"layer 10/10 built")
 
     def _forward(self, x: ivy.Array) -> List[ivy.Array]:
-        #display(f"input shape is:{x.shape}")
-
         branch1x1 = self.branch1x1(x)
-        #display(f"one 1/20, output shape is:{branch1x1.shape}")
 
         branch7x7 = self.branch7x7_1(x)
-        #display(f"one 2/20, output shape is:{branch7x7.shape}")
         branch7x7 = self.branch7x7_2(branch7x7)
-        #display(f"one 3/20, output shape is:{branch7x7.shape}")
         branch7x7 = self.branch7x7_3(branch7x7)
-        #display(f"one 4/20, output shape is:{branch7x7.shape}")
 
         branch7x7dbl = self.branch7x7dbl_1(x)
-        #display(f"one 5/20, output shape is:{branch7x7dbl.shape}")
         branch7x7dbl = self.branch7x7dbl_2(branch7x7dbl)
-        #display(f"one 6/20, output shape is:{branch7x7dbl.shape}")
         branch7x7dbl = self.branch7x7dbl_3(branch7x7dbl)
-        #display(f"one 7/20, output shape is:{branch7x7dbl.shape}")
         branch7x7dbl = self.branch7x7dbl_4(branch7x7dbl)
-        #display(f"one 8/20, output shape is:{branch7x7dbl.shape}")
         branch7x7dbl = self.branch7x7dbl_5(branch7x7dbl)
-        #display(f"one 9/20, output shape is:{branch7x7dbl.shape}")
 
         branch_pool = ivy.avg_pool2d(x, [3,3], [1,1], [[1,1],[1,1]])
-        #display(f"one 10/20, output shape is:{branch_pool.shape}")
         branch_pool = self.branch_pool(branch_pool)
-        #display(f"one 11/20, output shape is:{branch_pool.shape}")
 
         outputs = [branch1x1, branch7x7, branch7x7dbl, branch_pool]
         outputs = ivy.concat(outputs, axis=3)
-        #display(f"one 20/20")
 
         return outputs
     
-    
-class InceptionB(ivy.Module):
+class Inception_InceptionB(ivy.Module):
     def __init__(self, in_channels: int, conv_block: Optional[Callable[..., ivy.Module]] = None) -> None:
         super().__init__()
         if conv_block is None:
-            self.conv_block = BasicConv2d
+            self.conv_block = Inception_BasicConv2d
         self.in_channels = in_channels
 
     def _build(self, *args, **kwargs):
         self.branch3x3 = self.conv_block(self.in_channels, 384, kernel_size=[3,3], stride=2)
-        #display(f"layer 1/4 built")
 
         self.branch3x3dbl_1 = self.conv_block(self.in_channels, 64, kernel_size=[1,1])
-        #display(f"layer 2/4 built")
         self.branch3x3dbl_2 = self.conv_block(64, 96, kernel_size=[3,3], padding=[[1,1],[1,1]])
-        #display(f"layer 3/4 built")
         self.branch3x3dbl_3 = self.conv_block(96, 96, kernel_size=[3,3], stride=2)
-        #display(f"layer 4/4 built")
 
     def _forward(self, x: ivy.Array) -> List[ivy.Array]:
-        #display(f"input shape is:{x.shape}")
-
         branch3x3 = self.branch3x3(x)
-        #display(f"one 1/20, output shape is:{branch3x3.shape}")
-
+        
         branch3x3dbl = self.branch3x3dbl_1(x)
-        #display(f"one 2/20, output shape is:{branch3x3dbl.shape}")
         branch3x3dbl = self.branch3x3dbl_2(branch3x3dbl)
-        #display(f"one 3/20, output shape is:{branch3x3dbl.shape}")
         branch3x3dbl = self.branch3x3dbl_3(branch3x3dbl)
-        #display(f"one 4/20, output shape is:{branch3x3dbl.shape}")
 
         branch_pool = ivy.max_pool2d(x, [3,3], 2, 0)
-        #display(f"one 20/20, output shape is:{branch_pool.shape}")
 
         outputs = [branch3x3, branch3x3dbl, branch_pool]
         outputs = ivy.concat(outputs, axis=3)
-        #display(f"one 20/20")
 
         return outputs
     
     
-    
-class InceptionA(ivy.Module):
+class Inception_InceptionA(ivy.Module):
     def __init__(self, in_channels: int, pool_features: int, conv_block: Optional[Callable[..., ivy.Module]] = None) -> None:
         super().__init__()
         if conv_block is None:
-            self.conv_block = BasicConv2d
+            self.conv_block = Inception_BasicConv2d
         self.in_channels = in_channels
         self.pool_features = pool_features
 
     def _build(self, *args, **kwargs):
         self.branch1x1 = self.conv_block(self.in_channels, 64, kernel_size=[1,1])
-        #display(f"layer 1/7 built")
 
         self.branch5x5_1 = self.conv_block(self.in_channels, 48, kernel_size=[1,1])
-        #display(f"layer 2/7 built")
         self.branch5x5_2 = self.conv_block(48, 64, kernel_size=[5,5], padding=[[2,2],[2,2]])
-        #display(f"layer 3/7 built")
 
         self.branch3x3dbl_1 = self.conv_block(self.in_channels, 64, kernel_size=[1,1])
-        #display(f"layer 4/7 built")
         self.branch3x3dbl_2 = self.conv_block(64, 96, kernel_size=[3,3], padding=[[1,1],[1,1]])
-        #display(f"layer 5/7 built")
         self.branch3x3dbl_3 = self.conv_block(96, 96, kernel_size=[3,3], padding=[[1,1],[1,1]])
-        #display(f"layer 6/7 built")
 
         self.branch_pool = self.conv_block(self.in_channels, self.pool_features, kernel_size=[1,1])
-        #display(f"layer 7/7 built")
 
-#         self.avg_pool = ivy.AvgPool2D(3, 1, 1)
 
     def _forward(self, x: ivy.Array) -> List[ivy.Array]:
-        #display(f"input shape is:{x.shape}")
-
         branch1x1 = self.branch1x1(x)
-        #display(f"one 1/20")
 
         branch5x5 = self.branch5x5_1(x)
-        #display(f"one 2/20")
         branch5x5 = self.branch5x5_2(branch5x5)
-        #display(f"one 3/20")
 
         branch3x3dbl = self.branch3x3dbl_1(x)
-        #display(f"one 4/20")
         branch3x3dbl = self.branch3x3dbl_2(branch3x3dbl)
-        #display(f"one 5/20")
         branch3x3dbl = self.branch3x3dbl_3(branch3x3dbl)
-        #display(f"one 6/20")
 
         branch_pool = ivy.avg_pool2d(x, [3,3], [1,1], [[1,1],[1,1]])
-#         branch_pool = self.avg_pool(x)
-        #display(f"one 7/20")
         branch_pool = self.branch_pool(branch_pool)
-        #display(f"one 8/20")
 
         outputs = [branch1x1, branch5x5, branch3x3dbl, branch_pool]
         outputs = ivy.concat(outputs, axis=3)
-        #display(f"one 20/20")
 
         return outputs
-    
-    
-class InceptionA(ivy.Module):
-    def __init__(self, in_channels: int, pool_features: int, conv_block: Optional[Callable[..., ivy.Module]] = None) -> None:
-        super().__init__()
-        if conv_block is None:
-            self.conv_block = BasicConv2d
-        self.in_channels = in_channels
-        self.pool_features = pool_features
-
-    def _build(self, *args, **kwargs):
-        self.branch1x1 = self.conv_block(self.in_channels, 64, kernel_size=[1,1])
-        #display(f"layer 1/7 built")
-
-        self.branch5x5_1 = self.conv_block(self.in_channels, 48, kernel_size=[1,1])
-        #display(f"layer 2/7 built")
-        self.branch5x5_2 = self.conv_block(48, 64, kernel_size=[5,5], padding=[[2,2],[2,2]])
-        #display(f"layer 3/7 built")
-
-        self.branch3x3dbl_1 = self.conv_block(self.in_channels, 64, kernel_size=[1,1])
-        #display(f"layer 4/7 built")
-        self.branch3x3dbl_2 = self.conv_block(64, 96, kernel_size=[3,3], padding=[[1,1],[1,1]])
-        #display(f"layer 5/7 built")
-        self.branch3x3dbl_3 = self.conv_block(96, 96, kernel_size=[3,3], padding=[[1,1],[1,1]])
-        #display(f"layer 6/7 built")
-
-        self.branch_pool = self.conv_block(self.in_channels, self.pool_features, kernel_size=[1,1])
-        #display(f"layer 7/7 built")
-
-#         self.avg_pool = ivy.AvgPool2D(3,1,1)
-
-    def _forward(self, x: ivy.Array) -> List[ivy.Array]:
-        #display(f"input shape is:{x.shape}")
-
-        branch1x1 = self.branch1x1(x)
-        #display(f"InceptionA | branch1x1 1/20, output shape is: {branch1x1.shape}")
-
-        branch5x5 = self.branch5x5_1(x)
-        #display(f"InceptionA | one 2/20, output shape is: {branch5x5.shape}")
-        branch5x5 = self.branch5x5_2(branch5x5)
-        #display(f"InceptionA | branch5x5_1 3/20, output shape is: {branch5x5.shape}")
-
-        branch3x3dbl = self.branch3x3dbl_1(x)
-        #display(f"InceptionA | one 4/20, output shape is: {branch3x3dbl.shape}")
-        branch3x3dbl = self.branch3x3dbl_2(branch3x3dbl)
-        #display(f"InceptionA | one 5/20, output shape is: {branch3x3dbl.shape}")
-        branch3x3dbl = self.branch3x3dbl_3(branch3x3dbl)
-        #display(f"InceptionA | branch3x3dbl_1 6/20, output shape is: {branch3x3dbl.shape}")
-
-        branch_pool = ivy.avg_pool2d(x, [3,3], [1,1], [[1,1],[1,1]])
-#         branch_pool = self.avg_pool(x)
-        #display(f"InceptionA | one 7/20, output shape is: {branch_pool.shape}")
-        branch_pool = self.branch_pool(branch_pool)
-        #display(f"InceptionA | branch_pool 8/20, output shape is: {branch_pool.shape}")
-
-        outputs = [branch1x1, branch5x5, branch3x3dbl, branch_pool]
-        outputs = ivy.concat(outputs, axis=3)
-        #display(f"InceptionA | outputs 20/20")
-
-        return outputs
-    
     

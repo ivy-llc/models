@@ -9,11 +9,6 @@ from ivy_models.base import BaseSpec, BaseModel
 
 
 class ResNetSpec(BaseSpec):
-    """
-    ResNetSpec class.
-
-    """
-
     def __init__(
         self,
         block: Type[Union[BasicBlock, Bottleneck]],
