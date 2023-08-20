@@ -252,7 +252,7 @@ class BartDecoder(ivy.Module):
 
         super(BartDecoder, self).__init__(v=v, embed_tokens=embed_tokens)
 
-    def _bulid(self, *args, **kwargs):
+    def _build(self, *args, **kwargs):
         embed_tokens = kwargs.get("embed_tokens", None)
 
         self.embed_tokens = ivy.Embedding(
@@ -562,7 +562,7 @@ class BartModel(BaseModel):
     def get_spec_class(self):
         return BartConfig
 
-    def _bulid(self, *args, **kwargs):
+    def _build(self, *args, **kwargs):
         padding_idx, vocab_size = self.config.pad_token_id, self.config.vocab_size
         self.shared = ivy.Embedding(vocab_size, self.config.d_model, padding_idx)
 
