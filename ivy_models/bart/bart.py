@@ -43,8 +43,9 @@ class BartEncoder(ivy.Module):
         self.max_source_positions = config.max_position_embeddings
         self.embed_scale = ivy.sqrt(embed_dim) if config.scale_embedding else 1.0
 
-        self._build(embed_tokens=embed_tokens, embed_dim=embed_dim)
-        super(BartEncoder, self).__init__(v=v)
+        super(BartEncoder, self).__init__(
+            v=v, embed_tokens=embed_tokens, embed_dim=embed_dim
+        )
 
     def _build(self, *args, **kwargs):
         embed_dim = kwargs.get("embed_dim", None)
@@ -249,16 +250,14 @@ class BartDecoder(ivy.Module):
         self.max_target_positions = config.max_position_embeddings
         self.embed_scale = ivy.sqrt(config.d_model) if config.scale_embedding else 1.0
 
-        self._build(embed_tokens=embed_tokens)
-
-        super(BartDecoder, self).__init__(v=v)
+        super(BartDecoder, self).__init__(v=v, embed_tokens=embed_tokens)
 
     def _bulid(self, *args, **kwargs):
+        embed_tokens = kwargs.get("embed_tokens", None)
+
         self.embed_tokens = ivy.Embedding(
             self.config.vocab_size, self.config.d_model, self.padding_idx
         )
-
-        embed_tokens = kwargs.get("embed_tokens", None)
 
         if embed_tokens is not None:
             self.embed_tokens.v.w = embed_tokens.v.w
