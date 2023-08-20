@@ -443,13 +443,13 @@ class BartClassificationHead(ivy.Module):
         pooler_dropout: float,
         v=None,
     ):
-        self._build(
+        super(BartClassificationHead, self).__init__(
+            v=v,
             input_dim=input_dim,
             inner_dim=inner_dim,
             num_classes=num_classes,
             pooler_dropout=pooler_dropout,
         )
-        super(BartClassificationHead, self).__init__(v=v)
 
     def _build(self, *args, **kwargs):
         input_dim = kwargs.get("input_dim")
