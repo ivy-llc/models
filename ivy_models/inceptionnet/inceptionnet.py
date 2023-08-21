@@ -3,7 +3,7 @@
 
 import ivy
 import ivy_models
-from ivy_models.inceptionnet.layers import (BasicConv2d,)
+from ivy_models.inceptionnet.layers import (BasicConv2d, InceptionAux, InceptionA, InceptionB, InceptionC, InceptionD, InceptionE)
 from ivy_models.base import BaseSpec, BaseModel
 import builtins
 from typing import Callable, Optional, Sequence, Union, Tuple, List
@@ -15,11 +15,15 @@ from log_sys.pf import *
 # log sys
 
 class InceptionV3(ivy.Module):
-    def __init__(self,
-        num_classes: int = 1000,
-        dropout: float = 0.5,) -> None:
+    def __init__(
+        self,
+        num_classes: int=1000,
+        dropout: float=0.5,
+        data_format="NHWC",
+        ) -> None:
         self.num_classes = num_classes
         self.dropout = dropout
+        self.data_format=data_format
         super().__init__()
 
 
@@ -200,12 +204,12 @@ def _inceptionNet_v3_torch_weights_mapping(old_key, new_key):
     return new_mapping
 
 
-def inceptionNet_v3(pretrained=True):
+def inceptionNet_v3(pretrained=True, num_classes=1000, dropout=0.5, data_format="NHWC"):
     """InceptionNet-V3 model"""
 
-    model = InceptionV3()
+    model = InceptionV3(num_classes=num_classes, dropout=dropout, data_format=data_format)
     # pf(f"my model weights are:");pprint.pprint(ivy.Container(model.v))
-    pf("_inceptionNet_v3_torch_weights_mapping | done 1/3")
+    pf("inceptionNet_v3 | building InceptionV3 model | done 1/3")
     if pretrained:
         url = "https://download.pytorch.org/models/inception_v3_google-0cc3c7bd.pth"
         w_clean = load_torch_weights(
@@ -214,8 +218,8 @@ def inceptionNet_v3(pretrained=True):
             raw_keys_to_prune=["num_batches_tracked", "AuxLogits"],
             custom_mapping=_inceptionNet_v3_torch_weights_mapping,
         )
-        pf("_inceptionNet_v3_torch_weights_mapping | done 2/3")
+        pf("inceptionNet_v3 | clearning pretrained weights | done 2/3")
 
         model.v = w_clean
-        pf("_inceptionNet_v3_torch_weights_mapping | done 3/3")
+        pf("inceptionNet_v3 | loading pretrained weights | done 3/3")
     return model
