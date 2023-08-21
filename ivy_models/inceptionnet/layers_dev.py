@@ -1,2 +1,3 @@
-def func1():
-    print(1)
+from typing import Callable, Optional, Union, Tuple
+import ivy
+
