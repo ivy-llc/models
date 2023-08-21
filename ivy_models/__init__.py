@@ -25,5 +25,5 @@ from . import bert
 from .bert import *
 from .vit import *
 
-from . import inceptionv3
-from .inceptionv3 import *
+from . import inceptionnetv3
+from .inceptionnetv3 import *

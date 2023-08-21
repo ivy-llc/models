@@ -4,7 +4,7 @@ import builtins
 
 import ivy
 import ivy_models
-from ivy_models.inceptionv3.layers import Inception_BasicConv2d, Inception_InceptionAux, Inception_InceptionE, Inception_InceptionD, Inception_InceptionC, Inception_InceptionD, Inception_InceptionB, Inception_InceptionA
+from ivy_models.inceptionnetv3.layers_old import Inception_BasicConv2d, Inception_InceptionAux, Inception_InceptionE, Inception_InceptionD, Inception_InceptionC, Inception_InceptionD, Inception_InceptionB, Inception_InceptionA
 from ivy_models.base import BaseSpec, BaseModel
 
 

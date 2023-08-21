@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 from ivy_models_tests import helpers
 
-from ivy_models.inceptionv3 import inceptionNet_v3
+from ivy_models.inceptionnetv3 import inceptionNet_v3
 
 
 import jax
