@@ -212,7 +212,7 @@ def inceptionNet_v3(pretrained=True, num_classes=1000, dropout=0.5, data_format=
     pf("inceptionNet_v3 | building InceptionV3 model | done 1/3")
     if pretrained:
         url = "https://download.pytorch.org/models/inception_v3_google-0cc3c7bd.pth"
-        w_clean = load_torch_weights(
+        w_clean = ivy_models.helpers.load_torch_weights(
             url,
             model,
             raw_keys_to_prune=["num_batches_tracked", "AuxLogits"],

@@ -173,7 +173,7 @@ class InceptionA(ivy.Module):
         branch3x3dbl = self.branch3x3dbl_3(branch3x3dbl)
         pf(f"InceptionA | branch3x3dbl_1 6/20, output shape is: {branch3x3dbl.shape}")
 
-        branch_pool = ivy.avg_pool2d(x, [3,3], [1,1], [[1,1],[1,1]])
+        branch_pool = ivy.avg_pool2d(x, (3,3), (1,1), ((1,1),(1,1))) #[[1,1],[1,1]]
 #         branch_pool = self.avg_pool(x)
         pf(f"InceptionA | one 7/20, output shape is: {branch_pool.shape}")
         branch_pool = self.branch_pool(branch_pool)

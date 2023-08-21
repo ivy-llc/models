@@ -4,6 +4,9 @@ import pytest
 import numpy as np
 from ivy_models_tests import helpers
 from ivy_models.inceptionnet import inceptionNet_v3
+import jax
+jax.config.update("jax_enable_x64", False)
+
 
 import sys
 sys.path.append("/ivy_models/log_sys/pf.py")
@@ -25,8 +28,9 @@ def test_inceptionNet_v3_img_classification(device, fw, batch_shape, load_weight
     pf(f"test_inceptionnet | device is: {device}")
     pf(f"test_inceptionnet | fw is: {fw}")
     pf(f"test_inceptionnet | load_weights is: {load_weights}")
-    # model = inceptionNet_v3(pretrained=load_weights)
-    # logits = model(img)
+    model = inceptionNet_v3(pretrained=load_weights)
+    logits = model(img)
+    pf(f"test_inceptionnet | logits is: {logits}")
 
     # Cardinality test
     pf(f"test_inceptionnet | batch_shape is: {batch_shape}")
