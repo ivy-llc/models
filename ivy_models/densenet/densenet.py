@@ -144,7 +144,7 @@ def _densenet_torch_weights_mapping(old_key, new_key):
     if "features" in old_key:
         W_KEY = ["conv0/weight", "conv/1/weight", "conv/2/weight", "conv/weight"]
         if builtins.any([kc in old_key for kc in W_KEY]):
-            new_mapping = {"key_chain": new_key, "pattern": "b c h w-> h w c b"}
+            new_mapping = {"key_chain": new_key, "pattern": "b c h w -> h w c b"}
     return new_mapping
 
 

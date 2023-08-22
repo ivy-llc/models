@@ -88,7 +88,7 @@ class DenseNetBlock(ivy.Module):
 
     def _forward(self, init_features):
         features = [init_features]
-        for name, layer in self.layers.items():
+        for layer in list(self.layers.values()):
             new_features = layer(features)
             features.append(new_features)
         return ivy.concat(features, axis=3)
