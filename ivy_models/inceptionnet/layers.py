@@ -2,9 +2,9 @@ from typing import Callable, Optional, Union, Tuple, List
 import ivy
 
 
-class BasicConv2d(ivy.Module):
+class InceptionBasicConv2d(ivy.Module):
     """
-    BasicConv2d used in the ResNet architecture.
+    InceptionBasicConv2d used in the ResNet architecture.
 
     Args::
         inplanes (int): Number of input channels.
@@ -27,7 +27,7 @@ class BasicConv2d(ivy.Module):
         self.kernel_size = kernel_size
         self.stride = stride
         self.padding = padding
-        super(BasicConv2d, self).__init__()
+        super(InceptionBasicConv2d, self).__init__()
 
     def _build(self, *args, **kwargs):
         self.conv = ivy.Conv2D(
@@ -54,7 +54,7 @@ class InceptionAux(ivy.Module):
 
     Args::
         inplanes (int): Number of input channels.
-        conv_block (int): BasicConv2d module
+        conv_block (int): InceptionBasicConv2d module
 
     """
 
@@ -65,7 +65,7 @@ class InceptionAux(ivy.Module):
         conv_block: Optional[Callable[..., ivy.Module]] = None,
     ) -> None:
         if conv_block is None:
-            self.conv_block = BasicConv2d
+            self.conv_block = InceptionBasicConv2d
         self.in_channels = in_channels
         self.num_classes = num_classes
         super().__init__()
@@ -108,7 +108,7 @@ class InceptionA(ivy.Module):
 
     Args::
         inplanes (int): Number of input channels.
-        conv_block (int): BasicConv2d module
+        conv_block (int): InceptionBasicConv2d module
 
     """
 
@@ -119,7 +119,7 @@ class InceptionA(ivy.Module):
         conv_block: Optional[Callable[..., ivy.Module]] = None,
     ) -> None:
         if conv_block is None:
-            self.conv_block = BasicConv2d
+            self.conv_block = InceptionBasicConv2d
         self.in_channels = in_channels
         self.pool_features = pool_features
         super().__init__()
@@ -170,7 +170,7 @@ class InceptionB(ivy.Module):
 
     Args::
         inplanes (int): Number of input channels.
-        conv_block (int): BasicConv2d module
+        conv_block (int): InceptionBasicConv2d module
 
     """
 
@@ -178,7 +178,7 @@ class InceptionB(ivy.Module):
         self, in_channels: int, conv_block: Optional[Callable[..., ivy.Module]] = None
     ) -> None:
         if conv_block is None:
-            self.conv_block = BasicConv2d
+            self.conv_block = InceptionBasicConv2d
         self.in_channels = in_channels
         super().__init__()
 
@@ -214,7 +214,7 @@ class InceptionC(ivy.Module):
 
     Args::
         inplanes (int): Number of input channels.
-        conv_block (int): BasicConv2d module
+        conv_block (int): InceptionBasicConv2d module
 
     """
 
@@ -225,7 +225,7 @@ class InceptionC(ivy.Module):
         conv_block: Optional[Callable[..., ivy.Module]] = None,
     ) -> None:
         if conv_block is None:
-            self.conv_block = BasicConv2d
+            self.conv_block = InceptionBasicConv2d
         self.in_channels = in_channels
         self.channels_7x7 = channels_7x7
         super().__init__()
@@ -285,7 +285,7 @@ class InceptionD(ivy.Module):
 
     Args::
         inplanes (int): Number of input channels.
-        conv_block (int): BasicConv2d module
+        conv_block (int): InceptionBasicConv2d module
 
     """
 
@@ -293,7 +293,7 @@ class InceptionD(ivy.Module):
         self, in_channels: int, conv_block: Optional[Callable[..., ivy.Module]] = None
     ) -> None:
         if conv_block is None:
-            self.conv_block = BasicConv2d
+            self.conv_block = InceptionBasicConv2d
         self.in_channels = in_channels
         super().__init__()
 
@@ -333,7 +333,7 @@ class InceptionE(ivy.Module):
 
     Args::
         inplanes (int): Number of input channels.
-        conv_block (int): BasicConv2d module
+        conv_block (int): InceptionBasicConv2d module
 
     """
 
@@ -341,7 +341,7 @@ class InceptionE(ivy.Module):
         self, in_channels: int, conv_block: Optional[Callable[..., ivy.Module]] = None
     ) -> None:
         if conv_block is None:
-            self.conv_block = BasicConv2d
+            self.conv_block = InceptionBasicConv2d
         self.in_channels = in_channels
         super().__init__()
 

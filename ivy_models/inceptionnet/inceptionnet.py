@@ -4,7 +4,7 @@
 import ivy
 import ivy_models
 from ivy_models.inceptionnet.layers import (
-    BasicConv2d,
+    InceptionBasicConv2d,
     InceptionAux,
     InceptionA,
     InceptionB,
@@ -63,7 +63,7 @@ class InceptionV3(BaseModel):
         super(InceptionV3, self).__init__(v=v)
 
     def _build(self, *args, **kwargs):
-        conv_block = BasicConv2d
+        conv_block = InceptionBasicConv2d
         inception_a = InceptionA
         inception_b = InceptionB
         inception_c = InceptionC
