@@ -197,7 +197,8 @@ class VisionTransformer(BaseModel):
         n = x.shape[0]
 
         # Expand the class token to the full batch
-        batch_class_token = self.v.class_token.expand((n, -1, -1))
+
+        batch_class_token = ivy.expand(self.v.class_token, (n, -1, -1))
         x = ivy.concat([batch_class_token, x], axis=1)
 
         x = self.encoder(x)
