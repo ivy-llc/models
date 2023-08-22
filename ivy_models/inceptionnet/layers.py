@@ -15,6 +15,7 @@ class BasicConv2d(ivy.Module):
         planes (int): Number of output channels.
         stride (int): Stride value for the block. Defaults to 1.
         kernel_size (int): size of kernel.
+        
     """
     
     def __init__(
@@ -65,6 +66,15 @@ test_BasicConv2d()
 
 
 class InceptionAux(ivy.Module):
+    """
+    Basic block used in the ResNet architecture.
+
+    Args::
+        inplanes (int): Number of input channels.
+        conv_block (int): BasicConv2d module
+        
+    """
+    
     def __init__(self, in_channels: int, num_classes: int, conv_block: Optional[Callable[..., ivy.Module]] = None) -> None:
         if conv_block is None:
             self.conv_block = BasicConv2d
@@ -127,6 +137,15 @@ test_InceptionAux()
 
 
 class InceptionA(ivy.Module):
+    """
+    Basic block used in the ResNet architecture.
+
+    Args::
+        inplanes (int): Number of input channels.
+        conv_block (int): BasicConv2d module
+
+    """
+    
     def __init__(self, in_channels: int, pool_features: int, conv_block: Optional[Callable[..., ivy.Module]] = None) -> None:
         if conv_block is None:
             self.conv_block = BasicConv2d
@@ -203,6 +222,15 @@ test_InceptionA()
 # kernal_size in [1,3] list foramt
 # and padding in list[list, list] foramt ex: [[1,1],[3,3]] if both dims are unequal, else just single ex: list [3,3]
 class InceptionB(ivy.Module):
+    """
+    Basic block used in the ResNet architecture.
+
+    Args::
+        inplanes (int): Number of input channels.
+        conv_block (int): BasicConv2d module
+
+    """
+    
     def __init__(self, in_channels: int, conv_block: Optional[Callable[..., ivy.Module]] = None) -> None:
         if conv_block is None:
             self.conv_block = BasicConv2d
@@ -261,6 +289,15 @@ test_InceptionB()
 # kernal_size in [1,3] list foramt
 # and padding in list[list, list] foramt ex: [[1,1],[3,3]] if both dims are unequal, else just single ex: list [3,3]
 class InceptionC(ivy.Module):
+    """
+    Basic block used in the ResNet architecture.
+
+    Args::
+        inplanes (int): Number of input channels.
+        conv_block (int): BasicConv2d module
+
+    """
+    
     def __init__(self, in_channels: int, channels_7x7: int, conv_block: Optional[Callable[..., ivy.Module]] = None) -> None:
         if conv_block is None:
             self.conv_block = BasicConv2d
@@ -347,6 +384,15 @@ test_InceptionC()
 # kernal_size in [1,3] list foramt
 # and padding in list[list, list] foramt ex: [[1,1],[3,3]] if both dims are unequal, else just single ex: list [3,3]
 class InceptionD(ivy.Module):
+    """
+    Basic block used in the ResNet architecture.
+
+    Args::
+        inplanes (int): Number of input channels.
+        conv_block (int): BasicConv2d module
+        
+    """
+    
     def __init__(self, in_channels: int, conv_block: Optional[Callable[..., ivy.Module]] = None) -> None:
         if conv_block is None:
             self.conv_block = BasicConv2d
@@ -411,6 +457,14 @@ test_InceptionD()
 
 
 class InceptionE(ivy.Module):
+    """
+    Basic block used in the ResNet architecture.
+
+    Args::
+        inplanes (int): Number of input channels.
+        conv_block (int): BasicConv2d module
+    """
+    
     def __init__(self, in_channels: int, conv_block: Optional[Callable[..., ivy.Module]] = None) -> None:
         if conv_block is None:
             self.conv_block = BasicConv2d

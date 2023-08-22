@@ -37,10 +37,10 @@ class InceptionV3(BaseModel):
         
     def __init__(
         self,
-        num_classes: int=1000,
+        num_classes: int = 1000,
         training: bool = False,
-        dropout: float=0.5,
-        data_format="NCHW",
+        dropout: float = 0.5,
+        data_format: str = "NCHW",
         spec=None, 
         v=None
         ) -> None:
