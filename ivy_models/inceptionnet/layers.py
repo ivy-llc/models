@@ -324,3 +324,4 @@ class InceptionE(ivy.Module):
         outputs = ivy.concat(outputs, axis=3)
         return outputs
 
+# prod

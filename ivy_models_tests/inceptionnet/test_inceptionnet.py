@@ -39,3 +39,4 @@ def test_inceptionNet_v3_img_classification(device, fw, batch_shape, load_weight
         true_logits = np.array([9.9990e-01, 8.3909e-05, 1.1693e-05])
         calc_logits = np.take(np_out, calc_indices)
         assert np.allclose(true_logits, calc_logits, rtol=1)
+# prod
