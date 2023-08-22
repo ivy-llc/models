@@ -8,6 +8,11 @@ import jax
 jax.config.update("jax_enable_x64", False)
 
 
+import sys
+sys.path.append("/ivy_models/log_sys/pf.py")
+from log_sys.pf import *
+
+
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
 @pytest.mark.parametrize("data_format", ["NHWC", "NCHW"])
@@ -23,10 +28,17 @@ def test_inceptionNet_v3_img_classification(device, fw, batch_shape, load_weight
     )
 
     # Create model
+    pf(f"test_inceptionnet | device is: {device}")
+    pf(f"test_inceptionnet | fw is: {fw}")
+    pf(f"test_inceptionnet | load_weights is: {load_weights}")
     model = inceptionNet_v3(pretrained=load_weights)
     logits, _ = model(img, data_format=data_format)
+    pf(f"test_inceptionnet | logits is: {logits}")
 
     # Cardinality test
+    pf(f"test_inceptionnet | batch_shape is: {batch_shape}")
+    pf(f"test_inceptionnet | logits.shape is: {logits.shape}")
+    pf("||")
     assert logits.shape == tuple([ivy.to_scalar(batch_shape), num_classes])
 
     # Value test
@@ -34,6 +46,8 @@ def test_inceptionNet_v3_img_classification(device, fw, batch_shape, load_weight
         np_out = ivy.to_numpy(logits[0])
         true_indices = np.array([258, 270, 279])
         calc_indices = np.argsort(np_out)[-3:][::-1]
+        pf(f"test_inceptionnet | indices_test | true_indices is: {true_indices}")
+        pf(f"test_inceptionnet | indices_test | calc_indices is: {calc_indices}")
         assert np.array_equal(true_indices, calc_indices)
 
         true_logits = np.array([9.9990e-01, 8.3909e-05, 1.1693e-05])
