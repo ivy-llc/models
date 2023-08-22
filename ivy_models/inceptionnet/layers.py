@@ -8,7 +8,7 @@ from log_sys.pf import *
 
 class BasicConv2d(ivy.Module):
     """
-    Basic block used in the ResNet architecture.
+    BasicConv2d used in the ResNet architecture.
 
     Args::
         inplanes (int): Number of input channels.
@@ -67,7 +67,7 @@ test_BasicConv2d()
 
 class InceptionAux(ivy.Module):
     """
-    Basic block used in the ResNet architecture.
+    InceptionAux used in the ResNet architecture.
 
     Args::
         inplanes (int): Number of input channels.
@@ -138,7 +138,7 @@ test_InceptionAux()
 
 class InceptionA(ivy.Module):
     """
-    Basic block used in the ResNet architecture.
+    InceptionA used in the ResNet architecture.
 
     Args::
         inplanes (int): Number of input channels.
@@ -223,7 +223,7 @@ test_InceptionA()
 # and padding in list[list, list] foramt ex: [[1,1],[3,3]] if both dims are unequal, else just single ex: list [3,3]
 class InceptionB(ivy.Module):
     """
-    Basic block used in the ResNet architecture.
+    InceptionB used in the ResNet architecture.
 
     Args::
         inplanes (int): Number of input channels.
@@ -290,7 +290,7 @@ test_InceptionB()
 # and padding in list[list, list] foramt ex: [[1,1],[3,3]] if both dims are unequal, else just single ex: list [3,3]
 class InceptionC(ivy.Module):
     """
-    Basic block used in the ResNet architecture.
+    InceptionC used in the ResNet architecture.
 
     Args::
         inplanes (int): Number of input channels.
@@ -385,7 +385,7 @@ test_InceptionC()
 # and padding in list[list, list] foramt ex: [[1,1],[3,3]] if both dims are unequal, else just single ex: list [3,3]
 class InceptionD(ivy.Module):
     """
-    Basic block used in the ResNet architecture.
+    InceptionD used in the ResNet architecture.
 
     Args::
         inplanes (int): Number of input channels.
@@ -458,7 +458,7 @@ test_InceptionD()
 
 class InceptionE(ivy.Module):
     """
-    Basic block used in the ResNet architecture.
+    InceptionE used in the ResNet architecture.
 
     Args::
         inplanes (int): Number of input channels.
