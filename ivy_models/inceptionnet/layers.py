@@ -82,7 +82,7 @@ class InceptionAux(ivy.Module):
     def _forward(self, x):
         # N x 768 x 17 x 17
         pf(f"InceptionAux | input shape is:{x.shape}")
-        x = ivy.avg_pool2d(x, [5,5], 3, 'valid', data_format='NHWC')
+        x = ivy.avg_pool2d(x, (5,5), 3, 'valid', data_format='NHWC')
         pf(f"InceptionAux | done 1/8, output shape is:{x.shape}")
 
         # N x 768 x 5 x 5
@@ -317,7 +317,7 @@ class InceptionC(ivy.Module):
         branch7x7dbl = self.branch7x7dbl_5(branch7x7dbl)
         pf(f"one 9/20, output shape is:{branch7x7dbl.shape}")
 
-        branch_pool = ivy.avg_pool2d(x, [3,3], [1,1], [[1,1],[1,1]])
+        branch_pool = ivy.avg_pool2d(x, (3,3), (1,1), ((1,1),(1,1)))
         pf(f"one 10/20, output shape is:{branch_pool.shape}")
         branch_pool = self.branch_pool(branch_pool)
         pf(f"one 11/20, output shape is:{branch_pool.shape}")
@@ -452,7 +452,7 @@ class InceptionE(ivy.Module):
         pf(f"6/20, branch3x3dbl output shape is:{branch3x3dbl.shape}")
 
 
-        branch_pool = ivy.avg_pool2d(x, [3,3], (1,1), [(1,1),(1,1)])
+        branch_pool = ivy.avg_pool2d(x, (3,3), (1,1), [(1,1),(1,1)])
 #         branch_pool = self.avg_pool(x)
         branch_pool = self.branch_pool(branch_pool)
         pf(f"7/20, branch_pool output shape is:{branch_pool.shape}")

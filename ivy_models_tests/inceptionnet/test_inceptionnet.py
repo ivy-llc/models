@@ -21,7 +21,7 @@ def test_inceptionNet_v3_img_classification(device, fw, batch_shape, load_weight
 
     # Load image
     img = helpers.load_and_preprocess_img(
-        os.path.join(this_dir, "..", "..", "images", "cat.jpg"), 256, 224
+        os.path.join(this_dir, "..", "..", "images", "dog.jpg"), 256, 224
     )
 
     # Create model
@@ -34,17 +34,19 @@ def test_inceptionNet_v3_img_classification(device, fw, batch_shape, load_weight
 
     # Cardinality test
     pf(f"test_inceptionnet | batch_shape is: {batch_shape}")
+    pf(f"test_inceptionnet | logits.shape is: {logits.shape}")
     pf("||")
+    assert logits.shape == tuple([ivy.to_scalar(batch_shape), num_classes])
 
-    # assert logits.shape == tuple([ivy.to_scalar(batch_shape), num_classes])
+    # Value test
+    if load_weights:
+        np_out = ivy.to_numpy(logits[0])
+        true_indices = np.array([258, 270, 279])
+        calc_indices = np.argsort(np_out)[-3:][::-1]
+        pf(f"test_inceptionnet | indices_test | true_indices is: {true_indices}")
+        pf(f"test_inceptionnet | indices_test | calc_indices is: {calc_indices}")
+        assert np.array_equal(true_indices, calc_indices)
 
-    # # Value test
-    # if load_weights:
-    #     np_out = ivy.to_numpy(logits[0])
-    #     true_indices = np.array([258, 270, 279])
-    #     calc_indices = np.argsort(np_out)[-3:][::-1]
-    #     assert np.array_equal(true_indices, calc_indices)
-
-    #     true_logits = np.array([9.9990e-01, 8.3909e-05, 1.1693e-05])
-    #     calc_logits = np.take(np_out, calc_indices)
-    #     assert np.allclose(true_logits, calc_logits, rtol=1)
+        true_logits = np.array([9.9990e-01, 8.3909e-05, 1.1693e-05])
+        calc_logits = np.take(np_out, calc_indices)
+        assert np.allclose(true_logits, calc_logits, rtol=1)
