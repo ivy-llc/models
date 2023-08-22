@@ -140,7 +140,7 @@ def load_torch_weights(
     custom_mapping=None,
     map_location=torch.device("cpu"),
 ):
-    ivy_torch = ivy.with_backend('torch')
+    ivy_torch = ivy.with_backend("torch")
     weights = torch.hub.load_state_dict_from_url(url, map_location=map_location)
     weights_raw = ivy.Container(
         ivy_torch.to_numpy(ivy_torch.Container(weights)).cont_to_dict()
