@@ -5,20 +5,26 @@ import numpy as np
 from ivy_models_tests import helpers
 from ivy_models.inceptionnet import inceptionNet_v3
 import jax
+
 jax.config.update("jax_enable_x64", False)
 
 
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
 @pytest.mark.parametrize("data_format", ["NHWC", "NCHW"])
-def test_inceptionNet_v3_img_classification(device, fw, batch_shape, load_weights, data_format):
+def test_inceptionNet_v3_img_classification(
+    device, fw, batch_shape, load_weights, data_format
+):
     """Test InceptionNetV3 image classification."""
     num_classes = 1000
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # Load image
     img = helpers.load_and_preprocess_img(
-        os.path.join(this_dir, "..", "..", "images", "dog.jpg"), 256, 224, data_format=data_format,
+        os.path.join(this_dir, "..", "..", "images", "dog.jpg"),
+        256,
+        224,
+        data_format=data_format,
         to_ivy=True,
     )
 
