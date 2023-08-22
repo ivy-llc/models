@@ -27,3 +27,6 @@ from .vit import *
 
 from . import googlenet
 from .googlenet import *
+
+from . import inceptionnet
+from .inceptionnet import *
