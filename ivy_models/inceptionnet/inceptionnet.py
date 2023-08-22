@@ -14,18 +14,44 @@ sys.path.append("/ivy_models/log_sys/pf.py")
 from log_sys.pf import *
 # log sys
 
-class InceptionV3(ivy.Module):
+
+class InceptionNetSpec(BaseSpec):
+    def __init__(self, num_classes=1000, training=False, dropout=0.5, data_format="NCHW"):
+        super(InceptionNetSpec, self).__init__(
+            num_classes=num_classes, training=training, dropout=dropout, data_format=data_format
+        )
+        
+        
+class InceptionV3(BaseModel):
+    """An Ivy native implementation of InceptionNet"""
+    
+    """
+    Args:
+        ----
+            num_classes (int): Number of classes
+            training (bool): Set the mode for model execution
+                # If training=True, the model will be in training mode with gradient computation and parameter updates.
+                # If training=False, the model will be in evaluation mode without gradient computation for inference.
+            dropout (float): The droupout probability
+    """
+        
     def __init__(
         self,
         num_classes: int=1000,
+        training: bool = False,
         dropout: float=0.5,
-        data_format="NHWC",
+        data_format="NCHW",
+        spec=None, 
+        v=None
         ) -> None:
-        self.num_classes = num_classes
-        self.dropout = dropout
-        self.data_format=data_format
-        super().__init__()
-
+            self.spec = (
+                spec
+                if spec and isinstance(spec, InceptionNetSpec)
+                else InceptionNetSpec(
+                    num_classes=num_classes, training=training, dropout=dropout, data_format=data_format, 
+                )
+            )
+            super(InceptionV3, self).__init__(v=v)
 
     def _build(self, *args, **kwargs):
         conv_block = BasicConv2d
@@ -68,8 +94,9 @@ class InceptionV3(ivy.Module):
         pf(f"InceptionV3 | build | layer 15/22 built")
 
         # if is used only when the model is in training mode
-#         self.AuxLogits = inception_aux(768, num_classes)
-#         pf(f"layer 16/22 built")
+        if self.spec.training:
+            self.AuxLogits = inception_aux(768, self.spec.num_classes)
+            pf(f"layer 16/22 built")
 
         self.Mixed_7a = inception_d(768)
         pf(f"InceptionV3 | build | layer 17/22 built")
@@ -79,15 +106,23 @@ class InceptionV3(ivy.Module):
         pf(f"InceptionV3 | build | layer 19/22 built")
         self.avgpool = ivy.AdaptiveAvgPool2d((1, 1))
         pf(f"InceptionV3 | build | layer 20/22 built")
-        self.dropout = ivy.Dropout(prob=self.dropout)
+        self.dropout = ivy.Dropout(prob=self.spec.dropout)
         pf(f"InceptionV3 | build | layer 21/22 built")
-        self.fc = ivy.Linear(2048, self.num_classes)
+        self.fc = ivy.Linear(2048, self.spec.num_classes)
         pf(f"InceptionV3 | build | layer 22/22 built")
 
-
-    def _forward(self, x: ivy.Array) -> List[ivy.Array]:
+    @classmethod
+    def get_spec_class(self):
+        return InceptionNetSpec
+    
+    def _forward(self, x: ivy.Array, data_format=None) -> List[ivy.Array]:
+        data_format = data_format if data_format else self.spec.data_format
+        pf(f"InceptionV3 | forward | input data_format is:{data_format} | done 1/27")
+        if data_format == "NCHW":
+            x = ivy.permute_dims(x, (0, 2, 3, 1))
+        pf(f"InceptionV3 | forward | data_format is going to be used is:{data_format} | done 1/27")
+        
         pf(f"InceptionV3 | forward | input shape is:{x.shape} | done 1/27")
-
         # N x 3 x 299 x 299
         x = self.Conv2d_1a_3x3(x)
         # N x 32 x 149 x 149
@@ -119,10 +154,7 @@ class InceptionV3(ivy.Module):
 
         x = self.Mixed_5b(x)
         # N x 256 x 35 x 35
-#         pf(f"v3 8/27, output type is:{type(x)}")
-#         pf(f"v3 8/27, output len is:{len(x)}")
         pf(f"InceptionV3 | forward |shape is:{x.shape} | done 9/27")
-
 
         x = self.Mixed_5c(x)
         # N x 288 x 35 x 35
@@ -152,9 +184,11 @@ class InceptionV3(ivy.Module):
         # N x 768 x 17 x 17
         pf(f"InceptionV3 | forward | shape is:{x.shape} | done 16/27")
 
-#         aux = self.AuxLogits(x)
+        aux = None
+        if self.spec.training:
+            aux = self.AuxLogits(x)
 #         # N x 768 x 17 x 17
-#         pf(f"v3 16/27, output shape is:{x.shape}")
+        pf(f"v3 16/27, output shape is:{x.shape}")
 
         x = self.Mixed_7a(x)
         # N x 1280 x 8 x 8
@@ -192,8 +226,7 @@ class InceptionV3(ivy.Module):
         # N x 1000 (num_classes)
         pf(f"InceptionV3 | forward | fc | done 27/27")
 
-#         return x, aux
-        return x
+        return x, aux
 
 
 def _inceptionNet_v3_torch_weights_mapping(old_key, new_key):
@@ -204,7 +237,7 @@ def _inceptionNet_v3_torch_weights_mapping(old_key, new_key):
     return new_mapping
 
 
-def inceptionNet_v3(pretrained=True, num_classes=1000, dropout=0.5, data_format="NHWC"):
+def inceptionNet_v3(pretrained=True, num_classes=1000, dropout=0.5, data_format="NCHW"):
     """InceptionNet-V3 model"""
 
     model = InceptionV3(num_classes=num_classes, dropout=dropout, data_format=data_format)

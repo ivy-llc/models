@@ -12,16 +12,19 @@ import sys
 sys.path.append("/ivy_models/log_sys/pf.py")
 from log_sys.pf import *
 
+
 @pytest.mark.parametrize("batch_shape", [[1]])
 @pytest.mark.parametrize("load_weights", [False, True])
-def test_inceptionNet_v3_img_classification(device, fw, batch_shape, load_weights):
+@pytest.mark.parametrize("data_format", ["NHWC", "NCHW"])
+def test_inceptionNet_v3_img_classification(device, fw, batch_shape, load_weights, data_format):
     """Test InceptionNetV3 image classification."""
     num_classes = 1000
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # Load image
     img = helpers.load_and_preprocess_img(
-        os.path.join(this_dir, "..", "..", "images", "dog.jpg"), 256, 224
+        os.path.join(this_dir, "..", "..", "images", "dog.jpg"), 256, 224, data_format=data_format,
+        to_ivy=True,
     )
 
     # Create model
@@ -29,7 +32,7 @@ def test_inceptionNet_v3_img_classification(device, fw, batch_shape, load_weight
     pf(f"test_inceptionnet | fw is: {fw}")
     pf(f"test_inceptionnet | load_weights is: {load_weights}")
     model = inceptionNet_v3(pretrained=load_weights)
-    logits = model(img)
+    logits, _ = model(img, data_format=data_format)
     pf(f"test_inceptionnet | logits is: {logits}")
 
     # Cardinality test
