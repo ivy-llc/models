@@ -95,7 +95,7 @@ def load_jax_weights(
 ):
     import pickle
 
-    ivy.set_backend("jax")
+    ivy_jax = ivy.with_backend("jax")
     # todo: refactor this into a url load helper
     urllib.request.urlretrieve(url, filename="jax_weights.pystate")
     with open("jax_weights.pystate", "rb") as f:
@@ -107,7 +107,9 @@ def load_jax_weights(
     except KeyError:
         pass
 
-    weights_raw = ivy.to_numpy(ivy.Container(weights))
+    weights_raw = ivy.Container(
+        ivy_jax.to_numpy(ivy_jax.Container(weights)).cont_to_dict()
+    )
     weights_ref = ref_model.v
 
     if raw_keys_to_prune or ref_keys_to_prune:
@@ -122,7 +124,6 @@ def load_jax_weights(
         weights_raw = _with_mha(weights_raw)
     mapping = _map_weights(weights_raw, weights_ref, custom_mapping=custom_mapping)
 
-    ivy.previous_backend()
     w_clean = weights_raw.cont_restructure(mapping, keep_orig=False)
     if ref_keys_to_prune:
         w_clean = ivy.Container.cont_combine(w_clean, pruned_ref)
@@ -139,16 +140,15 @@ def load_torch_weights(
     custom_mapping=None,
     map_location=torch.device("cpu"),
 ):
-    ivy.set_backend("torch")
+    ivy_torch = ivy.with_backend("torch")
     weights = torch.hub.load_state_dict_from_url(url, map_location=map_location)
-
-    weights_raw = ivy.to_numpy(ivy.Container(weights))
+    weights_raw = ivy.Container(
+        ivy_torch.to_numpy(ivy_torch.Container(weights)).cont_to_dict()
+    )
     weights_raw, weights_ref, pruned_ref = _prune_keys(
         weights_raw, ref_model.v, raw_keys_to_prune, ref_keys_to_prune
     )
     mapping = _map_weights(weights_raw, weights_ref, custom_mapping=custom_mapping)
-
-    ivy.previous_backend()
     w_clean = weights_raw.cont_restructure(mapping, keep_orig=False)
     if ref_keys_to_prune:
         w_clean = ivy.Container.cont_combine(w_clean, pruned_ref)
@@ -168,15 +168,14 @@ def load_transformers_weights(hf_repo, model, map_fn, split_on="__"):
 
     base = AutoModel.from_pretrained(hf_repo)
     ref_weights = base.state_dict()
-
-    ivy.set_backend("torch")
-    ref_weights = ivy.to_numpy(ivy.Container(ref_weights))
+    ivy_torch = ivy.with_backend("torch")
+    ref_weights = ivy.Container(
+        ivy_torch.to_numpy(ivy_torch.Container(ref_weights)).cont_to_dict()
+    )
     old_mapping = copy.deepcopy(model.v)
     param_names = old_mapping.cont_flatten_key_chains().keys()
     mapping_list = map(lambda x: map_fn(x), param_names)
     mapping = dict(zip(param_names, mapping_list))
-    ivy.previous_backend()
-
     for old_name, ref_name in mapping.items():
         to_set = ivy.asarray(ref_weights[ref_name])
         _unflatten_set(old_mapping, old_name, to_set, split_on)

@@ -84,12 +84,14 @@ class DenseNet(BaseModel):
                         2,
                         3,
                         with_bias=False,
-                        data_format="NCHW",
                     ),
                 ),
-                ("norm0", ivy.BatchNorm2D(self.spec.num_init_features)),
+                (
+                    "norm0",
+                    ivy.BatchNorm2D(self.spec.num_init_features),
+                ),
                 ("relu0", ivy.ReLU()),
-                ("pool0", ivy.MaxPool2D(3, 2, 1, data_format="NCHW")),
+                ("pool0", ivy.MaxPool2D(3, 2, 1)),
             ]
         )
 
@@ -116,7 +118,7 @@ class DenseNet(BaseModel):
         # Final batch norm
         layers["norm5"] = ivy.BatchNorm2D(num_features)
 
-        self.features = ivy.Sequential(layers)
+        self.features = layers  # ivy.Sequential(layers)
 
         # Linear layer
         self.classifier = ivy.Linear(num_features, self.spec.num_classes)
@@ -126,7 +128,9 @@ class DenseNet(BaseModel):
         return DenseNetLayerSpec
 
     def _forward(self, x):
-        features = self.features(x)
+        templist = list(self.features.values())
+        layers = ivy.Sequential(*templist)
+        features = layers(x)
         out = ivy.relu(features)
         out = ivy.adaptive_avg_pool2d(out, (1, 1))
         out = ivy.flatten(out, axis=1)
@@ -140,7 +144,7 @@ def _densenet_torch_weights_mapping(old_key, new_key):
     if "features" in old_key:
         W_KEY = ["conv0/weight", "conv/1/weight", "conv/2/weight", "conv/weight"]
         if builtins.any([kc in old_key for kc in W_KEY]):
-            new_mapping = {"key_chain": new_key, "pattern": "b c h w-> h w c b"}
+            new_mapping = {"key_chain": new_key, "pattern": "b c h w -> h w c b"}
     return new_mapping
 
 
@@ -209,3 +213,9 @@ def densenet201(v=None, pretrained=True):
         )
         model.v = w_clean
     return model
+
+
+if __name__ == "__main__":
+    ivy.set_torch_backend()
+    model = densenet(32, (6, 12, 24, 16), 64)
+    print(model.v)
