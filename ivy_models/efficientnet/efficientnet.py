@@ -245,6 +245,7 @@ class EfficientNetSpec(BaseSpec):
         num_classes: int = 1000,
         norm_layer: Optional[Callable[..., ivy.Module]] = None,
         last_channel: Optional[int] = None,
+        data_format: str = "NHWC",
     ):
         super(EfficientNetSpec, self).__init__(
             inverted_residual_setting=inverted_residual_setting,
@@ -253,6 +254,7 @@ class EfficientNetSpec(BaseSpec):
             num_classes=num_classes,
             norm_layer=norm_layer,
             last_channel=last_channel,
+            data_format=data_format,
         )
 
 
@@ -265,6 +267,7 @@ class EfficientNet(BaseModel):
         num_classes: int = 1000,
         norm_layer: Optional[Callable[..., ivy.Module]] = None,
         last_channel: Optional[int] = None,
+        data_format: str = "NHWC",
         spec=None,
         v=None,
     ) -> None:
@@ -292,6 +295,7 @@ class EfficientNet(BaseModel):
                 num_classes,
                 norm_layer,
                 last_channel,
+                data_format=data_format,
             )
         )
 
@@ -373,7 +377,10 @@ class EfficientNet(BaseModel):
     def get_spec_class(self):
         return EfficientNetSpec
 
-    def _forward_impl(self, x: ivy.Array) -> ivy.Array:
+    def _forward_impl(self, x: ivy.Array, data_format=None) -> ivy.Array:
+        data_format = data_format if data_format else self.spec.data_format
+        if data_format == "NCHW":
+            x = ivy.permute_dims(x, (0, 2, 3, 1))
         x = self.features(x)
 
         x = ivy.permute_dims(x, (0, 3, 1, 2))
@@ -385,8 +392,8 @@ class EfficientNet(BaseModel):
 
         return x
 
-    def _forward(self, x: ivy.Array) -> ivy.Array:
-        return self._forward_impl(x)
+    def _forward(self, x: ivy.Array, data_format=None) -> ivy.Array:
+        return self._forward_impl(x, data_format=data_format)
 
 
 def _efficientnet_conf(
@@ -507,7 +514,7 @@ def _efficient_net_torch_weights_mapping(old_key, new_key):
     return new_mapping
 
 
-def efficientnet_b0(pretrained=True):
+def efficientnet_b0(pretrained=True, data_format="NHWC"):
     inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
         "efficientnet_b0"
     )
@@ -532,7 +539,7 @@ def efficientnet_b0(pretrained=True):
     return model
 
 
-def efficientnet_b1(pretrained=True):
+def efficientnet_b1(pretrained=True, data_format="NHWC"):
     inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
         "efficientnet_b1"
     )
@@ -557,7 +564,7 @@ def efficientnet_b1(pretrained=True):
     return model
 
 
-def efficientnet_b2(pretrained=True):
+def efficientnet_b2(pretrained=True, data_format="NHWC"):
     inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
         "efficientnet_b2"
     )
@@ -582,7 +589,7 @@ def efficientnet_b2(pretrained=True):
     return model
 
 
-def efficientnet_b3(pretrained=True):
+def efficientnet_b3(pretrained=True, data_format="NHWC"):
     inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
         "efficientnet_b3"
     )
@@ -607,7 +614,7 @@ def efficientnet_b3(pretrained=True):
     return model
 
 
-def efficientnet_b4(pretrained=True):
+def efficientnet_b4(pretrained=True, data_format="NHWC"):
     inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
         "efficientnet_b4"
     )
@@ -632,7 +639,7 @@ def efficientnet_b4(pretrained=True):
     return model
 
 
-def efficientnet_b5(pretrained=True):
+def efficientnet_b5(pretrained=True, data_format="NHWC"):
     inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
         "efficientnet_b5"
     )
@@ -657,7 +664,7 @@ def efficientnet_b5(pretrained=True):
     return model
 
 
-def efficientnet_b6(pretrained=True):
+def efficientnet_b6(pretrained=True, data_format="NHWC"):
     inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
         "efficientnet_b6"
     )
@@ -682,7 +689,7 @@ def efficientnet_b6(pretrained=True):
     return model
 
 
-def efficientnet_b7(pretrained=True):
+def efficientnet_b7(pretrained=True, data_format="NHWC"):
     inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
         "efficientnet_b7"
     )
@@ -707,7 +714,7 @@ def efficientnet_b7(pretrained=True):
     return model
 
 
-def efficientnet_v2_s(pretrained=True):
+def efficientnet_v2_s(pretrained=True, data_format="NHWC"):
     inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
         "efficientnet_v2_s"
     )
@@ -730,7 +737,7 @@ def efficientnet_v2_s(pretrained=True):
     return model
 
 
-def efficientnet_v2_m(pretrained=True):
+def efficientnet_v2_m(pretrained=True, data_format="NHWC"):
     inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
         "efficientnet_v2_m"
     )
@@ -753,7 +760,7 @@ def efficientnet_v2_m(pretrained=True):
     return model
 
 
-def efficientnet_v2_l(pretrained=True):
+def efficientnet_v2_l(pretrained=True, data_format="NHWC"):
     inverted_residual_setting, last_channel, dropout, norm_layer = _efficientnet_conf(
         "efficientnet_v2_l"
     )
