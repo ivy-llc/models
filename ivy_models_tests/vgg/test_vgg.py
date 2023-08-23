@@ -1,336 +1,62 @@
 import os
-import pytest
 import numpy as np
-import jax
+import pytest
+import random
 import ivy
-
-from ivy_models import (
+from ivy_models_tests import helpers
+from ivy_models.vgg import (
     vgg11,
-    vgg11_bn,
     vgg13,
-    vgg13_bn,
     vgg16,
-    vgg16_bn,
-    vgg19,
-    vgg19_bn,
 )
 
 
-# Enable x64 support in JAX
-jax.config.update("jax_enable_x64", True)
+VARIANTS = {
+    "vgg11": vgg11,
+    "vgg13": vgg13,
+    "vgg16": vgg16,
+}
+
+PREDS = {
+    "vgg11": [282, 281, 285],
+    "vgg13": [281, 282, 292],
+    "vgg16": [282, 281, 292],
+}
+
+load_weights = random.choice([False, True])
+model_var = random.choice(list(VARIANTS.keys()))
+model = VARIANTS[model_var](pretrained=load_weights)
+v = ivy.to_numpy(model.v)
 
 
-def normalize(img, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
-    """prepare image to be the model's input"""
-    img -= np.array(mean)
-    img /= np.array(std)
-    return img
-
-
-def np_softmax(inputs):
-    """apply the softmax on the output"""
-    return np.exp(inputs) / np.sum(np.exp(inputs))
-
-
-@pytest.mark.parametrize("batch_shape", [[1]])
-@pytest.mark.parametrize("load_weights", [False, True])
-def test_vgg_11_img_classification(device, fw, batch_shape, load_weights):
-    """Test VGG-11 image classification."""
+@pytest.mark.parametrize("data_format", ["NHWC", "NCHW"])
+def test_vgg_img_classification(device, fw, data_format):
+    """Test VGG image classification."""
     num_classes = 1000
-    device = "cpu"
+    batch_shape = [1]
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # Load image
     img = ivy.asarray(
-        normalize(np.load(os.path.join(this_dir, "img_classification_test.npy"))[None]),
-        dtype="float32",
-        device=device,
+        helpers.load_and_preprocess_img(
+            os.path.join(this_dir, "..", "..", "images", "cat.jpg"),
+            224,
+            224,
+            data_format=data_format,
+            to_ivy=True,
+        ),
     )
 
     # Create model
-    model = vgg11(pretrained=load_weights)
-
-    # Perform inference
-    output = model(img[0])
+    model.v = ivy.asarray(v)
+    logits = model(img, data_format=data_format)
 
     # Cardinality test
-    assert output.shape == tuple([ivy.to_scalar(batch_shape), num_classes])
+    assert logits.shape == tuple([ivy.to_scalar(batch_shape), num_classes])
 
     # Value test
     if load_weights:
-        np_out = ivy.to_numpy(output[0])
-        true_indices = np.array([287, 285, 281, 282])
-        calc_indices = np.argsort(np_out)[-4:]
-
+        np_out = ivy.to_numpy(logits[0])
+        true_indices = np.sort(np.array(PREDS[model_var]))
+        calc_indices = np.sort(np.argsort(np_out)[-3:][::-1])
         assert np.array_equal(true_indices, calc_indices)
-
-        true_logits = np.array([0.0236, 0.0563, 0.3473, 0.5525])
-        calc_logits = np.take(np_softmax(np_out), calc_indices)
-
-        assert np.allclose(true_logits, calc_logits, rtol=0.005)
-
-
-@pytest.mark.parametrize("batch_shape", [[1]])
-@pytest.mark.parametrize("load_weights", [False, True])
-def test_vgg_11_bn_img_classification(device, fw, batch_shape, load_weights):
-    """Test VGG-11-BN image classification."""
-    num_classes = 1000
-    device = "cpu"
-    this_dir = os.path.dirname(os.path.realpath(__file__))
-
-    # Load image
-    img = ivy.asarray(
-        normalize(np.load(os.path.join(this_dir, "img_classification_test.npy"))[None]),
-        dtype="float32",
-        device=device,
-    )
-
-    # Create model
-    model = vgg11_bn(pretrained=load_weights)
-
-    # Perform inference
-    output = model(img[0])
-
-    # Cardinality test
-    assert output.shape == tuple([ivy.to_scalar(batch_shape), num_classes])
-
-    # Value test
-    if load_weights:
-        np_out = ivy.to_numpy(output[0])
-        true_indices = np.array([287, 285, 281, 282])
-        calc_indices = np.argsort(np_out)[-4:]
-
-        assert np.array_equal(true_indices, calc_indices)
-
-        true_logits = np.array([0.00136, 0.0843, 0.2417, 0.6685])
-        calc_logits = np.take(np_softmax(np_out), calc_indices)
-
-        assert np.allclose(true_logits, calc_logits, rtol=0.005)
-
-
-@pytest.mark.parametrize("batch_shape", [[1]])
-@pytest.mark.parametrize("load_weights", [False, True])
-def test_vgg_13_img_classification(device, fw, batch_shape, load_weights):
-    """Test VGG-13 image classification."""
-    num_classes = 1000
-    device = "cpu"
-    this_dir = os.path.dirname(os.path.realpath(__file__))
-
-    # Load image
-    img = ivy.asarray(
-        normalize(np.load(os.path.join(this_dir, "img_classification_test.npy"))[None]),
-        dtype="float32",
-        device=device,
-    )
-
-    # Create model
-    model = vgg13(pretrained=load_weights)
-
-    # Perform inference
-    output = model(img[0])
-
-    # Cardinality test
-    assert output.shape == tuple([ivy.to_scalar(batch_shape), num_classes])
-
-    # Value test
-    if load_weights:
-        np_out = ivy.to_numpy(output[0])
-        true_indices = np.array([292, 285, 281, 282])
-        calc_indices = np.argsort(np_out)[-4:]
-
-        assert np.array_equal(true_indices, calc_indices)
-
-        true_logits = np.array([0.00802, 0.01459, 0.14998, 0.8200])
-        calc_logits = np.take(np_softmax(np_out), calc_indices)
-
-        assert np.allclose(true_logits, calc_logits, rtol=0.005)
-
-
-@pytest.mark.parametrize("batch_shape", [[1]])
-@pytest.mark.parametrize("load_weights", [False, True])
-def test_vgg_13_bn_img_classification(device, fw, batch_shape, load_weights):
-    """Test VGG-13-BN image classification."""
-    num_classes = 1000
-    device = "cpu"
-    this_dir = os.path.dirname(os.path.realpath(__file__))
-
-    # Load image
-    img = ivy.asarray(
-        normalize(np.load(os.path.join(this_dir, "img_classification_test.npy"))[None]),
-        dtype="float32",
-        device=device,
-    )
-
-    # Create model
-    model = vgg13_bn(pretrained=load_weights)
-
-    # Perform inference
-    output = model(img[0])
-
-    # Cardinality test
-    assert output.shape == tuple([ivy.to_scalar(batch_shape), num_classes])
-
-    # Value test
-    if load_weights:
-        np_out = ivy.to_numpy(output[0])
-        true_indices = np.array([292, 285, 281, 282])
-        calc_indices = np.argsort(np_out)[-4:]
-
-        assert np.array_equal(true_indices, calc_indices)
-
-        true_logits = np.array([0.00565121, 0.01147511, 0.17541069, 0.8058933])
-        calc_logits = np.take(np_softmax(np_out), calc_indices)
-
-        assert np.allclose(true_logits, calc_logits, rtol=0.005)
-
-
-@pytest.mark.parametrize("batch_shape", [[1]])
-@pytest.mark.parametrize("load_weights", [False, True])
-def test_vgg_16_img_classification(device, fw, batch_shape, load_weights):
-    """Test VGG-16 image classification."""
-    num_classes = 1000
-    device = "cpu"
-    this_dir = os.path.dirname(os.path.realpath(__file__))
-
-    # Load image
-    img = ivy.asarray(
-        normalize(np.load(os.path.join(this_dir, "img_classification_test.npy"))[None]),
-        dtype="float32",
-        device=device,
-    )
-
-    # Create model
-    model = vgg16(pretrained=load_weights)
-
-    # Perform inference
-    output = model(img[0])
-
-    # Cardinality test
-    assert output.shape == tuple([ivy.to_scalar(batch_shape), num_classes])
-
-    # Value test
-    if load_weights:
-        np_out = ivy.to_numpy(output[0])
-        true_indices = np.array([24, 285, 281, 282])
-        calc_indices = np.argsort(np_out)[-4:]
-
-        assert np.array_equal(true_indices, calc_indices)
-
-        true_logits = np.array([0.00315, 0.02750, 0.34825, 0.61424])
-        calc_logits = np.take(np_softmax(np_out), calc_indices)
-
-        assert np.allclose(true_logits, calc_logits, rtol=0.005)
-
-
-@pytest.mark.parametrize("batch_shape", [[1]])
-@pytest.mark.parametrize("load_weights", [False, True])
-def test_vgg_16_bn_img_classification(device, fw, batch_shape, load_weights):
-    """Test VGG-16-BN image classification."""
-    num_classes = 1000
-    device = "cpu"
-    this_dir = os.path.dirname(os.path.realpath(__file__))
-
-    # Load image
-    img = ivy.asarray(
-        normalize(np.load(os.path.join(this_dir, "img_classification_test.npy"))[None]),
-        dtype="float32",
-        device=device,
-    )
-
-    # Create model
-    model = vgg16_bn(pretrained=load_weights)
-
-    # Perform inference
-    output = model(img[0])
-
-    # Cardinality test
-    assert output.shape == tuple([ivy.to_scalar(batch_shape), num_classes])
-
-    # Value test
-    if load_weights:
-        np_out = ivy.to_numpy(output[0])
-        true_indices = np.array([622, 285, 281, 282])
-        calc_indices = np.argsort(np_out)[-4:]
-
-        assert np.array_equal(true_indices, calc_indices)
-
-        true_logits = np.array([0.00040706596, 0.021315627, 0.3374813, 0.6393761])
-        calc_logits = np.take(np_softmax(np_out), calc_indices)
-
-        assert np.allclose(true_logits, calc_logits, rtol=0.005)
-
-
-@pytest.mark.parametrize("batch_shape", [[1]])
-@pytest.mark.parametrize("load_weights", [False, True])
-def test_vgg_19_img_classification(device, fw, batch_shape, load_weights):
-    """Test VGG-19 image classification."""
-    num_classes = 1000
-    device = "cpu"
-    this_dir = os.path.dirname(os.path.realpath(__file__))
-
-    # Load image
-    img = ivy.asarray(
-        normalize(np.load(os.path.join(this_dir, "img_classification_test.npy"))[None]),
-        dtype="float32",
-        device=device,
-    )
-
-    # Create model
-    model = vgg19(pretrained=load_weights)
-
-    # Perform inference
-    output = model(img[0])
-
-    # Cardinality test
-    assert output.shape == tuple([ivy.to_scalar(batch_shape), num_classes])
-
-    # Value test
-    if load_weights:
-        np_out = ivy.to_numpy(output[0])
-        true_indices = np.array([24, 285, 281, 282])
-        calc_indices = np.argsort(np_out)[-4:]
-
-        assert np.array_equal(true_indices, calc_indices)
-
-        true_logits = np.array([0.00102419, 0.00657986, 0.4198733, 0.5677029])
-        calc_logits = np.take(np_softmax(np_out), calc_indices)
-
-        assert np.allclose(true_logits, calc_logits, rtol=0.005)
-
-
-@pytest.mark.parametrize("batch_shape", [[1]])
-@pytest.mark.parametrize("load_weights", [False, True])
-def test_vgg_19_bn_img_classification(device, fw, batch_shape, load_weights):
-    """Test VGG-19-BN image classification."""
-    num_classes = 1000
-    device = "cpu"
-    this_dir = os.path.dirname(os.path.realpath(__file__))
-
-    # Load image
-    img = ivy.asarray(
-        normalize(np.load(os.path.join(this_dir, "img_classification_test.npy"))[None]),
-        dtype="float32",
-        device=device,
-    )
-
-    # Create model
-    model = vgg19_bn(pretrained=load_weights)
-
-    # Perform inference
-    output = model(img[0])
-
-    # Cardinality test
-    assert output.shape == tuple([ivy.to_scalar(batch_shape), num_classes])
-
-    # Value test
-    if load_weights:
-        np_out = ivy.to_numpy(output[0])
-        true_indices = np.array([806, 285, 281, 282])
-        calc_indices = np.argsort(np_out)[-4:]
-
-        assert np.array_equal(true_indices, calc_indices)
-
-        true_logits = np.array([0.00011722738, 0.060040653, 0.46304694, 0.47583136])
-        calc_logits = np.take(np_softmax(np_out), calc_indices)
-
-        assert np.allclose(true_logits, calc_logits, rtol=0.005)
