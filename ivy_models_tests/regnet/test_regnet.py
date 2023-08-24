@@ -4,7 +4,6 @@ import ivy
 import random
 import os
 
-ivy.set_backend("torch")
 
 VARIANTS = {
     "regnet_y_1_6gf": regnet_y_1_6gf,

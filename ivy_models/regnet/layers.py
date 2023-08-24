@@ -417,11 +417,11 @@ class BlockParams:
         # Compute the block widths. Each stage has one unique block width
         widths_cont = ivy.arange(depth) * w_a + w_0
         block_capacity = ivy.round(ivy.log(widths_cont / w_0) / math.log(w_m))
-        block_widths = (
-            (ivy.round(ivy.divide(w_0 * ivy.pow(w_m, block_capacity), QUANT)) * QUANT)
-            .int()
-            .tolist()
-        )
+        _block_widths = (
+            ivy.round(ivy.divide(w_0 * ivy.pow(w_m, block_capacity), QUANT)) * QUANT
+        )  # noqa: E501
+        _block_widths = _block_widths.astype(ivy.int64)
+        block_widths = (_block_widths).tolist()
         num_stages = len(set(block_widths))
 
         # Convert to per stage parameters
@@ -434,9 +434,10 @@ class BlockParams:
         splits = [w != wp or r != rp for w, wp, r, rp in split_helper]
 
         stage_widths = [w for w, t in zip(block_widths, splits[:-1]) if t]
-        stage_depths = (
-            ivy.diff(ivy.array([d for d, t in enumerate(splits) if t])).int().tolist()
+        stage_depths = ivy.diff(
+            ivy.array([d for d, t in enumerate(splits) if t]),
         )
+        stage_depths = stage_depths.astype(ivy.int64).tolist()
 
         strides = [STRIDE] * num_stages
         bottleneck_multipliers = [bottleneck_multiplier] * num_stages
