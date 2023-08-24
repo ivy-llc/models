@@ -164,8 +164,8 @@ class SqueezeExcitation(ivy.Module):
     ----
         input_channels (int): Number of channels in the input image
         squeeze_channels (int): Number of squeeze channels
-        activation (Callable[..., torch.nn.Module], optional): ``delta`` activation. Default: ``torch.nn.ReLU`` # noqa: E501
-        scale_activation (Callable[..., torch.nn.Module]): ``sigma`` activation. Default: ``torch.nn.Sigmoid`` # noqa: E501
+        activation (Callable[..., ivy.Module], optional): ``delta`` activation. Default: ``ivy.ReLU`` # noqa: E501
+        scale_activation (Callable[..., ivy.Module]): ``sigma`` activation. Default: ``ivy.Sigmoid`` # noqa: E501
     """
 
     def __init__(

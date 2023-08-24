@@ -65,7 +65,6 @@ class RegNet(BaseModel):
         )
         super(RegNet, self).__init__(v=v)
 
-    def _build(self, *args, **kwargs):
         if self.stem_type is None:
             self.stem_type = SimpleStemIN
         if self.norm_layer is None:
@@ -91,15 +90,7 @@ class RegNet(BaseModel):
             depth,
             group_width,
             bottleneck_multiplier,
-        ) in enumerate(
-            zip(
-                self.block_params.widths,
-                self.block_params.strides,
-                self.block_params.depths,
-                self.block_params.group_widths,
-                self.block_params.bottleneck_multipliers,
-            )
-        ):
+        ) in enumerate(self.block_params._get_expanded_params()):
             blocks.append(
                 (
                     f"block{i+1}",
