@@ -285,33 +285,41 @@ class ResBottleneckBlock(ivy.Module):
         bottleneck_multiplier: float = 1.0,
         se_ratio: Optional[float] = None,
     ) -> None:
-        super().__init__()
-
+        self.width_in = width_in
+        self.width_out = width_out
+        self.stride = stride
+        self.norm_layer = norm_layer
+        self.activation_layer = activation_layer
+        self.group_width = group_width
+        self.bottleneck_multiplier = bottleneck_multiplier
+        self.se_ratio = se_ratio
         # Use skip connection with projection if shape changes
         self.proj = None
-        should_proj = (width_in != width_out) or (stride != 1)
+        super().__init__()
+
+    def _build(self, *args, **kwargs):
+        should_proj = (self.width_in != self.width_out) or (self.stride != 1)
         if should_proj:
             self.proj = Conv2dNormActivation(
-                width_in,
-                width_out,
+                self.width_in,
+                self.width_out,
                 kernel_size=1,
-                stride=stride,
-                norm_layer=norm_layer,
+                stride=self.stride,
+                norm_layer=self.norm_layer,
                 activation_layer=None,
             )
         self.f = BottleneckTransform(
-            width_in,
-            width_out,
-            stride,
-            norm_layer,
-            activation_layer,
-            group_width,
-            bottleneck_multiplier,
-            se_ratio,
+            self.width_in,
+            self.width_out,
+            self.stride,
+            self.norm_layer,
+            self.activation_layer,
+            self.group_width,
+            self.bottleneck_multiplier,
+            self.se_ratio,
         )
-        self.activation = activation_layer(inplace=True)
 
-    def forward(self, x: ivy.Array) -> ivy.Array:
+    def _forward(self, x: ivy.Array) -> ivy.Array:
         if self.proj is not None:
             x = self.proj(x) + self.f(x)
         else:

@@ -1,13 +1,13 @@
-from ivy_models.regnet import regnet_y_400mf, regnet_y_800mf
+from ivy_models.regnet import regnet_y_1_6gf
 from ivy_models_tests import helpers
 import ivy
 import random
 import os
 
+ivy.set_backend("torch")
 
 VARIANTS = {
-    "regnet_y_400mf": regnet_y_400mf,
-    "regnet_y_800mf": regnet_y_800mf,
+    "regnet_y_1_6gf": regnet_y_1_6gf,
 }
 
 load_weights = random.choice([False, True])
@@ -42,7 +42,8 @@ def test_regnet_img_classification(device, fw):
 
     # Value test
     if load_weights:
-        np_out = ivy.to_numpy(logits[0])
-        true_indices = ivy.to_numpy(ivy.sort(ivy.array([282, 281, 285, 287])))
-        calc_indices = ivy.to_numpy(ivy.sort(ivy.argsort(np_out)[-5:][::-1]))
+        output = logits[0]
+        true_indices = ivy.sort(ivy.array([282, 281, 285, 287]))
+        calc_indices = ivy.sort(ivy.argsort(output)[-5:][::-1])
+
         assert ivy.array_equal(true_indices, calc_indices[:4])
