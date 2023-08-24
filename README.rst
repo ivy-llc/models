@@ -60,7 +60,7 @@ Getting started
 
     import ivy
     from ivy_models import alexnet
-    ivy.set_backend(“torch”)
+    ivy.set_backend("torch")
     model = alexnet()
 
 The pretrained AlexNet model is now ready to be used, and is compatible with any other PyTorch code.
