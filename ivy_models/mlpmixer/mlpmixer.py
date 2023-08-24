@@ -122,7 +122,7 @@ class MLPMixer(BaseModel):
     def _forward(self, x, data_format=None):
         data_format = data_format if data_format else self.spec.data_format
         if data_format == "NCHW":
-            x = ivy.permute_dims(x, (0, 3, 1, 2))
+            x = ivy.permute_dims(x, (0, 2, 3, 1))
         x = self.conv(x)
         x = x.reshape(
             (int(x.shape[0]), int(x.shape[1]) * int(x.shape[2]), int(x.shape[3]))

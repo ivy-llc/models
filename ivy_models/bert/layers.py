@@ -32,7 +32,9 @@ class BertEmbedding(ivy.Module):
         self.position_embeddings = ivy.Embedding(
             self.max_position_embeddings, self.hidden_size
         )
-        self.token_type_embeddings = ivy.Embedding(self.type_token_size, self.hidden_size)
+        self.token_type_embeddings = ivy.Embedding(
+            self.type_token_size, self.hidden_size
+        )
         self.dropout = ivy.Dropout(self.drop_rate)
         self.LayerNorm = ivy.LayerNorm([self.hidden_size], eps=self.layer_norm_eps)
 

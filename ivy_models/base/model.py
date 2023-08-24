@@ -170,4 +170,7 @@ class BaseModel(ivy.Module):
             spec = self.get_spec_class().from_json_file(config_path)
             os.remove(config_path)
 
-            return self(spec=spec, v=weights)
+            model = self(spec=spec)
+            model.v = weights
+
+            return model
