@@ -20,6 +20,8 @@ class InceptionNetSpec(BaseSpec):
     def __init__(
         self, num_classes=1000, training=False, dropout=0.5, data_format="NCHW"
     ):
+        if not training:
+            dropout = 0
         super(InceptionNetSpec, self).__init__(
             num_classes=num_classes,
             training=training,
@@ -50,6 +52,8 @@ class InceptionV3(BaseModel):
         spec=None,
         v=None,
     ) -> None:
+        if not training:
+            dropout = 0
         self.spec = (
             spec
             if spec and isinstance(spec, InceptionNetSpec)
@@ -194,11 +198,15 @@ def _inceptionNet_v3_torch_weights_mapping(old_key, new_key):
     return new_key
 
 
-
-def inceptionNet_v3(pretrained=True, num_classes=1000, dropout=0.5, data_format="NCHW"):
+def inceptionNet_v3(
+    pretrained=True, training=False, num_classes=1000, dropout=0.5, data_format="NCHW"
+):
     """InceptionNet-V3 model"""
     model = InceptionV3(
-        num_classes=num_classes, dropout=dropout, data_format=data_format
+        num_classes=num_classes,
+        training=training,
+        dropout=dropout,
+        data_format=data_format,
     )
     if pretrained:
         url = "https://download.pytorch.org/models/inception_v3_google-0cc3c7bd.pth"
