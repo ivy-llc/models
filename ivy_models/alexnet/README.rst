@@ -27,21 +27,11 @@
 AlexNet
 ===========
 
-AlexNet competed in the ImageNet Large Scale Visual Recognition Challenge on September 30, 2012. 
+`AlexNet <https://arxiv.org/abs/1404.5997>`_ competed in the ImageNet Large Scale Visual Recognition Challenge on September 30, 2012. 
 
 The network achieved a top-5 error of 15.3%, more than 10.8 percentage points lower than that of the runner up. 
 The original paper’s primary result was that the depth of the model was essential for its high performance, which was computationally expensive, 
 but made feasible due to the utilization of graphics processing units (GPUs) during training.
-
-Setting up
-------------
-
-.. code-block:: bash
-
-    git clone https://github.com/unifyai/models
-    cd models
-    pip install .
-    pip install -r requirements.txt  # this is not redundant, it installs latest ivy code which is a dependency 😄
 
 Getting started
 -----------------
@@ -56,19 +46,18 @@ Getting started
 The pretrained AlexNet model is now ready to be used, and is compatible with any other PyTorch code.
 See `this demo <https://unify.ai/demos/examples_and_demos/alexnet_demo.html>`_ for more usage example.
 
-
-References
------------------------------
-1. `One weird trick for parallelizing convolutional neural networks <https://arxiv.org/abs/1404.5997>`_
-
-
-
-
-
 Citation
 --------
 
 ::
+
+    @article{
+      title={One weird trick for parallelizing convolutional neural networks},
+      author={Alex Krizhevsky},
+      journal={arXiv preprint arXiv:1404.5997},
+      year={2014}
+    }
+
 
     @article{lenton2021ivy,
       title={Ivy: Templated deep learning for inter-framework portability},
