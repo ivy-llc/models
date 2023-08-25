@@ -1,0 +1,4 @@
+'random_test_tensor shape is: ivy.Shape(1, 224, 224, 3)'
+'Test Successfull!'
+'random_test_tensor shape is: ivy.Shape(1, 28, 28, 192)'
+'Test Successfull!'
