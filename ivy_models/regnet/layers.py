@@ -189,7 +189,7 @@ class SqueezeExcitation(ivy.Module):
         scale = self.fc2(scale)
         return self.scale_activation(scale)
 
-    def forward(self, input: ivy.Array) -> ivy.Array:
+    def _forward(self, input: ivy.Array) -> ivy.Array:
         scale = self._scale(input)
         return scale * input
 

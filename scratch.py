@@ -1,9 +1,6 @@
 from ivy_models.helpers import load_torch_weights
 from ivy_models.regnet.regnet import RegNet
 from ivy_models.regnet.layers import BlockParams
-import ivy
-
-ivy.set_backend("torch")
 
 # num_classes = 1000
 # dropout = 0.5
