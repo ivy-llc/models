@@ -189,11 +189,10 @@ class InceptionV3(BaseModel):
 
 
 def _inceptionNet_v3_torch_weights_mapping(old_key, new_key):
-    W_KEY = ["conv/weight"]
-    new_mapping = new_key
-    if any([kc in old_key for kc in W_KEY]):
-        new_mapping = {"key_chain": new_key, "pattern": "b c h w -> h w c b"}
-    return new_mapping
+    if "conv/weight" in old_key:
+        return {"key_chain": new_key, "pattern": "b c h w -> h w c b"}
+    return new_key
+
 
 
 def inceptionNet_v3(pretrained=True, num_classes=1000, dropout=0.5, data_format="NCHW"):
