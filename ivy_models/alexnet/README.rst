@@ -59,7 +59,7 @@ See `this demo <https://unify.ai/demos/examples_and_demos/alexnet_demo.html>`_ f
 
 References
 -----------------------------
-1. `One weird trick for parallelizing convolutional neural networks <https://arxiv.org/abs/1404.5997>`
+1. `One weird trick for parallelizing convolutional neural networks <https://arxiv.org/abs/1404.5997>`_
 
 
 
