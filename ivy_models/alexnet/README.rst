@@ -58,11 +58,10 @@ Getting started
     print("Categories of the top 3 classes are:", [categories[i] for i in classes.to_list()])
 
 
-    """
-    Indices of the top 3 classes are: ivy.array([282, 281, 285], dev=gpu:0)
-    Logits of the top 3 classes are: ivy.array([0.64773697, 0.29496649, 0.04526037], dev=gpu:0)
-    Categories of the top 3 classes are: ['tiger cat', 'tabby', 'Egyptian cat']
-    """"
+    `Indices of the top 3 classes are: ivy.array([282, 281, 285], dev=gpu:0)`
+    `Logits of the top 3 classes are: ivy.array([0.64773697, 0.29496649, 0.04526037], dev=gpu:0)`
+    `Categories of the top 3 classes are: ['tiger cat', 'tabby', 'Egyptian cat']`
+
 
 The pretrained AlexNet model is now ready to be used, and is compatible with any Tensorflow, Jax and PyTorch code.
 See `this demo <https://unify.ai/demos/examples_and_demos/alexnet_demo.html>`_ for more usage example.
