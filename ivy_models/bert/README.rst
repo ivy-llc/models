@@ -44,14 +44,14 @@ Getting started
     # Instantiate Bert
     ivy_bert = ivy_models.bert_base_uncased(pretrained=True)
 
-    ivy_inputs = {k:ivy.asarray(v.numpy()) for k, v in inputs.items()}
+    # Convert the input data to Ivy tensors
+    ivy_inputs = {k: ivy.asarray(v.numpy()) for k, v in inputs.items()}
 
+    # Compile the Ivy BERT model with the Ivy input tensors
     ivy_bert.compile(kwargs=ivy_inputs)
 
+    # Pass the Ivy input tensors through the Ivy BERT model and obtain the pooler output
     ivy_output = ivy_bert(**ivy_inputs)['pooler_output']
-    print(f"logits shapes, Ivy: {list(ivy_output.shape)}, torch: {list(bert_output.shape)}")
-
-    `logits shapes, Ivy: [1, 768], torch: [1, 768]`
 
 
 See `this demo <https://github.com/unifyai/demos/blob/main/examples_and_demos/bert_demo.ipynb>`_ for more usage example.
