@@ -1,3 +1,5 @@
+.. title:: Ivy Models
+
 .. include:: ../README.rst
 
 .. autosummary::
