@@ -79,7 +79,7 @@ class InceptionAux(ivy.Module):
 
     def _forward(self, x):
         # N x 768 x 17 x 17
-        x = ivy.avg_pool2d(x, (5, 5), (3, 3), "valid", data_format="NHWC")
+        x = ivy.avg_pool2d(x, (5, 5), (3, 3), "valid")
 
         # N x 768 x 5 x 5
         x = self.conv0(x)

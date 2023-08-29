@@ -18,7 +18,7 @@ from typing import List
 
 class InceptionNetSpec(BaseSpec):
     def __init__(
-        self, num_classes=1000, training=False, dropout=0.5, data_format="NCHW"
+        self, num_classes=1000, training=False, dropout=0.5, data_format="NHWC"
     ):
         if not training:
             dropout = 0
@@ -48,7 +48,7 @@ class InceptionV3(BaseModel):
         num_classes: int = 1000,
         training: bool = False,
         dropout: float = 0.5,
-        data_format: str = "NCHW",
+        data_format: str = "NHWC",
         spec=None,
         v=None,
     ) -> None:
@@ -199,7 +199,7 @@ def _inceptionNet_v3_torch_weights_mapping(old_key, new_key):
 
 
 def inceptionNet_v3(
-    pretrained=True, training=False, num_classes=1000, dropout=0.5, data_format="NCHW"
+    pretrained=True, training=False, num_classes=1000, dropout=0.5, data_format="NHWC"
 ):
     """InceptionNet-V3 model"""
     model = InceptionV3(

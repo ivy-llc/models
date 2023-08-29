@@ -1,4 +1,5 @@
 import os
+import random
 import ivy
 import pytest
 import numpy as np
@@ -8,15 +9,16 @@ import jax
 
 jax.config.update("jax_enable_x64", False)
 
+load_weights = random.choice([False, True])
+model = inceptionNet_v3(pretrained=load_weights)
+v = ivy.to_numpy(model.v)
 
-@pytest.mark.parametrize("batch_shape", [[1]])
-@pytest.mark.parametrize("load_weights", [False, True])
+
 @pytest.mark.parametrize("data_format", ["NHWC", "NCHW"])
-def test_inceptionNet_v3_img_classification(
-    device, fw, batch_shape, load_weights, data_format
-):
+def test_inceptionNet_v3_img_classification(device, fw, data_format):
     """Test InceptionNetV3 image classification."""
     num_classes = 1000
+    batch_shape = [1]
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # Load image
@@ -29,7 +31,7 @@ def test_inceptionNet_v3_img_classification(
     )
 
     # Create model
-    model = inceptionNet_v3(pretrained=load_weights)
+    model.v = ivy.asarray(v)
     logits, _ = model(img, data_format=data_format)
 
     # Cardinality test
