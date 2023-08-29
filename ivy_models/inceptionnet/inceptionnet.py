@@ -23,8 +23,8 @@ class InceptionNetSpec(BaseSpec):
         if not training:
             dropout = 0
         super(InceptionNetSpec, self).__init__(
-            num_classes=num_classes,
             training=training,
+            num_classes=num_classes,
             dropout=dropout,
             data_format=data_format,
         )
@@ -45,8 +45,8 @@ class InceptionV3(BaseModel):
 
     def __init__(
         self,
-        num_classes: int = 1000,
         training: bool = False,
+        num_classes: int = 1000,
         dropout: float = 0.5,
         data_format: str = "NHWC",
         spec=None,
@@ -58,8 +58,8 @@ class InceptionV3(BaseModel):
             spec
             if spec and isinstance(spec, InceptionNetSpec)
             else InceptionNetSpec(
-                num_classes=num_classes,
                 training=training,
+                num_classes=num_classes,
                 dropout=dropout,
                 data_format=data_format,
             )
@@ -203,8 +203,8 @@ def inceptionNet_v3(
 ):
     """InceptionNet-V3 model"""
     model = InceptionV3(
-        num_classes=num_classes,
         training=training,
+        num_classes=num_classes,
         dropout=dropout,
         data_format=data_format,
     )
