@@ -51,7 +51,6 @@ Setting up
     git clone https://github.com/unifyai/models
     cd models
     pip install .
-    pip install -r requirements.txt  # this is not redundant, it installs latest ivy code which is a dependency 😄
 
 Getting started
 -----------------
