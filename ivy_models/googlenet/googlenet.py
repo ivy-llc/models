@@ -84,7 +84,7 @@ class GoogLeNet(BaseModel):
         self.pool6 = ivy.AdaptiveAvgPool2d([1, 1])
 
         self.dropout = ivy.Dropout(self.spec.dropout)
-        self.fc = ivy.Linear(1024, self.spec.num_classes, with_bias=False)
+        self.fc = ivy.Linear(1024, self.spec.num_classes, with_bias=True)
 
     @classmethod
     def get_spec_class(self):

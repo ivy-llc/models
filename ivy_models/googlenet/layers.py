@@ -109,9 +109,9 @@ class InceptionAuxiliaryBlock(ivy.Module):
 
     def _build(self, *args, **kwargs):
         self.conv = InceptionConvBlock(self.in_channels, 128, [1, 1], 1, 0)
-        self.fc1 = ivy.Linear(2048, 1024)
+        self.fc1 = ivy.Linear(2048, 1024, with_bias=True)
         self.dropout = ivy.Dropout(self.aux_dropout)
-        self.fc2 = ivy.Linear(1024, self.num_classes)
+        self.fc2 = ivy.Linear(1024, self.num_classes, with_bias=True)
         self.softmax = ivy.Softmax()
 
     def _forward(self, x):
