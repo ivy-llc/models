@@ -162,7 +162,7 @@ class InceptionV3(BaseModel):
         aux = None
         if self.spec.training:
             aux = self.AuxLogits(x)
-        #         # N x 768 x 17 x 17
+            # N x 768 x 17 x 17
 
         x = self.Mixed_7a(x)
         # N x 1280 x 8 x 8
