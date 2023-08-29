@@ -27,7 +27,7 @@
 U-Net
 ===========
 
-`Unet <https://arxiv.org/abs/1505.04597>`_ The UNET architecture and training approach effectively leverage data augmentation to make the most of 
+The `U-Net <https://arxiv.org/abs/1505.04597>`_  architecture and training approach effectively leverage data augmentation to make the most of 
 available annotated samples, even with limited data. The design features a contracting path for context capture and a symmetric expanding path 
 for precise localization. Notably, this UNET network achieves superior performance with minimal images during end-to-end training. 
 It surpasses previous methods, including a sliding-window convolutional network, in the ISBI challenge for segmenting neuronal structures in 
