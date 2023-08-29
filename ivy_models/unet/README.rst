@@ -24,7 +24,7 @@
     </a>
     <br clear="all" />
 
-Unet
+U-Net
 ===========
 
 `Unet <https://arxiv.org/abs/1505.04597>`_ The UNET architecture and training approach effectively leverage data augmentation to make the most of 

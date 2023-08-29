@@ -24,7 +24,7 @@
     </a>
     <br clear="all" />
 
-Bert
+BERT
 ===========
 
 `BERT <https://arxiv.org/abs/1810.04805>`_ short for Bidirectional Encoder Representations from Transformers, differentiates itself from 
