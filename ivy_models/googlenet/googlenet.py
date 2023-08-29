@@ -22,6 +22,7 @@ class GoogLeNetSpec(BaseSpec):
             dropout = 0
             aux_dropout = 0
         super(GoogLeNetSpec, self).__init__(
+            training=training,
             num_classes=num_classes,
             dropout=dropout,
             aux_dropout=aux_dropout,
@@ -104,13 +105,17 @@ class GoogLeNet(BaseModel):
         out = ivy.max_pool2d(out, [3, 3], 2, 0, ceil_mode=True, data_format="NCHW")
         out = self.inception4A(out)
 
-        aux1 = self.aux4A(out)
+        aux1 = None
+        if self.spec.training:
+            aux1 = self.aux4A(out)
 
         out = self.inception4B(out)
         out = self.inception4C(out)
         out = self.inception4D(out)
 
-        aux2 = self.aux4D(out)
+        aux2 = None
+        if self.spec.training:
+            aux2 = self.aux4D(out)
 
         out = self.inception4E(out)
         out = ivy.max_pool2d(out, [2, 2], 2, 0, ceil_mode=True, data_format="NCHW")
