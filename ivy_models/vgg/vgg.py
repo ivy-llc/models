@@ -27,16 +27,25 @@ def vgg_block(inp_channel, out_channel, repeat, with_bn=False):
 
 
 class VGGSpec(BaseSpec):
-    def __init__(self, repeats, with_bn=False, num_classes=1000):
+    def __init__(self, repeats, with_bn=False, num_classes=1000, data_format="NHWC"):
         super(VGGSpec, self).__init__(
             repeats=repeats,
             with_bn=with_bn,
             num_classes=num_classes,
+            data_format=data_format,
         )
 
 
 class VGG(BaseModel):
-    def __init__(self, repeats, with_bn=False, num_classes=1000, spec=None, v=None):
+    def __init__(
+        self,
+        repeats,
+        with_bn=False,
+        num_classes=1000,
+        spec=None,
+        data_format="NHWC",
+        v=None,
+    ):
         self.spec = (
             spec
             if spec and isinstance(spec, VGGSpec)
@@ -44,6 +53,7 @@ class VGG(BaseModel):
                 repeats=repeats,
                 with_bn=with_bn,
                 num_classes=num_classes,
+                data_format=data_format,
             )
         )
         super(VGG, self).__init__(v=v)
@@ -74,7 +84,10 @@ class VGG(BaseModel):
     def get_spec_class(self):
         return VGGSpec
 
-    def _forward(self, inputs):
+    def _forward(self, inputs, data_format):
+        data_format = data_format if data_format else self.spec.data_format
+        if data_format == "NCHW":
+            inputs = ivy.permute_dims(inputs, (0, 2, 3, 1))
         inputs = self.features(inputs)
         inputs = ivy.permute_dims(inputs, (0, 3, 2, 1)).reshape((inputs.shape[0], -1))
         return self.classifier(inputs)
@@ -90,7 +103,7 @@ def _vgg_torch_weights_mapping(old_key, new_key):
     return new_mapping
 
 
-def vgg11(pretrained=True):
+def vgg11(pretrained=True, data_format="NHWC"):
     """VGG11 model"""
 
     model = VGG([1, 1, 2, 2, 2], False)
@@ -103,7 +116,7 @@ def vgg11(pretrained=True):
     return model
 
 
-def vgg11_bn(pretrained=True):
+def vgg11_bn(pretrained=True, data_format="NHWC"):
     """VGG11 model with BatchNorm2D"""
 
     model = VGG([1, 1, 2, 2, 2], True)
@@ -116,7 +129,7 @@ def vgg11_bn(pretrained=True):
     return model
 
 
-def vgg13(pretrained=True):
+def vgg13(pretrained=True, data_format="NHWC"):
     """VGG13 model"""
 
     model = VGG([2, 2, 2, 2, 2], False)
@@ -129,7 +142,7 @@ def vgg13(pretrained=True):
     return model
 
 
-def vgg13_bn(pretrained=True):
+def vgg13_bn(pretrained=True, data_format="NHWC"):
     """VGG13 model with BatchNorm2D"""
 
     model = VGG([2, 2, 2, 2, 2], True)
@@ -142,7 +155,7 @@ def vgg13_bn(pretrained=True):
     return model
 
 
-def vgg16(pretrained=True):
+def vgg16(pretrained=True, data_format="NHWC"):
     """VGG16 model"""
 
     model = VGG([2, 2, 3, 3, 3], False)
@@ -155,7 +168,7 @@ def vgg16(pretrained=True):
     return model
 
 
-def vgg16_bn(pretrained=True):
+def vgg16_bn(pretrained=True, data_format="NHWC"):
     """VGG16 model with BatchNorm2D"""
 
     model = VGG([2, 2, 3, 3, 3], True)
@@ -168,7 +181,7 @@ def vgg16_bn(pretrained=True):
     return model
 
 
-def vgg19(pretrained=True):
+def vgg19(pretrained=True, data_format="NHWC"):
     """VGG19 model"""
 
     model = VGG([2, 2, 4, 4, 4], False)
@@ -181,7 +194,7 @@ def vgg19(pretrained=True):
     return model
 
 
-def vgg19_bn(pretrained=True):
+def vgg19_bn(pretrained=True, data_format="NHWC"):
     """VGG19 model with BatchNorm2D"""
 
     model = VGG([2, 2, 4, 4, 4], True)
