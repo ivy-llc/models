@@ -127,11 +127,7 @@ setup(
         "Source": "https://github.com/unifyai/models",
     },
     packages=setuptools.find_packages(),
-    install_requires=[
-        _strip(line)
-        for line in open("requirements.txt", "r")
-        if not line.startswith("git")
-    ],
+    install_requires=[_strip(line) for line in open("requirements.txt", "r")],
     classifiers=["License :: OSI Approved :: Apache Software License"],
     license="Apache 2.0",
 )
