@@ -18,13 +18,15 @@ class Embedding(ivy.Module):
         self.vocab_size = vocab_size
         self.embed_dim = embed_dim
         self.max_norm = max_norm
-        self._w_init = ivy.RandomNormal(
-            0.0, 1.0, shape=(self.vocab_size, self.embed_dim)
-        )
+        self._w_init = ivy.RandomNormal(0.0, 1.0)
         super(Embedding, self).__init__(device=device, dtype=dtype)
 
     def _create_variables(self, device=None, dtype=None):
-        v = {"weight": self._w_init.create_variables(device=device, dtype=dtype)}
+        v = {
+            "weight": self._w_init.create_variables(
+                var_shape=(self.vocab_size, self.embed_dim), device=device, dtype=dtype
+            )
+        }
         return v
 
     def _forward(self, x):
@@ -126,13 +128,12 @@ class CLIPAttentionPool2d(ivy.Module):
     def __init__(
         self, spacial_dim: int, embed_dim: int, num_heads: int, output_dim: int = None
     ):
+        self.spacial_dim = spacial_dim
         self.embed_dim = embed_dim
         self.num_heads = num_heads
         self.output_dim = output_dim
         self.dot_prod_scale = (embed_dim // self.num_heads) ** -0.5
-        self._pos_embed_init = ivy.RandomNormal(
-            0.0, 1.0, shape=(spacial_dim**2 + 1, embed_dim)
-        )
+        self._pos_embed_init = ivy.RandomNormal(0.0, 1.0)
         super().__init__()
 
     def _build(self, *args, **kwargs):
@@ -144,7 +145,9 @@ class CLIPAttentionPool2d(ivy.Module):
     def _create_variables(self, device=None, dtype=None):
         v = {
             "positional_embedding": self._pos_embed_init.create_variables(
-                device=device, dtype=dtype
+                var_shape=(self.spacial_dim**2 + 1, self.embed_dim),
+                device=device,
+                dtype=dtype,
             )
             / self.embed_dim**0.5
         }
@@ -348,11 +351,9 @@ class CLIPVisionTransformer(ivy.Module):
         self.output_dim = output_dim
 
         self._scale = width**-0.5
-        self._class_embed_init = ivy.RandomNormal(0.0, 1.0, shape=width)
-        self._pos_embed_init = ivy.RandomNormal(
-            0.0, 1.0, shape=((input_resolution // patch_size) ** 2 + 1, width)
-        )
-        self._proj_init = ivy.RandomNormal(0.0, 1.0, shape=(width, output_dim))
+        self._class_embed_init = ivy.RandomNormal(0.0, 1.0)
+        self._pos_embed_init = ivy.RandomNormal(0.0, 1.0)
+        self._proj_init = ivy.RandomNormal(0.0, 1.0)
         super().__init__()
 
     def _build(self, *args, **kwargs):
@@ -375,14 +376,21 @@ class CLIPVisionTransformer(ivy.Module):
     def _create_variables(self, device=None, dtype=None):
         v = {
             "class_embedding": self._class_embed_init.create_variables(
-                device=device, dtype=dtype
+                var_shape=self.width, device=device, dtype=dtype
             )
             * self._scale,
             "positional_embedding": self._pos_embed_init.create_variables(
-                device=device, dtype=dtype
+                var_shape=(
+                    (self.input_resolution // self.patch_size) ** 2 + 1,
+                    self.width,
+                ),
+                device=device,
+                dtype=dtype,
             )
             * self._scale,
-            "proj": self._proj_init.create_variables(device=device, dtype=dtype)
+            "proj": self._proj_init.create_variables(
+                var_shape=(self.width, self.output_dim), device=device, dtype=dtype
+            )
             * self._scale,
         }
         return v
