@@ -24,10 +24,10 @@
     </a>
     <br clear="all" />
 
-RESNET
+ResNet 
 ===========
 
-`RESNET <https://arxiv.org/abs/1512.03385>`_ also known as Residual Network is a deep learning model utilized in computer vision tasks. 
+`ResNet <https://arxiv.org/abs/1512.03385>`_ also known as Residual Network is a deep learning model utilized in computer vision tasks. 
 It's a type of Convolutional Neural Network (CNN) architecture designed to accommodate a large number of convolutional layers, 
 possibly ranging from hundreds to thousands. ResNet addresses the challenge of diminishing gradients, a problem encountered during training, 
 by introducing a concept called "skip connections." These connections enable the network to skip over several initial layers, 
