@@ -1,32 +1,24 @@
 # global
 import pytest
-from typing import Dict
 
 # local
 import ivy
-from ivy_tests.test_ivy import helpers
+import jax
+
+jax.config.update("jax_enable_x64", True)
 
 
 FW_STRS = ["numpy", "jax", "tensorflow", "torch"]
 
 
-TEST_FRAMEWORKS: Dict[str, callable] = {
-    "numpy": lambda: helpers.globals._get_ivy_numpy(),
-    "jax": lambda: helpers.globals._get_ivy_jax(),
-    "tensorflow": lambda: helpers.globals._get_ivy_tensorflow(),
-    "torch": lambda: helpers.globals._get_ivy_torch(),
-}
-
-
 @pytest.fixture(autouse=True)
-def run_around_tests(device, f, wrapped_mode, compile_graph, fw):
+def run_around_tests(device, compile_graph, fw):
     if "gpu" in device and fw == "numpy":
         # Numpy does not support GPU
         pytest.skip()
-    ivy.unset_backend()
-    with f.use:
-        ivy.set_default_device(device)
-        yield
+    with ivy.utils.backend.ContextManager(fw):
+        with ivy.DefaultDevice(device):
+            yield
 
 
 def pytest_generate_tests(metafunc):
@@ -40,18 +32,9 @@ def pytest_generate_tests(metafunc):
     # framework
     raw_value = metafunc.config.getoption("--backend")
     if raw_value == "all":
-        f_strs = TEST_FRAMEWORKS.keys()
+        backend_strs = FW_STRS
     else:
-        f_strs = raw_value.split(",")
-
-    # wrapped_mode
-    raw_value = metafunc.config.getoption("--wrapped_mode")
-    if raw_value == "both":
-        wrapped_modes = [True, False]
-    elif raw_value == "true":
-        wrapped_modes = [True]
-    else:
-        wrapped_modes = [False]
+        backend_strs = raw_value.split(",")
 
     # compile_graph
     raw_value = metafunc.config.getoption("--compile_graph")
@@ -64,24 +47,14 @@ def pytest_generate_tests(metafunc):
 
     # create test configs
     configs = list()
-    for f_str in f_strs:
+    for backend_str in backend_strs:
         for device in devices:
-            for wrapped_mode in wrapped_modes:
-                for compile_graph in compile_modes:
-                    configs.append(
-                        (
-                            device,
-                            TEST_FRAMEWORKS[f_str](),
-                            wrapped_mode,
-                            compile_graph,
-                            f_str,
-                        )
-                    )
-    metafunc.parametrize("device,f,wrapped_mode,compile_graph,fw", configs)
+            for compile_graph in compile_modes:
+                configs.append((device, compile_graph, backend_str))
+    metafunc.parametrize("device,compile_graph,fw", configs)
 
 
 def pytest_addoption(parser):
     parser.addoption("--device", action="store", default="cpu")
     parser.addoption("--backend", action="store", default="numpy,jax,tensorflow,torch")
-    parser.addoption("--wrapped_mode", action="store", default="false")
     parser.addoption("--compile_graph", action="store", default="true")

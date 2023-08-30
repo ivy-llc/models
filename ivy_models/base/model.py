@@ -1,5 +1,6 @@
 import ivy
 import os
+import inspect
 from typing import Optional
 
 
@@ -14,6 +15,19 @@ class abstractclassmethod(classmethod):
 class BaseModel(ivy.Module):
     def __init__(self, *args, **kwargs):
         super(BaseModel, self).__init__(*args, **kwargs)
+
+    def __setattr__(self, key, value):
+        prev_call = inspect.getframeinfo(inspect.currentframe().f_back)[0]
+        from_test = "ivy_models_tests" in prev_call
+        from_ivy_module = "ivy/stateful/module" in prev_call
+        if (
+            key == "v"
+            and "v" in self.__dict__.keys()
+            and self.__dict__["v"] is not None
+            and not (from_test or from_ivy_module)
+        ):
+            ivy.Container.cont_assert_identical_structure([self.v, value])
+        self.__dict__[key] = value
 
     @abstractclassmethod
     def get_spec_class(self):
@@ -156,4 +170,7 @@ class BaseModel(ivy.Module):
             spec = self.get_spec_class().from_json_file(config_path)
             os.remove(config_path)
 
-            return self(spec=spec, v=weights)
+            model = self(spec=spec)
+            model.v = weights
+
+            return model

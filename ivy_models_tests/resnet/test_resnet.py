@@ -7,7 +7,7 @@ import jax
 # Enable x64 support in JAX
 jax.config.update("jax_enable_x64", True)
 from ivy_models_tests import helpers
-from ivy_models.resnet import (
+from ivy_models import (
     resnet_18,
     resnet_34,
     resnet_50,
@@ -39,7 +39,7 @@ model = VARIANTS[model_var](pretrained=load_weights)
 v = ivy.to_numpy(model.v)
 
 
-def test_resnet_img_classification(device, f, fw):
+def test_resnet_img_classification(device, fw):
     """Test ResNet-18 image classification."""
     num_classes = 1000
     batch_shape = [1]

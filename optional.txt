@@ -5,3 +5,4 @@ Pillow # mod_name=PIL
 huggingface_hub
 ftfy
 regex
+transformers

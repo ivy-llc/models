@@ -1,5 +1,6 @@
 import ivy
 import ivy_models
+from ivy_models.base import BaseSpec, BaseModel
 
 
 def vgg_conv_block(inp_channels, out_channels, with_bn=False):
@@ -25,17 +26,38 @@ def vgg_block(inp_channel, out_channel, repeat, with_bn=False):
     return layers
 
 
-class VGG(ivy.Module):
-    def __init__(self, repeats, with_bn=False, num_classes=1000, v=None):
+class VGGSpec(BaseSpec):
+    def __init__(self, repeats, with_bn=False, num_classes=1000):
+        super(VGGSpec, self).__init__(
+            repeats=repeats,
+            with_bn=with_bn,
+            num_classes=num_classes,
+        )
+
+
+class VGG(BaseModel):
+    def __init__(self, repeats, with_bn=False, num_classes=1000, spec=None, v=None):
+        self.spec = (
+            spec
+            if spec and isinstance(spec, VGGSpec)
+            else VGGSpec(
+                repeats=repeats,
+                with_bn=with_bn,
+                num_classes=num_classes,
+            )
+        )
+        super(VGG, self).__init__(v=v)
+
+    def _build(self, *args, **kwargs):
         self.training = False
         layers = []
         filters = [3, 64, 128, 256, 512, 512]
-        for idx, rep in enumerate(repeats):
+        for idx, rep in enumerate(self.spec.repeats):
             layers += vgg_block(
                 inp_channel=filters[idx],
                 out_channel=filters[idx + 1],
                 repeat=rep,
-                with_bn=with_bn,
+                with_bn=self.spec.with_bn,
             )
         self.features = ivy.Sequential(*layers)
         self.classifier = ivy.Sequential(
@@ -45,9 +67,12 @@ class VGG(ivy.Module):
             ivy.Linear(4096, 4096),
             ivy.ReLU(),
             ivy.Dropout(prob=0.5, training=self.training),
-            ivy.Linear(4096, num_classes),
+            ivy.Linear(4096, self.spec.num_classes),
         )
-        super(VGG, self).__init__(v=v)
+
+    @classmethod
+    def get_spec_class(self):
+        return VGGSpec
 
     def _forward(self, inputs):
         inputs = self.features(inputs)
@@ -67,103 +92,108 @@ def _vgg_torch_weights_mapping(old_key, new_key):
 
 def vgg11(pretrained=True):
     """VGG11 model"""
-    if not pretrained:
-        return VGG([1, 1, 2, 2, 2], False)
 
-    reference_model = VGG([1, 1, 2, 2, 2], False)
-    url = "https://download.pytorch.org/models/vgg11-8a719046.pth"
-    w_clean = ivy_models.helpers.load_torch_weights(
-        url, reference_model, custom_mapping=_vgg_torch_weights_mapping
-    )
-    return VGG([1, 1, 2, 2, 2], False, v=w_clean)
+    model = VGG([1, 1, 2, 2, 2], False)
+    if pretrained:
+        url = "https://download.pytorch.org/models/vgg11-8a719046.pth"
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url, model, custom_mapping=_vgg_torch_weights_mapping
+        )
+        model.v = w_clean
+    return model
 
 
 def vgg11_bn(pretrained=True):
     """VGG11 model with BatchNorm2D"""
-    if not pretrained:
-        return VGG([1, 1, 2, 2, 2], True)
 
-    reference_model = VGG([1, 1, 2, 2, 2], True)
-    url = "https://download.pytorch.org/models/vgg11_bn-6002323d.pth"
-    w_clean = ivy_models.helpers.load_torch_weights(
-        url, reference_model, custom_mapping=_vgg_torch_weights_mapping
-    )
-    return VGG([1, 1, 2, 2, 2], True, v=w_clean)
+    model = VGG([1, 1, 2, 2, 2], True)
+    if pretrained:
+        url = "https://download.pytorch.org/models/vgg11_bn-6002323d.pth"
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url, model, custom_mapping=_vgg_torch_weights_mapping
+        )
+        model.v = w_clean
+    return model
 
 
 def vgg13(pretrained=True):
     """VGG13 model"""
-    if not pretrained:
-        return VGG([2, 2, 2, 2, 2], False)
 
-    reference_model = VGG([2, 2, 2, 2, 2], False)
-    url = "https://download.pytorch.org/models/vgg13-19584684.pth"
-    w_clean = ivy_models.helpers.load_torch_weights(
-        url, reference_model, custom_mapping=_vgg_torch_weights_mapping
-    )
-    return VGG([2, 2, 2, 2, 2], False, v=w_clean)
+    model = VGG([2, 2, 2, 2, 2], False)
+    if pretrained:
+        url = "https://download.pytorch.org/models/vgg13-19584684.pth"
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url, model, custom_mapping=_vgg_torch_weights_mapping
+        )
+        model.v = w_clean
+    return model
 
 
 def vgg13_bn(pretrained=True):
     """VGG13 model with BatchNorm2D"""
-    if not pretrained:
-        return VGG([2, 2, 2, 2, 2], True)
 
-    reference_model = VGG([2, 2, 2, 2, 2], True)
-    url = "https://download.pytorch.org/models/vgg13_bn-abd245e5.pth"
-    w_clean = ivy_models.helpers.load_torch_weights(
-        url, reference_model, custom_mapping=_vgg_torch_weights_mapping
-    )
-    return VGG([2, 2, 2, 2, 2], True, v=w_clean)
+    model = VGG([2, 2, 2, 2, 2], True)
+    if pretrained:
+        url = "https://download.pytorch.org/models/vgg13_bn-abd245e5.pth"
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url, model, custom_mapping=_vgg_torch_weights_mapping
+        )
+        model.v = w_clean
+    return model
 
 
 def vgg16(pretrained=True):
     """VGG16 model"""
-    if not pretrained:
-        return VGG([2, 2, 3, 3, 3], False)
 
-    reference_model = VGG([2, 2, 3, 3, 3], False)
-    url = "https://download.pytorch.org/models/vgg16-397923af.pth"
-    w_clean = ivy_models.helpers.load_torch_weights(
-        url, reference_model, custom_mapping=_vgg_torch_weights_mapping
-    )
-    return VGG([2, 2, 3, 3, 3], False, v=w_clean)
+    model = VGG([2, 2, 3, 3, 3], False)
+    if pretrained:
+        url = "https://download.pytorch.org/models/vgg16-397923af.pth"
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url, model, custom_mapping=_vgg_torch_weights_mapping
+        )
+        model.v = w_clean
+    return model
 
 
 def vgg16_bn(pretrained=True):
     """VGG16 model with BatchNorm2D"""
-    if not pretrained:
-        return VGG([2, 2, 3, 3, 3], True)
 
-    reference_model = VGG([2, 2, 3, 3, 3], True)
-    url = "https://download.pytorch.org/models/vgg16_bn-6c64b313.pth"
-    w_clean = ivy_models.helpers.load_torch_weights(
-        url, reference_model, custom_mapping=_vgg_torch_weights_mapping
-    )
-    return VGG([2, 2, 3, 3, 3], True, v=w_clean)
+    model = VGG([2, 2, 3, 3, 3], True)
+    if pretrained:
+        url = "https://download.pytorch.org/models/vgg16_bn-6c64b313.pth"
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url, model, custom_mapping=_vgg_torch_weights_mapping
+        )
+        model.v = w_clean
+    return model
 
 
 def vgg19(pretrained=True):
     """VGG19 model"""
-    if not pretrained:
-        return VGG([2, 2, 4, 4, 4], False)
 
-    reference_model = VGG([2, 2, 4, 4, 4], False)
-    url = "https://download.pytorch.org/models/vgg19-dcbb9e9d.pth"
-    w_clean = ivy_models.helpers.load_torch_weights(
-        url, reference_model, custom_mapping=_vgg_torch_weights_mapping
-    )
-    return VGG([2, 2, 4, 4, 4], False, v=w_clean)
+    model = VGG([2, 2, 4, 4, 4], False)
+    if pretrained:
+        url = "https://download.pytorch.org/models/vgg19-dcbb9e9d.pth"
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url, model, custom_mapping=_vgg_torch_weights_mapping
+        )
+        model.v = w_clean
+    return model
 
 
 def vgg19_bn(pretrained=True):
     """VGG19 model with BatchNorm2D"""
-    if not pretrained:
-        return VGG([2, 2, 4, 4, 4], True)
 
-    reference_model = VGG([2, 2, 4, 4, 4], True)
-    url = "https://download.pytorch.org/models/vgg19_bn-c79401a0.pth"
-    w_clean = ivy_models.helpers.load_torch_weights(
-        url, reference_model, custom_mapping=_vgg_torch_weights_mapping
-    )
-    return VGG([2, 2, 4, 4, 4], True, v=w_clean)
+    model = VGG([2, 2, 4, 4, 4], True)
+    if pretrained:
+        url = "https://download.pytorch.org/models/vgg19_bn-c79401a0.pth"
+        w_clean = ivy_models.helpers.load_torch_weights(
+            url, model, custom_mapping=_vgg_torch_weights_mapping
+        )
+        model.v = w_clean
+    return model
+
+
+if __name__ == "__main__":
+    ivy.set_torch_backend()
+    model = vgg11()

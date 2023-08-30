@@ -20,6 +20,7 @@ with_time_logs/
 *.csv#
 *.ods
 .DS_Store
+.vscode
 
 # Environments
 .env
