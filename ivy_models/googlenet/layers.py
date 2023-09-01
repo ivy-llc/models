@@ -20,7 +20,9 @@ class InceptionConvBlock(ivy.Module):
             with_bias=False,
             data_format="NCHW",
         )
-        self.bn = ivy.BatchNorm2D(self.out_channels, eps=0.001, data_format="NCS")
+        self.bn = ivy.BatchNorm2D(
+            self.out_channels, eps=0.001, data_format="NCS", training=False
+        )
 
     def _forward(self, x):
         x = self.conv(x)
