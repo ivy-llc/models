@@ -1,0 +1,10 @@
+git+https://github.com/unifyai/ivy.git@main
+scipy
+tensorflow
+jax
+jaxlib
+pillow
+torch
+torchvision
+tensorflow_probability
+dm-haiku
