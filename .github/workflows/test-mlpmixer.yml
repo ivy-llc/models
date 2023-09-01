@@ -1,4 +1,4 @@
-name: test-densenet
+name: test-mlpmixer
 on: [push, pull_request, workflow_dispatch]
 jobs:
   run-nightly-tests:
@@ -14,4 +14,4 @@ jobs:
       - name: Run Tests
         run: |
           cd models
-          docker run --rm -v `pwd`:/models unifyai/models:latest python3 -m pytest ivy_models_tests/densenet
+          docker run --rm -v `pwd`:/models unifyai/models:latest python3 -m pytest ivy_models_tests/mlpmixer
