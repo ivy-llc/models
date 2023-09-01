@@ -9,7 +9,7 @@ from ivy_models.base import BaseSpec, BaseModel
 
 
 class ResNetSpec(BaseSpec):
-    """ResNetSpec class."""
+    """ResNetSpec class"""
 
     def __init__(
         self,
