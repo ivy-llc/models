@@ -139,12 +139,26 @@ def load_torch_weights(
     ref_keys_to_prune=[],
     custom_mapping=None,
     map_location=torch.device("cpu"),
+    jit=False,
+    data_type=None,
 ):
     ivy_torch = ivy.with_backend("torch")
     weights = torch.hub.load_state_dict_from_url(url, map_location=map_location)
-    weights_raw = ivy.Container(
-        ivy_torch.to_numpy(ivy_torch.Container(weights)).cont_to_dict()
-    )
+
+    if jit:
+        weights = weights.state_dict()
+
+    if data_type:
+        weights_raw = ivy.Container(
+            ivy_torch.to_numpy(
+                ivy_torch.Container(weights).astype(data_type)
+            ).cont_to_dict()
+        )
+    else:
+        weights_raw = ivy.Container(
+            ivy_torch.to_numpy(ivy_torch.Container(weights)).cont_to_dict()
+        )
+
     weights_raw, weights_ref, pruned_ref = _prune_keys(
         weights_raw, ref_model.v, raw_keys_to_prune, ref_keys_to_prune
     )
