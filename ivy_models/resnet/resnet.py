@@ -9,10 +9,7 @@ from ivy_models.base import BaseSpec, BaseModel
 
 
 class ResNetSpec(BaseSpec):
-    """
-    ResNetSpec class.
-
-    """
+    """ResNetSpec class."""
 
     def __init__(
         self,
@@ -74,7 +71,7 @@ class ResNet(BaseModel):
             self.spec.replace_stride_with_dilation = [False, False, False]
 
         self.conv1 = ivy.Conv2D(3, self.inplanes, [7, 7], 2, 3, with_bias=False)
-        self.bn1 = ivy.BatchNorm2D(self.inplanes)
+        self.bn1 = ivy.BatchNorm2D(self.inplanes, training=False)
         self.relu = ivy.ReLU()
         self.maxpool = ivy.MaxPool2D(3, 2, 1)
         self.layer1 = self._make_layer(self.spec.block, 64, self.spec.layers[0])
@@ -118,7 +115,7 @@ class ResNet(BaseModel):
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = ivy.Sequential(
                 conv1x1(self.inplanes, planes * block.expansion, stride),
-                ivy.BatchNorm2D(planes * block.expansion),
+                ivy.BatchNorm2D(planes * block.expansion, training=False),
             )
 
         layers = []
