@@ -13,12 +13,12 @@ class UNetDoubleConv(ivy.Module):
             ivy.Conv2D(
                 self.in_channels, self.mid_channels, [3, 3], 1, 1, with_bias=False
             ),
-            ivy.BatchNorm2D(self.mid_channels),
+            ivy.BatchNorm2D(self.mid_channels, training=False),
             ivy.ReLU(),
             ivy.Conv2D(
                 self.mid_channels, self.out_channels, [3, 3], 1, 1, with_bias=False
             ),
-            ivy.BatchNorm2D(self.out_channels),
+            ivy.BatchNorm2D(self.out_channels, training=False),
             ivy.ReLU(),
         )
 
