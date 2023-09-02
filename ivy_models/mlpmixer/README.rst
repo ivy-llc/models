@@ -43,7 +43,7 @@ Getting started
 
 .. code-block:: python
 
-    ! pip install huggingface_hub
+    !pip install huggingface_hub
     
     import ivy
     from ivy_models.mlpmixer import mlpmixer
