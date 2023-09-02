@@ -63,7 +63,7 @@ class BasicBlock(ivy.Module):
 
     def _build(self, *args, **kwargs):
         self.conv1 = conv3x3(self.inplanes, self.planes, self.stride)
-        self.bn1 = self.norm_layer(self.plane, training=False)
+        self.bn1 = self.norm_layer(self.planes, training=False)
         self.relu = ivy.ReLU()
         self.conv2 = conv3x3(self.planes, self.planes)
         self.bn2 = self.norm_layer(self.planes, training=False)
