@@ -59,7 +59,10 @@ Citation
 
     @article{
       title={An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale},
-      author={Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, Dirk Weissenborn, Xiaohua Zhai, Thomas Unterthiner, Mostafa Dehghani, Matthias Minderer, Georg Heigold, Sylvain Gelly, Jakob Uszkoreit and Neil Houlsby},
+      author={
+        Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, Dirk Weissenborn, Xiaohua Zhai, Thomas Unterthiner, 
+        Mostafa Dehghani, Matthias Minderer, Georg Heigold, Sylvain Gelly, Jakob Uszkoreit and Neil Houlsby
+      },
       journal={arXiv preprint arXiv:2010.11929},
       year={2021}
     }

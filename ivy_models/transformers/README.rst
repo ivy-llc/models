@@ -86,7 +86,11 @@ Citation
 
     @article{
       title={Perceiver IO: A General Architecture for Structured Inputs & Outputs},
-      author={Andrew Jaegle, Sebastian Borgeaud, Jean-Baptiste Alayrac, Carl Doersch, Catalin Ionescu, David Ding, Skanda Koppula, Daniel Zoran, Andrew Brock, Evan Shelhamer, Olivier Hénaff, Matthew M. Botvinick, Andrew Zisserman, Oriol Vinyals and Joāo Carreira},
+      author={
+        Andrew Jaegle, Sebastian Borgeaud, Jean-Baptiste Alayrac, Carl Doersch, Catalin Ionescu, David Ding, 
+        Skanda Koppula, Daniel Zoran, Andrew Brock, Evan Shelhamer, Olivier Hénaff, Matthew M. Botvinick, 
+        Andrew Zisserman, Oriol Vinyals and Joāo Carreira
+      },
       journal={arXiv preprint arXiv:2107.14795},
       year={2022}
     }
