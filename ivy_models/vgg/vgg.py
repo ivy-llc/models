@@ -10,7 +10,7 @@ def vgg_conv_block(inp_channels, out_channels, with_bn=False):
         ivy.ReLU(),
     ]
     if with_bn:
-        bn_layer = ivy.BatchNorm2D(out_channels)
+        bn_layer = ivy.BatchNorm2D(out_channels, training=False)
         conv_block.insert(1, bn_layer)
 
     return conv_block
@@ -105,7 +105,6 @@ def _vgg_torch_weights_mapping(old_key, new_key):
 
 def vgg11(pretrained=True, data_format="NHWC"):
     """VGG11 model"""
-
     model = VGG([1, 1, 2, 2, 2], False)
     if pretrained:
         url = "https://download.pytorch.org/models/vgg11-8a719046.pth"
@@ -118,7 +117,6 @@ def vgg11(pretrained=True, data_format="NHWC"):
 
 def vgg11_bn(pretrained=True, data_format="NHWC"):
     """VGG11 model with BatchNorm2D"""
-
     model = VGG([1, 1, 2, 2, 2], True)
     if pretrained:
         url = "https://download.pytorch.org/models/vgg11_bn-6002323d.pth"
@@ -131,7 +129,6 @@ def vgg11_bn(pretrained=True, data_format="NHWC"):
 
 def vgg13(pretrained=True, data_format="NHWC"):
     """VGG13 model"""
-
     model = VGG([2, 2, 2, 2, 2], False)
     if pretrained:
         url = "https://download.pytorch.org/models/vgg13-19584684.pth"
@@ -144,7 +141,6 @@ def vgg13(pretrained=True, data_format="NHWC"):
 
 def vgg13_bn(pretrained=True, data_format="NHWC"):
     """VGG13 model with BatchNorm2D"""
-
     model = VGG([2, 2, 2, 2, 2], True)
     if pretrained:
         url = "https://download.pytorch.org/models/vgg13_bn-abd245e5.pth"
@@ -157,7 +153,6 @@ def vgg13_bn(pretrained=True, data_format="NHWC"):
 
 def vgg16(pretrained=True, data_format="NHWC"):
     """VGG16 model"""
-
     model = VGG([2, 2, 3, 3, 3], False)
     if pretrained:
         url = "https://download.pytorch.org/models/vgg16-397923af.pth"
@@ -170,7 +165,6 @@ def vgg16(pretrained=True, data_format="NHWC"):
 
 def vgg16_bn(pretrained=True, data_format="NHWC"):
     """VGG16 model with BatchNorm2D"""
-
     model = VGG([2, 2, 3, 3, 3], True)
     if pretrained:
         url = "https://download.pytorch.org/models/vgg16_bn-6c64b313.pth"
@@ -183,7 +177,6 @@ def vgg16_bn(pretrained=True, data_format="NHWC"):
 
 def vgg19(pretrained=True, data_format="NHWC"):
     """VGG19 model"""
-
     model = VGG([2, 2, 4, 4, 4], False)
     if pretrained:
         url = "https://download.pytorch.org/models/vgg19-dcbb9e9d.pth"
@@ -196,7 +189,6 @@ def vgg19(pretrained=True, data_format="NHWC"):
 
 def vgg19_bn(pretrained=True, data_format="NHWC"):
     """VGG19 model with BatchNorm2D"""
-
     model = VGG([2, 2, 4, 4, 4], True)
     if pretrained:
         url = "https://download.pytorch.org/models/vgg19_bn-c79401a0.pth"

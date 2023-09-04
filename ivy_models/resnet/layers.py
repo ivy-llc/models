@@ -63,10 +63,10 @@ class BasicBlock(ivy.Module):
 
     def _build(self, *args, **kwargs):
         self.conv1 = conv3x3(self.inplanes, self.planes, self.stride)
-        self.bn1 = self.norm_layer(self.planes)
+        self.bn1 = self.norm_layer(self.planes, training=False)
         self.relu = ivy.ReLU()
         self.conv2 = conv3x3(self.planes, self.planes)
-        self.bn2 = self.norm_layer(self.planes)
+        self.bn2 = self.norm_layer(self.planes, training=False)
         self.downsample = self.downsample
         self.stride = self.stride
 
@@ -126,11 +126,11 @@ class Bottleneck(ivy.Module):
 
     def _build(self, *args, **kwargs):
         self.conv1 = conv1x1(self.inplanes, self.width)
-        self.bn1 = self.norm_layer(self.width)
+        self.bn1 = self.norm_layer(self.width, training=False)
         self.conv2 = conv3x3(self.width, self.width, self.stride, self.dilation)
-        self.bn2 = self.norm_layer(self.width)
+        self.bn2 = self.norm_layer(self.width, training=False)
         self.conv3 = conv1x1(self.width, self.planes * self.expansion)
-        self.bn3 = self.norm_layer(self.planes * self.expansion)
+        self.bn3 = self.norm_layer(self.planes * self.expansion, training=False)
         self.relu = ivy.ReLU()
         self.downsample = self.downsample
 
