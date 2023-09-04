@@ -24,3 +24,6 @@ from .bart import *
 from . import bert
 from .bert import *
 from .vit import *
+
+from . import googlenet
+from .googlenet import *
