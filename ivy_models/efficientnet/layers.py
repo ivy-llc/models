@@ -64,7 +64,7 @@ class EfficientNetConv2dNormActivation(ivy.Sequential):
             ]
 
         if norm_layer is not None:
-            layers.append(norm_layer(out_channels))
+            layers.append(norm_layer(out_channels, training=False))
 
         if activation_layer is not None:
             layers.append(activation_layer())
