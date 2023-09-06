@@ -30,3 +30,6 @@ from .googlenet import *
 
 from . import inceptionnet
 from .inceptionnet import *
+
+from . import regnet
+from .regnet import *
