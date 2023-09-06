@@ -27,15 +27,17 @@ def _map_weights(raw, ref, custom_mapping=None):
 
 
 def load_torch_weights(
-    url,
-    ref_model,
+    url=None,
+    weights=None,
+    ref_model=None,
     raw_keys_to_prune=[],
     ref_keys_to_prune=[],
     custom_mapping=None,
     map_location=torch.device("cpu"),
 ):
     ivy.set_backend("torch")
-    weights = torch.hub.load_state_dict_from_url(url, map_location=map_location)
+    if weights is None:
+        weights = torch.hub.load_state_dict_from_url(url, map_location=map_location)
 
     weights_raw = ivy.to_numpy(ivy.Container(weights))
     weights_raw, weights_ref = _prune_keys(
