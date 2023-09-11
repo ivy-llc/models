@@ -43,6 +43,7 @@ class ConvNormActivation(ivy.Sequential):
         kernel_size: Union[int, Tuple[int, ...]] = 3,
         stride: Union[int, Tuple[int, ...]] = 1,
         padding: Optional[Union[int, Tuple[int, ...], str]] = None,
+        groups: int = 1,
         norm_layer: Optional[Callable[..., ivy.Module]] = ivy.BatchNorm2D,
         activation_layer: Optional[Callable[..., ivy.Module]] = ivy.ReLU,
         dilations: Union[int, Tuple[int, ...]] = 1,
@@ -83,7 +84,8 @@ class ConvNormActivation(ivy.Sequential):
             layers.append(norm_layer(out_channels))
 
         if activation_layer is not None:
-            params = {} if inplace is None else {"inplace": inplace}
+            params = {}
+            # params = {} if inplace is None else {"inplace": inplace}
             layers.append(activation_layer(**params))
         super().__init__(*layers)
         self.out_channels = out_channels
@@ -119,6 +121,7 @@ class Conv2DNormActivation(ConvNormActivation):
         kernel_size: Union[int, Tuple[int, int]] = 3,
         stride: Union[int, Tuple[int, int]] = 1,
         padding: Optional[Union[int, Tuple[int, int], str]] = None,
+        groups: int = 1,
         norm_layer: Optional[Callable[..., ivy.Module]] = ivy.BatchNorm2D,
         activation_layer: Optional[Callable[..., ivy.Module]] = ivy.ReLU,
         dilations: Union[int, Tuple[int, int]] = 1,
@@ -193,7 +196,7 @@ class SqueezeExcitation(ivy.Module):
         scale = self.fc2(scale)
         return self.scale_activation(scale)
 
-    def forward(self, input: ivy.Array) -> ivy.Array:
+    def _forward(self, input: ivy.Array) -> ivy.Array:
         scale = self._scale(input)
         return scale * input
 
@@ -295,7 +298,7 @@ class ResBottleneckBlock(ivy.Module):
         )
         self.activation = activation_layer(inplace=True)
 
-    def forward(self, x: ivy.Array) -> ivy.Array:
+    def _forward(self, x: ivy.Array) -> ivy.Array:
         if self.proj is not None:
             x = self.proj(x) + self.f(x)
         else:
