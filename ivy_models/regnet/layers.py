@@ -1,9 +1,26 @@
-from typing import Optional, List, Callable, Any, Tuple
+from typing import Optional, List, Callable, Any, Tuple, Union, Sequence
 import ivy
 import math
+import warnings
+import collections
+from itertools import repeat
 
 
 class ConvNormActivation(ivy.Sequential):
+    def _make_ntuple(x: Any, n: int) -> Tuple[Any, ...]:
+        """
+        Make n-tuple from input x. If x is an iterable, then we just convert it to tuple.
+        Otherwise, we will make a tuple of length n, all with value of x.
+        reference: https://github.com/pytorch/pytorch/blob/master/torch/nn/modules/utils.py#L8
+
+        Args:
+            x (Any): input value
+            n (int): length of the resulting tuple
+        """
+        if isinstance(x, collections.abc.Iterable):
+            return tuple(x)
+        return tuple(repeat(x, n))
+
     def __init__(
         self,
         in_channels: int,
@@ -56,7 +73,6 @@ class ConvNormActivation(ivy.Sequential):
             params = {} if inplace is None else {"inplace": inplace}
             layers.append(activation_layer(**params))
         super().__init__(*layers)
-        _log_api_usage_once(self)
         self.out_channels = out_channels
 
         if self.__class__ == ConvNormActivation:
@@ -310,6 +326,20 @@ class AnyStage(ivy.Sequential):
             )
 
             self.add_module(f"block{stage_index}-{i}", block)
+
+
+def test_AnyStage():
+    # N x 768 x 5 x 5
+    random_test_tensor = ivy.random_normal(shape=(1, 5, 5, 768))
+    display(f"random_test_tensor shape is: {random_test_tensor.shape}")
+
+    block = AnyStage(768, 128, [1, 1])
+    block(random_test_tensor)
+    # N x 128 x 5 x 5
+    display("Test Successfull!")
+
+
+test_AnyStage()
 
 
 class BlockParams:

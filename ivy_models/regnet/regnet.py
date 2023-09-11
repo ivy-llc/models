@@ -1,7 +1,7 @@
 # global
 import math
 from collections import OrderedDict
-from typing import Any, Callable, Optional, Type, Union, List
+from typing import Callable, Optional, Type, Union, List
 import builtins
 import ivy_models
 import ivy
@@ -11,7 +11,6 @@ from ivy_models.regnet.layers import (
     ResBottleneckBlock,
     AnyStage,
     BlockParams,
-    RegBottleneckBlock,
 )
 from ivy_models.base import BaseSpec
 
@@ -173,7 +172,12 @@ def _RegNet_Y_400MF_torch_weights_mapping(old_key, new_key):
 
 def RegNet_Y_400MF(pretrained=True):
     """ResNet-18 model"""
-    model = RegNet()
+    progress = True
+    params = BlockParams.from_init_params(
+        depth=16, w_0=48, w_a=27.89, w_m=2.09, group_width=8, se_ratio=0.25, **kwargs
+    )
+    weights = None
+    model = RegNet(params, weights, progress)
     if pretrained:
         url = "https://download.pytorch.org/models/regnet_y_400mf-c65dace8.pth"
         w_clean = ivy_models.helpers.load_torch_weights(
