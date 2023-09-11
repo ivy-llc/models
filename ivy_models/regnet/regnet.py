@@ -13,6 +13,7 @@ from ivy_models.regnet.layers import (
     BlockParams,
 )
 from ivy_models.base import BaseSpec
+from functools import partial
 
 
 class RegNetSpec(BaseSpec):
@@ -66,6 +67,7 @@ class RegNet(ivy.Module):
         activation: Optional[Callable[..., ivy.Module]] = None,
         spec=None,
         v: ivy.Container = None,
+        **kwargs,
     ) -> None:
         self.spec = (
             spec
@@ -84,12 +86,15 @@ class RegNet(ivy.Module):
         super(RegNet, self).__init__(v=v)
 
     def _build(self, *args, **kwargs):
+        norm_layer = kwargs.pop(
+            "norm_layer", partial(ivy.BatchNorm2D, eps=1e-05, momentum=0.1)
+        )
         if self.spec.stem_type is None:
             stem_type = SimpleStemIN
         if self.spec.norm_layer is None:
             norm_layer = ivy.BatchNorm2d
         if self.spec.block_type is None:
-            block_type = RegBottleneckBlock
+            block_type = ResBottleneckBlock
         if self.spec.activation is None:
             activation = ivy.ReLU
 
@@ -134,7 +139,7 @@ class RegNet(ivy.Module):
 
         self.trunk_output = ivy.Sequential(OrderedDict(blocks))
 
-        self.avgpool = ivy.AdaptiveAvgPool2d((1, 1))
+        self.avgpool = ivy.AdaptiveAvgPool2D((1, 1))
         self.fc = ivy.Linear(
             in_featuReg=current_width, out_featuReg=self.spec.num_classes
         )
@@ -162,7 +167,7 @@ class RegNet(ivy.Module):
         return x
 
 
-def _RegNet_Y_400MF_torch_weights_mapping(old_key, new_key):
+def _regnet_y_400mf_torch_weights_mapping(old_key, new_key):
     W_KEY = ["conv1/weight", "conv2/weight", "conv3/weight", "downsample/0/weight"]
     new_mapping = new_key
     if builtins.any([kc in old_key for kc in W_KEY]):
@@ -170,11 +175,11 @@ def _RegNet_Y_400MF_torch_weights_mapping(old_key, new_key):
     return new_mapping
 
 
-def RegNet_Y_400MF(pretrained=True):
+def regnet_y_400mf(pretrained=True):
     """ResNet-18 model"""
     progress = True
     params = BlockParams.from_init_params(
-        depth=16, w_0=48, w_a=27.89, w_m=2.09, group_width=8, se_ratio=0.25, **kwargs
+        depth=16, w_0=48, w_a=27.89, w_m=2.09, group_width=8, se_ratio=0.25
     )
     weights = None
     model = RegNet(params, weights, progress)
@@ -184,13 +189,13 @@ def RegNet_Y_400MF(pretrained=True):
             url,
             model,
             raw_keys_to_prune=["num_batches_tracked"],
-            custom_mapping=_RegNet_Y_400MF_torch_weights_mapping,
+            custom_mapping=_regnet_y_400mf_torch_weights_mapping,
         )
         model.v = w_clean
     return model
 
 
-regnet_y_400mf = (None,)
+# regnet_y_400mf = None
 regnet_y_800mf = None
 regnet_y_1_6gf = None
 regnet_y_3_2gf = None
@@ -205,7 +210,6 @@ regnet_x_3_2gf = None
 regnet_x_8gf = None
 regnet_x_16gf = None
 regnet_x_32gf = None
-
 
 VARIANTS = {
     "regnet_y_400mf": BlockParams.from_init_params(

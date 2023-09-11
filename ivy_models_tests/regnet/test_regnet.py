@@ -45,23 +45,20 @@ VARIANTS = {
 }
 
 LOGITS = {
-    "y_400mf": np.array(),
-    "y_800mf": np.array(),
-    "y_1_6gf": np.array(),
-    "y_3_2gf": np.array(),
-    "y_8gf": np.array(),
-    "y_16gf": np.array(),
-    "y_32gf": np.array(),
-    "y_128gf": np.array(),
-    "x_400mf": np.array(),
-    "x_800mf": np.array(),
-    "x_1_6gf": np.array(),
-    "x_3_2gf400": np.array(),
-    "x_8gf": np.array(),
-    "x_16gf": np.array(),
-    "x_32gf": np.array(),
-    "r152": np.array(),
-    # "r152": np.array([0.8051, 0.0473, 0.0094]),
+    "y_400mf": np.array([0.7257, 0.2450, 0.0275]),
+    "y_800mf": np.array([0.6676, 0.2091, 0.1194]),
+    "y_1_6gf": np.array([0.7617, 0.2035, 0.0319]),
+    "y_3_2gf": np.array([0.8119, 0.1718, 0.0143]),
+    "y_8gf": np.array([0.9308, 0.0630, 0.0059]),
+    "y_16gf": np.array([0.7894, 0.2074, 0.0024]),
+    "y_32gf": np.array([0.8221, 0.1764, 0.0014]),
+    "x_400mf": np.array([0.6707, 0.2706, 0.0517]),
+    "x_800mf": np.array([0.5628, 0.3851, 0.0453]),
+    "x_1_6gf": np.array([0.6949, 0.2738, 0.0293]),
+    "x_3_2gf400": np.array([0.8212, 0.1721, 0.0055]),
+    "x_8gf": np.array([0.8271, 0.1659, 0.0063]),
+    "x_16gf": np.array([0.7613, 0.2340, 0.0043]),
+    "x_32gf": np.array([0.7828, 0.2146, 0.0022]),
 }
 
 
