@@ -71,7 +71,7 @@ class ConvNormActivation(ivy.Sequential):
             conv_layer(
                 in_channels,
                 out_channels,
-                kernel_size,
+                [kernel_size],
                 stride,
                 padding,
                 dilations=dilations,
@@ -181,8 +181,8 @@ class SqueezeExcitation(ivy.Module):
     ) -> None:
         super().__init__()
         self.avgpool = ivy.AdaptiveAvgPool2D(1)
-        self.fc1 = ivy.Conv2D(input_channels, squeeze_channels, 1)
-        self.fc2 = ivy.Conv2D(squeeze_channels, input_channels, 1)
+        self.fc1 = ivy.Conv2D(input_channels, squeeze_channels, [1, 1])
+        self.fc2 = ivy.Conv2D(squeeze_channels, input_channels, [1, 1])
         self.activation = activation()
         self.scale_activation = scale_activation()
 

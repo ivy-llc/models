@@ -39,9 +39,6 @@ class RegNetSpec(BaseSpec):
         )
 
 
-ivy.conv2d
-
-
 class RegNet(ivy.Module):
     """
     Residual Neural Network (ResNet) architecture.
