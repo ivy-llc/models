@@ -1,9 +1,24 @@
-from typing import Optional, List, Callable, Any, Tuple, Union, Sequence
 import ivy
 import math
 import warnings
 import collections
 from itertools import repeat
+from typing import Optional, List, Callable, Any, Tuple, Union, Sequence, OrderedDict
+
+
+def _make_ntuple(x: Any, n: int) -> Tuple[Any, ...]:
+    """
+    Make n-tuple from input x. If x is an iterable, then we just convert it to tuple.
+    Otherwise, we will make a tuple of length n, all with value of x.
+    reference: https://github.com/pytorch/pytorch/blob/master/torch/nn/modules/utils.py#L8
+
+    Args:
+        x (Any): input value
+        n (int): length of the resulting tuple
+    """
+    if isinstance(x, collections.abc.Iterable):
+        return tuple(x)
+    return tuple(repeat(x, n))
 
 
 class ConvNormActivation(ivy.Sequential):
@@ -170,21 +185,20 @@ class SqueezeExcitation(ivy.Module):
         scale_activation: Callable[..., ivy.Module] = ivy.Sigmoid,
     ) -> None:
         super().__init__()
-        _log_api_usage_once(self)
-        self.avgpool = ivy.AdaptiveAvgPool2d(1)
-        self.fc1 = ivy.Conv2d(input_channels, squeeze_channels, 1)
-        self.fc2 = ivy.Conv2d(squeeze_channels, input_channels, 1)
+        self.avgpool = ivy.AdaptiveAvgPool2D(1)
+        self.fc1 = ivy.Conv2D(input_channels, squeeze_channels, 1)
+        self.fc2 = ivy.Conv2D(squeeze_channels, input_channels, 1)
         self.activation = activation()
         self.scale_activation = scale_activation()
 
-    def _scale(self, input: Tensor) -> Tensor:
+    def _scale(self, input: ivy.Array) -> ivy.Array:
         scale = self.avgpool(input)
         scale = self.fc1(scale)
         scale = self.activation(scale)
         scale = self.fc2(scale)
         return self.scale_activation(scale)
 
-    def forward(self, input: Tensor) -> Tensor:
+    def forward(self, input: ivy.Array) -> ivy.Array:
         scale = self._scale(input)
         return scale * input
 
@@ -286,7 +300,7 @@ class ResBottleneckBlock(ivy.Module):
         )
         self.activation = activation_layer(inplace=True)
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: ivy.Array) -> ivy.Array:
         if self.proj is not None:
             x = self.proj(x) + self.f(x)
         else:
@@ -324,22 +338,23 @@ class AnyStage(ivy.Sequential):
                 bottleneck_multiplier,
                 se_ratio,
             )
-
-            self.add_module(f"block{stage_index}-{i}", block)
-
-
-def test_AnyStage():
-    # N x 768 x 5 x 5
-    random_test_tensor = ivy.random_normal(shape=(1, 5, 5, 768))
-    display(f"random_test_tensor shape is: {random_test_tensor.shape}")
-
-    block = AnyStage(768, 128, [1, 1])
-    block(random_test_tensor)
-    # N x 128 x 5 x 5
-    display("Test Successfull!")
+            self._submodules = list(block)
 
 
-test_AnyStage()
+def _make_divisible(v: float, divisor: int, min_value: Optional[int] = None) -> int:
+    """
+    This function is taken from the original tf repo.
+    It ensures that all layers have a channel number that is divisible by 8
+    It can be seen here:
+    https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet/mobilenet.py
+    """
+    if min_value is None:
+        min_value = divisor
+    new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
+    # Make sure that round down does not go down by more than 10%.
+    if new_v < 0.9 * v:
+        new_v += divisor
+    return new_v
 
 
 class BlockParams:
@@ -399,10 +414,12 @@ class BlockParams:
         # Compute the block widths. Each stage has one unique block width
         widths_cont = ivy.arange(depth) * w_a + w_0
         block_capacity = ivy.round(ivy.log(widths_cont / w_0) / math.log(w_m))
-        block_widths = (
-            (ivy.round(ivy.divide(w_0 * ivy.pow(w_m, block_capacity), QUANT)) * QUANT)
-            .int()
-            .tolist()
+        block_widths = ivy.to_list(
+            ivy.astype(
+                ivy.round(ivy.divide(w_0 * ivy.pow(w_m, block_capacity), QUANT))
+                * QUANT,
+                ivy.int32,
+            )
         )
         num_stages = len(set(block_widths))
 
@@ -416,8 +433,11 @@ class BlockParams:
         splits = [w != wp or r != rp for w, wp, r, rp in split_helper]
 
         stage_widths = [w for w, t in zip(block_widths, splits[:-1]) if t]
-        stage_depths = (
-            ivy.diff(ivy.tensor([d for d, t in enumerate(splits) if t])).int().tolist()
+        stage_depths = ivy.to_list(
+            ivy.astype(
+                ivy.diff(ivy.array([d for d, t in enumerate(splits) if t])),
+                ivy.int32,
+            )
         )
 
         strides = [STRIDE] * num_stages
@@ -447,21 +467,6 @@ class BlockParams:
             self.bottleneck_multipliers,
         )
 
-    def _make_divisible(v: float, divisor: int, min_value: Optional[int] = None) -> int:
-        """
-        This function is taken from the original tf repo.
-        It ensures that all layers have a channel number that is divisible by 8
-        It can be seen here:
-        https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet/mobilenet.py
-        """
-        if min_value is None:
-            min_value = divisor
-        new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
-        # Make sure that round down does not go down by more than 10%.
-        if new_v < 0.9 * v:
-            new_v += divisor
-        return new_v
-
     @staticmethod
     def _adjust_widths_groups_compatibilty(
         stage_widths: List[int], bottleneck_ratios: List[float], group_widths: List[int]
@@ -480,3 +485,4 @@ class BlockParams:
         ]
         stage_widths = [int(w_bot / b) for w_bot, b in zip(ws_bot, bottleneck_ratios)]
         return stage_widths, group_widths_min
+
