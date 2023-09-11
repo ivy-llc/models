@@ -1,5 +1,5 @@
 # global
-from typing import Callable, Optional, Type, Union, List
+from typing import Optional, Type, Union, List
 
 import builtins
 import ivy

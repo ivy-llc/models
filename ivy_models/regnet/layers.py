@@ -208,11 +208,13 @@ class BottleneckTransform(ivy.Sequential):
         stride: int,
         norm_layer: Callable[..., ivy.Module],
         activation_layer: Callable[..., ivy.Module],
+        group_width: int,
         bottleneck_multiplier: float,
         se_ratio: Optional[float],
     ) -> None:
         layers: OrderedDict[str, ivy.Module] = OrderedDict()
         w_b = int(round(width_out * bottleneck_multiplier))
+        g = w_b // group_width
 
         layers["a"] = Conv2DNormActivation(
             width_in,
@@ -227,6 +229,7 @@ class BottleneckTransform(ivy.Sequential):
             w_b,
             kernel_size=3,
             stride=stride,
+            groups=g,
             norm_layer=norm_layer,
             activation_layer=activation_layer,
         )
@@ -262,6 +265,7 @@ class ResBottleneckBlock(ivy.Module):
         stride: int,
         norm_layer: Callable[..., ivy.Module],
         activation_layer: Callable[..., ivy.Module],
+        group_width: int = 1,
         bottleneck_multiplier: float = 1.0,
         se_ratio: Optional[float] = None,
     ) -> None:
@@ -285,6 +289,7 @@ class ResBottleneckBlock(ivy.Module):
             stride,
             norm_layer,
             activation_layer,
+            group_width,
             bottleneck_multiplier,
             se_ratio,
         )
@@ -310,6 +315,7 @@ class AnyStage(ivy.Sequential):
         block_constructor: Callable[..., ivy.Module],
         norm_layer: Callable[..., ivy.Module],
         activation_layer: Callable[..., ivy.Module],
+        group_width: int,
         bottleneck_multiplier: float,
         se_ratio: Optional[float] = None,
         stage_index: int = 0,
@@ -323,6 +329,7 @@ class AnyStage(ivy.Sequential):
                 stride if i == 0 else 1,
                 norm_layer,
                 activation_layer,
+                group_width,
                 bottleneck_multiplier,
                 se_ratio,
             )
@@ -350,12 +357,14 @@ class BlockParams:
         self,
         depths: List[int],
         widths: List[int],
+        group_widths: List[int],
         bottleneck_multipliers: List[float],
         strides: List[int],
         se_ratio: Optional[float] = None,
     ) -> None:
         self.depths = depths
         self.widths = widths
+        self.group_widths = group_widths
         self.bottleneck_multipliers = bottleneck_multipliers
         self.strides = strides
         self.se_ratio = se_ratio
@@ -367,6 +376,7 @@ class BlockParams:
         w_0: int,
         w_a: float,
         w_m: float,
+        group_width: int,
         bottleneck_multiplier: float = 1.0,
         se_ratio: Optional[float] = None,
         **kwargs: Any,
@@ -415,10 +425,29 @@ class BlockParams:
             block_widths + [0],
             [0] + block_widths,
         )
+        splits = [w != wp or r != rp for w, wp, r, rp in split_helper]
+
+        stage_widths = [w for w, t in zip(block_widths, splits[:-1]) if t]
+        stage_depths = ivy.to_list(
+            ivy.asarray(
+                ivy.diff(ivy.array([d for d, t in enumerate(splits) if t])),
+                dtype=ivy.int32,
+            )
+        )
+
         strides = [STRIDE] * num_stages
         bottleneck_multipliers = [bottleneck_multiplier] * num_stages
+        group_widths = [group_width] * num_stages
+
+        # Adjust the compatibility of stage widths and group widths
+        stage_widths, group_widths = cls._adjust_widths_groups_compatibilty(
+            stage_widths, bottleneck_multipliers, group_widths
+        )
 
         return cls(
+            depths=stage_depths,
+            widths=stage_widths,
+            group_widths=group_widths,
             bottleneck_multipliers=bottleneck_multipliers,
             strides=strides,
             se_ratio=se_ratio,
@@ -429,5 +458,25 @@ class BlockParams:
             self.widths,
             self.strides,
             self.depths,
+            self.group_widths,
             self.bottleneck_multipliers,
         )
+
+    @staticmethod
+    def _adjust_widths_groups_compatibilty(
+        stage_widths: List[int], bottleneck_ratios: List[float], group_widths: List[int]
+    ) -> Tuple[List[int], List[int]]:
+        """
+        Adjusts the compatibility of widths and groups,
+        depending on the bottleneck ratio.
+        """
+        # Compute all widths for the current settings
+        widths = [int(w * b) for w, b in zip(stage_widths, bottleneck_ratios)]
+        group_widths_min = [min(g, w_bot) for g, w_bot in zip(group_widths, widths)]
+
+        # Compute the adjusted widths so that stage and group widths fit
+        ws_bot = [
+            _make_divisible(w_bot, g) for w_bot, g in zip(widths, group_widths_min)
+        ]
+        stage_widths = [int(w_bot / b) for w_bot, b in zip(ws_bot, bottleneck_ratios)]
+        return stage_widths, group_widths_min

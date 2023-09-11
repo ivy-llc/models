@@ -70,8 +70,6 @@ v = ivy.to_numpy(model.v)
 
 def test_regnet_img_classification(device, fw):
     """Test RegNet-all_variant image classification."""
-    num_classes = 1000
-    batch_shape = [1]
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # Load image
@@ -86,7 +84,7 @@ def test_regnet_img_classification(device, fw):
     )
 
     model.v = ivy.asarray(v)
-    output = model(img)
+    model(img)
 
     # # Cardinality test
     # assert output.shape == tuple([ivy.to_scalar(batch_shape), num_classes])

@@ -1,13 +1,12 @@
 # global
 import math
 from collections import OrderedDict
-from typing import Callable, Optional, Type, Union, List
+from typing import Callable, Optional, Type
 import builtins
 import ivy_models
 import ivy
 from ivy_models.regnet.layers import (
     SimpleStemIN,
-    BottleneckTransform,
     ResBottleneckBlock,
     AnyStage,
     BlockParams,
@@ -38,6 +37,9 @@ class RegNetSpec(BaseSpec):
             norm_layer=norm_layer,
             activation=activation,
         )
+
+
+ivy.conv2d
 
 
 class RegNet(ivy.Module):
@@ -148,7 +150,7 @@ class RegNet(ivy.Module):
         for m in self.modules():
             if isinstance(m, ivy.Conv2D):
                 # Note that there is no bias due to BN
-                fan_out = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                fan_out = m._filter_shape[0] * m._filter_shape[1] * m._output_channels
                 ivy.init.normal_(m.weight, mean=0.0, std=math.sqrt(2.0 / fan_out))
             elif isinstance(m, ivy.BatchNorm2D):
                 ivy.init.ones_(m.weight)
@@ -177,13 +179,16 @@ def _regnet_y_400mf_torch_weights_mapping(old_key, new_key):
 
 def regnet_y_400mf(pretrained=True):
     """ResNet-18 model"""
-    model = RegNet(
+    block_params = BlockParams.from_init_params(
         depth=20,
         w_0=232,
         w_a=115.89,
         w_m=2.53,
         group_width=232,
         se_ratio=0.25,
+    )
+    model = RegNet(
+        block_params,
     )
     if pretrained:
         url = "https://download.pytorch.org/models/regnet_y_400mf-c65dace8.pth"
