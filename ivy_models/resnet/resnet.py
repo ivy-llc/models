@@ -1,7 +1,7 @@
 # global
-from typing import 
-import builtins
+from typing import Callable, Optional, Type, Union, List
 
+import builtins
 import ivy
 import ivy_models
 from ivy_models.resnet.layers import conv1x1, BasicBlock, Bottleneck

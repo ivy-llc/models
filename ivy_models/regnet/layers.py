@@ -43,30 +43,29 @@ class ConvNormActivation(ivy.Sequential):
         kernel_size: Union[int, Tuple[int, ...]] = 3,
         stride: Union[int, Tuple[int, ...]] = 1,
         padding: Optional[Union[int, Tuple[int, ...], str]] = None,
-        groups: int = 1,
-        norm_layer: Optional[Callable[..., ivy.Module]] = ivy.BatchNorm2d,
+        norm_layer: Optional[Callable[..., ivy.Module]] = ivy.BatchNorm2D,
         activation_layer: Optional[Callable[..., ivy.Module]] = ivy.ReLU,
-        dilation: Union[int, Tuple[int, ...]] = 1,
+        dilations: Union[int, Tuple[int, ...]] = 1,
         inplace: Optional[bool] = True,
-        bias: Optional[bool] = None,
-        conv_layer: Callable[..., ivy.Module] = ivy.Conv2d,
+        with_bias: Optional[bool] = None,
+        conv_layer: Callable[..., ivy.Module] = ivy.Conv2D,
     ) -> None:
         if padding is None:
-            if isinstance(kernel_size, int) and isinstance(dilation, int):
-                padding = (kernel_size - 1) // 2 * dilation
+            if isinstance(kernel_size, int) and isinstance(dilations, int):
+                padding = (kernel_size - 1) // 2 * dilations
             else:
                 _conv_dim = (
                     len(kernel_size)
                     if isinstance(kernel_size, Sequence)
-                    else len(dilation)
+                    else len(dilations)
                 )
                 kernel_size = _make_ntuple(kernel_size, _conv_dim)
-                dilation = _make_ntuple(dilation, _conv_dim)
+                dilations = _make_ntuple(dilations, _conv_dim)
                 padding = tuple(
-                    (kernel_size[i] - 1) // 2 * dilation[i] for i in range(_conv_dim)
+                    (kernel_size[i] - 1) // 2 * dilations[i] for i in range(_conv_dim)
                 )
-        if bias is None:
-            bias = norm_layer is None
+        if with_bias is None:
+            with_bias = norm_layer is None
 
         layers = [
             conv_layer(
@@ -75,9 +74,8 @@ class ConvNormActivation(ivy.Sequential):
                 kernel_size,
                 stride,
                 padding,
-                dilation=dilation,
-                groups=groups,
-                bias=bias,
+                dilations=dilations,
+                with_bias=with_bias,
             )
         ]
 
@@ -92,11 +90,11 @@ class ConvNormActivation(ivy.Sequential):
 
         if self.__class__ == ConvNormActivation:
             warnings.warn(
-                "Don't use ConvNormActivation directly, please use Conv2dNormActivation and Conv3dNormActivation instead."
+                "Don't use ConvNormActivation directly, please use Conv2DNormActivation and Conv3dNormActivation instead."
             )
 
 
-class Conv2dNormActivation(ConvNormActivation):
+class Conv2DNormActivation(ConvNormActivation):
     """
     Configurable block used for Convolution2d-Normalization-Activation blocks.
 
@@ -105,11 +103,10 @@ class Conv2dNormActivation(ConvNormActivation):
         out_channels (int): Number of channels produced by the Convolution-Normalization-Activation block
         kernel_size: (int, optional): Size of the convolving kernel. Default: 3
         stride (int, optional): Stride of the convolution. Default: 1
-        padding (int, tuple or str, optional): Padding added to all four sides of the input. Default: None, in which case it will be calculated as ``padding = (kernel_size - 1) // 2 * dilation``
-        groups (int, optional): Number of blocked connections from input channels to output channels. Default: 1
-        norm_layer (Callable[..., ivy.Module], optional): Norm layer that will be stacked on top of the convolution layer. If ``None`` this layer won't be used. Default: ``ivy.BatchNorm2d``
+        padding (int, tuple or str, optional): Padding added to all four sides of the input. Default: None, in which case it will be calculated as ``padding = (kernel_size - 1) // 2 * dilations``
+        norm_layer (Callable[..., ivy.Module], optional): Norm layer that will be stacked on top of the convolution layer. If ``None`` this layer won't be used. Default: ``ivy.BatchNorm2D``
         activation_layer (Callable[..., ivy.Module], optional): Activation function which will be stacked on top of the normalization layer (if not None), otherwise on top of the conv layer. If ``None`` this layer won't be used. Default: ``ivy.ReLU``
-        dilation (int): Spacing between kernel elements. Default: 1
+        dilations (int): Spacing between kernel elements. Default: 1
         inplace (bool): Parameter for the activation layer, which can optionally do the operation in-place. Default ``True``
         bias (bool, optional): Whether to use bias in the convolution layer. By default, biases are included if ``norm_layer is None``.
 
@@ -122,12 +119,11 @@ class Conv2dNormActivation(ConvNormActivation):
         kernel_size: Union[int, Tuple[int, int]] = 3,
         stride: Union[int, Tuple[int, int]] = 1,
         padding: Optional[Union[int, Tuple[int, int], str]] = None,
-        groups: int = 1,
-        norm_layer: Optional[Callable[..., ivy.Module]] = ivy.BatchNorm2d,
+        norm_layer: Optional[Callable[..., ivy.Module]] = ivy.BatchNorm2D,
         activation_layer: Optional[Callable[..., ivy.Module]] = ivy.ReLU,
-        dilation: Union[int, Tuple[int, int]] = 1,
+        dilations: Union[int, Tuple[int, int]] = 1,
         inplace: Optional[bool] = True,
-        bias: Optional[bool] = None,
+        with_bias: Optional[bool] = None,
     ) -> None:
         super().__init__(
             in_channels,
@@ -135,17 +131,16 @@ class Conv2dNormActivation(ConvNormActivation):
             kernel_size,
             stride,
             padding,
-            groups,
             norm_layer,
             activation_layer,
-            dilation,
+            dilations,
             inplace,
-            bias,
-            ivy.Conv2d,
+            with_bias,
+            ivy.Conv2D,
         )
 
 
-class SimpleStemIN(Conv2dNormActivation):
+class SimpleStemIN(Conv2DNormActivation):
     """Simple stem for ImageNet: 3x3, BN, ReLU."""
 
     def __init__(
@@ -213,15 +208,13 @@ class BottleneckTransform(ivy.Sequential):
         stride: int,
         norm_layer: Callable[..., ivy.Module],
         activation_layer: Callable[..., ivy.Module],
-        group_width: int,
         bottleneck_multiplier: float,
         se_ratio: Optional[float],
     ) -> None:
         layers: OrderedDict[str, ivy.Module] = OrderedDict()
         w_b = int(round(width_out * bottleneck_multiplier))
-        g = w_b // group_width
 
-        layers["a"] = Conv2dNormActivation(
+        layers["a"] = Conv2DNormActivation(
             width_in,
             w_b,
             kernel_size=1,
@@ -229,12 +222,11 @@ class BottleneckTransform(ivy.Sequential):
             norm_layer=norm_layer,
             activation_layer=activation_layer,
         )
-        layers["b"] = Conv2dNormActivation(
+        layers["b"] = Conv2DNormActivation(
             w_b,
             w_b,
             kernel_size=3,
             stride=stride,
-            groups=g,
             norm_layer=norm_layer,
             activation_layer=activation_layer,
         )
@@ -249,7 +241,7 @@ class BottleneckTransform(ivy.Sequential):
                 activation=activation_layer,
             )
 
-        layers["c"] = Conv2dNormActivation(
+        layers["c"] = Conv2DNormActivation(
             w_b,
             width_out,
             kernel_size=1,
@@ -270,7 +262,6 @@ class ResBottleneckBlock(ivy.Module):
         stride: int,
         norm_layer: Callable[..., ivy.Module],
         activation_layer: Callable[..., ivy.Module],
-        group_width: int = 1,
         bottleneck_multiplier: float = 1.0,
         se_ratio: Optional[float] = None,
     ) -> None:
@@ -280,7 +271,7 @@ class ResBottleneckBlock(ivy.Module):
         self.proj = None
         should_proj = (width_in != width_out) or (stride != 1)
         if should_proj:
-            self.proj = Conv2dNormActivation(
+            self.proj = Conv2DNormActivation(
                 width_in,
                 width_out,
                 kernel_size=1,
@@ -294,7 +285,6 @@ class ResBottleneckBlock(ivy.Module):
             stride,
             norm_layer,
             activation_layer,
-            group_width,
             bottleneck_multiplier,
             se_ratio,
         )
@@ -320,7 +310,6 @@ class AnyStage(ivy.Sequential):
         block_constructor: Callable[..., ivy.Module],
         norm_layer: Callable[..., ivy.Module],
         activation_layer: Callable[..., ivy.Module],
-        group_width: int,
         bottleneck_multiplier: float,
         se_ratio: Optional[float] = None,
         stage_index: int = 0,
@@ -334,7 +323,6 @@ class AnyStage(ivy.Sequential):
                 stride if i == 0 else 1,
                 norm_layer,
                 activation_layer,
-                group_width,
                 bottleneck_multiplier,
                 se_ratio,
             )
@@ -362,14 +350,12 @@ class BlockParams:
         self,
         depths: List[int],
         widths: List[int],
-        group_widths: List[int],
         bottleneck_multipliers: List[float],
         strides: List[int],
         se_ratio: Optional[float] = None,
     ) -> None:
         self.depths = depths
         self.widths = widths
-        self.group_widths = group_widths
         self.bottleneck_multipliers = bottleneck_multipliers
         self.strides = strides
         self.se_ratio = se_ratio
@@ -381,7 +367,6 @@ class BlockParams:
         w_0: int,
         w_a: float,
         w_m: float,
-        group_width: int,
         bottleneck_multiplier: float = 1.0,
         se_ratio: Optional[float] = None,
         **kwargs: Any,
@@ -430,29 +415,10 @@ class BlockParams:
             block_widths + [0],
             [0] + block_widths,
         )
-        splits = [w != wp or r != rp for w, wp, r, rp in split_helper]
-
-        stage_widths = [w for w, t in zip(block_widths, splits[:-1]) if t]
-        stage_depths = ivy.to_list(
-            ivy.astype(
-                ivy.diff(ivy.array([d for d, t in enumerate(splits) if t])),
-                ivy.int32,
-            )
-        )
-
         strides = [STRIDE] * num_stages
         bottleneck_multipliers = [bottleneck_multiplier] * num_stages
-        group_widths = [group_width] * num_stages
-
-        # Adjust the compatibility of stage widths and group widths
-        stage_widths, group_widths = cls._adjust_widths_groups_compatibilty(
-            stage_widths, bottleneck_multipliers, group_widths
-        )
 
         return cls(
-            depths=stage_depths,
-            widths=stage_widths,
-            group_widths=group_widths,
             bottleneck_multipliers=bottleneck_multipliers,
             strides=strides,
             se_ratio=se_ratio,
@@ -463,26 +429,5 @@ class BlockParams:
             self.widths,
             self.strides,
             self.depths,
-            self.group_widths,
             self.bottleneck_multipliers,
         )
-
-    @staticmethod
-    def _adjust_widths_groups_compatibilty(
-        stage_widths: List[int], bottleneck_ratios: List[float], group_widths: List[int]
-    ) -> Tuple[List[int], List[int]]:
-        """
-        Adjusts the compatibility of widths and groups,
-        depending on the bottleneck ratio.
-        """
-        # Compute all widths for the current settings
-        widths = [int(w * b) for w, b in zip(stage_widths, bottleneck_ratios)]
-        group_widths_min = [min(g, w_bot) for g, w_bot in zip(group_widths, widths)]
-
-        # Compute the adjusted widths so that stage and group widths fit
-        ws_bot = [
-            _make_divisible(w_bot, g) for w_bot, g in zip(widths, group_widths_min)
-        ]
-        stage_widths = [int(w_bot / b) for w_bot, b in zip(ws_bot, bottleneck_ratios)]
-        return stage_widths, group_widths_min
-

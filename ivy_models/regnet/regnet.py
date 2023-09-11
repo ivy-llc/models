@@ -92,7 +92,7 @@ class RegNet(ivy.Module):
         if self.spec.stem_type is None:
             stem_type = SimpleStemIN
         if self.spec.norm_layer is None:
-            norm_layer = ivy.BatchNorm2d
+            norm_layer = ivy.BatchNorm2D
         if self.spec.block_type is None:
             block_type = ResBottleneckBlock
         if self.spec.activation is None:
@@ -146,11 +146,11 @@ class RegNet(ivy.Module):
 
         # Performs RegNet-style weight initialization
         for m in self.modules():
-            if isinstance(m, ivy.Conv2d):
+            if isinstance(m, ivy.Conv2D):
                 # Note that there is no bias due to BN
                 fan_out = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
                 ivy.init.normal_(m.weight, mean=0.0, std=math.sqrt(2.0 / fan_out))
-            elif isinstance(m, ivy.BatchNorm2d):
+            elif isinstance(m, ivy.BatchNorm2D):
                 ivy.init.ones_(m.weight)
                 ivy.init.zeros_(m.bias)
             elif isinstance(m, ivy.Linear):
@@ -177,12 +177,14 @@ def _regnet_y_400mf_torch_weights_mapping(old_key, new_key):
 
 def regnet_y_400mf(pretrained=True):
     """ResNet-18 model"""
-    progress = True
-    params = BlockParams.from_init_params(
-        depth=16, w_0=48, w_a=27.89, w_m=2.09, group_width=8, se_ratio=0.25
+    model = RegNet(
+        depth=20,
+        w_0=232,
+        w_a=115.89,
+        w_m=2.53,
+        group_width=232,
+        se_ratio=0.25,
     )
-    weights = None
-    model = RegNet(params, weights, progress)
     if pretrained:
         url = "https://download.pytorch.org/models/regnet_y_400mf-c65dace8.pth"
         w_clean = ivy_models.helpers.load_torch_weights(

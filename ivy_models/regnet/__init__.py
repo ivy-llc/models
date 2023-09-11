@@ -1,5 +1,4 @@
 from .regnet import (
     RegNetSpec,
-    RegNet,
-    RegNet_Y_400MF,
+    regnet_y_400mf,
 )
