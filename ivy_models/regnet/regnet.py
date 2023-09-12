@@ -1,5 +1,4 @@
 # global
-import math
 from collections import OrderedDict
 from typing import Callable, Optional, Type
 import builtins
@@ -138,23 +137,8 @@ class RegNet(ivy.Module):
 
         self.trunk_output = ivy.Sequential(OrderedDict(blocks))
 
-        self.avgpool = ivy.AdaptiveAvgPool2D((1, 1))
-        self.fc = ivy.Linear(
-            in_featuReg=current_width, out_featuReg=self.spec.num_classes
-        )
-
-        # Performs RegNet-style weight initialization
-        for m in self.modules():
-            if isinstance(m, ivy.Conv2D):
-                # Note that there is no bias due to BN
-                fan_out = m._filter_shape[0] * m._filter_shape[1] * m._output_channels
-                ivy.init.normal_(m.weight, mean=0.0, std=math.sqrt(2.0 / fan_out))
-            elif isinstance(m, ivy.BatchNorm2D):
-                ivy.init.ones_(m.weight)
-                ivy.init.zeros_(m.bias)
-            elif isinstance(m, ivy.Linear):
-                ivy.init.normal_(m.weight, mean=0.0, std=0.01)
-                ivy.init.zeros_(m.bias)
+        self.avgpool = ivy.AdaptiveAvgPool2d((1, 1))
+        self.fc = ivy.Linear(current_width, self.spec.num_classes)
 
     def _forward(self, x):
         x = self.stem(x)

@@ -134,6 +134,7 @@ class Conv2DNormActivation(ConvNormActivation):
             kernel_size,
             stride,
             padding,
+            groups,
             norm_layer,
             activation_layer,
             dilations,
@@ -183,9 +184,9 @@ class SqueezeExcitation(ivy.Module):
         scale_activation: Callable[..., ivy.Module] = ivy.Sigmoid,
     ) -> None:
         super().__init__()
-        self.avgpool = ivy.AdaptiveAvgPool2D(1)
-        self.fc1 = ivy.Conv2D(input_channels, squeeze_channels, [1, 1])
-        self.fc2 = ivy.Conv2D(squeeze_channels, input_channels, [1, 1])
+        self.avgpool = ivy.AdaptiveAvgPool2d(1)
+        self.fc1 = ivy.Conv2D(input_channels, squeeze_channels, [1, 1], 1, 0)
+        self.fc2 = ivy.Conv2D(squeeze_channels, input_channels, [1, 1], 1, 0)
         self.activation = activation()
         self.scale_activation = scale_activation()
 
@@ -296,7 +297,7 @@ class ResBottleneckBlock(ivy.Module):
             bottleneck_multiplier,
             se_ratio,
         )
-        self.activation = activation_layer(inplace=True)
+        self.activation = activation_layer()  # inplace=True
 
     def _forward(self, x: ivy.Array) -> ivy.Array:
         if self.proj is not None:
@@ -336,7 +337,7 @@ class AnyStage(ivy.Sequential):
                 bottleneck_multiplier,
                 se_ratio,
             )
-            self._submodules = list(block)
+            self._submodules = block
 
 
 def _make_divisible(v: float, divisor: int, min_value: Optional[int] = None) -> int:

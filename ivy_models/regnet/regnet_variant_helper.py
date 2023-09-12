@@ -23,7 +23,7 @@ torch_img = preprocess(torch_img)
 torch_img = torch.unsqueeze(torch_img, 0)
 
 
-from torchvision.models import *
+from torchvision.models import RegNet_X_16GF_Weights, RegNet_X_1_6GF_Weights, RegNet_X_32GF_Weights, RegNet_X_3_2GF_Weights, RegNet_X_400MF_Weights, RegNet_X_800MF_Weights, RegNet_X_8GF_Weights, RegNet_Y_16GF_Weights, RegNet_Y_1_6GF_Weights, RegNet_Y_32GF_Weights, RegNet_Y_3_2GF_Weights, RegNet_Y_400MF_Weights, RegNet_Y_800MF_Weights, RegNet_Y_8GF_Weights, regnet_x_16gf, regnet_x_1_6gf, regnet_x_32gf, regnet_x_3_2gf, regnet_x_400mf, regnet_x_800mf, regnet_x_8gf, regnet_y_16gf, regnet_y_1_6gf, regnet_y_32gf, regnet_y_3_2gf, regnet_y_400mf, regnet_y_800mf, regnet_y_8gf
 
 VARIANTS = {
     RegNet_Y_400MF_Weights: regnet_y_400mf,
@@ -43,7 +43,6 @@ VARIANTS = {
     RegNet_X_32GF_Weights: regnet_x_32gf,
 }
 
-import numpy as np
 
 variant_code_list = [
     "y_400mf",
@@ -74,7 +73,7 @@ for weight, model in VARIANTS.items():
     torch_logits = torch.take(torch_output[0], torch_classes)
 
     with open("output_4.txt", "a") as file:
-        file.write(f" {variant_code_list[variant_count]} : np.array({torch_logits}\n")
+        file.write(f" {variant_code_list[variant_count]} : np.array({torch_classes}\n")
         variant_count += 1
 
 # print("Indices of the top 3 classes are:", torch_classes)
