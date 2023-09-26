@@ -31,6 +31,7 @@ def test_regnet_img_classification(device, fw):
             to_ivy=True,
         )
     )
+    img = ivy.squeeze(img, axis=0)
 
     # Create model
     model.v = ivy.asarray(v)

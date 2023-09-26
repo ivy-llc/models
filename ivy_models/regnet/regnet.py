@@ -5,6 +5,7 @@ from .layers import BlockParams, SimpleStemIN, ResBottleneckBlock, AnyStage
 from typing import Optional, Callable
 
 from collections import OrderedDict
+import builtins
 
 
 class RegNetSpec(BaseSpec):
@@ -131,11 +132,14 @@ class RegNet(BaseModel):
 
 
 def _regnet_torch_weights_mapping(old_key, new_key):
+    W_KEY = ["conv1/weight", "conv2/weight", "conv3/weight", "downsample/0/weight"]
     new_mapping = new_key
     # if "weight" in old_key:
     #     new_mapping = {"key_chain": new_key, "pattern": "b c h w -> h w c b"}
     # elif "bias" in old_key:
     #     new_mapping = {"key_chain": new_key, "pattern": "h -> 1 h 1 1"}
+    if builtins.any([kc in old_key for kc in W_KEY]):
+        new_mapping = {"key_chain": new_key, "pattern": "b c h w -> h w c b"}
 
     return new_mapping
 
