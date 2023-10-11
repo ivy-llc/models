@@ -111,7 +111,7 @@ def vgg11(pretrained=True, data_format="NHWC"):
         w_clean = ivy_models.helpers.load_torch_weights(
             url, model, custom_mapping=_vgg_torch_weights_mapping
         )
-        model.v = w_clean
+        model.v.cont_set_at_key_chains(w_clean, inplace=True)
     return model
 
 
@@ -123,7 +123,7 @@ def vgg11_bn(pretrained=True, data_format="NHWC"):
         w_clean = ivy_models.helpers.load_torch_weights(
             url, model, custom_mapping=_vgg_torch_weights_mapping
         )
-        model.v = w_clean
+        model.v.cont_set_at_key_chains(w_clean, inplace=True)
     return model
 
 
@@ -135,7 +135,7 @@ def vgg13(pretrained=True, data_format="NHWC"):
         w_clean = ivy_models.helpers.load_torch_weights(
             url, model, custom_mapping=_vgg_torch_weights_mapping
         )
-        model.v = w_clean
+        model.v.cont_set_at_key_chains(w_clean, inplace=True)
     return model
 
 
@@ -147,7 +147,7 @@ def vgg13_bn(pretrained=True, data_format="NHWC"):
         w_clean = ivy_models.helpers.load_torch_weights(
             url, model, custom_mapping=_vgg_torch_weights_mapping
         )
-        model.v = w_clean
+        model.v.cont_set_at_key_chains(w_clean, inplace=True)
     return model
 
 
@@ -159,7 +159,7 @@ def vgg16(pretrained=True, data_format="NHWC"):
         w_clean = ivy_models.helpers.load_torch_weights(
             url, model, custom_mapping=_vgg_torch_weights_mapping
         )
-        model.v = w_clean
+        model.v.cont_set_at_key_chains(w_clean, inplace=True)
     return model
 
 
@@ -171,7 +171,7 @@ def vgg16_bn(pretrained=True, data_format="NHWC"):
         w_clean = ivy_models.helpers.load_torch_weights(
             url, model, custom_mapping=_vgg_torch_weights_mapping
         )
-        model.v = w_clean
+        model.v.cont_set_at_key_chains(w_clean, inplace=True)
     return model
 
 
@@ -183,7 +183,7 @@ def vgg19(pretrained=True, data_format="NHWC"):
         w_clean = ivy_models.helpers.load_torch_weights(
             url, model, custom_mapping=_vgg_torch_weights_mapping
         )
-        model.v = w_clean
+        model.v.cont_set_at_key_chains(w_clean, inplace=True)
     return model
 
 
@@ -195,7 +195,7 @@ def vgg19_bn(pretrained=True, data_format="NHWC"):
         w_clean = ivy_models.helpers.load_torch_weights(
             url, model, custom_mapping=_vgg_torch_weights_mapping
         )
-        model.v = w_clean
+        model.v.cont_set_at_key_chains(w_clean, inplace=True)
     return model
 
 
