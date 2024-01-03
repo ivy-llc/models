@@ -157,7 +157,6 @@ class ResNet(BaseModel):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        x = ivy.permute_dims(x, (0, 3, 1, 2))
         x = self.avgpool(x)
         x = x.reshape((x.shape[0], -1))
         x = self.fc(x)
