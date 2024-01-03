@@ -41,7 +41,7 @@ class AlexNet(BaseModel):
             ivy.ReLU(),
             ivy.MaxPool2D(3, 2, 0, data_format="NCHW"),
         )
-        self.avgpool = ivy.AdaptiveAvgPool2d((6, 6))
+        self.avgpool = ivy.AdaptiveAvgPool2d((6, 6), data_format="NCHW")
         self.classifier = ivy.Sequential(
             ivy.Dropout(prob=self.spec.dropout),
             ivy.Linear(256 * 6 * 6, 4096),
