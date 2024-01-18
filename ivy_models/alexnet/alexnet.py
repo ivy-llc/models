@@ -85,5 +85,5 @@ def alexnet(pretrained=True, num_classes=1000, dropout=0, data_format="NCHW"):
         w_clean = ivy_models.helpers.load_torch_weights(
             url, model, custom_mapping=_alexnet_torch_weights_mapping
         )
-        model.v = w_clean
+        model._v = w_clean
     return model

@@ -2,6 +2,7 @@ import ivy
 from ivy_models.unet.layers import UNetDoubleConv, UNetDown, UNetOutConv, UNetUp
 
 import builtins
+import re
 from ivy_models.helpers import load_torch_weights
 from ivy_models.base import BaseSpec, BaseModel
 
@@ -66,9 +67,9 @@ def _unet_torch_weights_mapping(old_key, new_key):
         "conv/weight",
     ]
 
-    if "up/weight" in old_key:
-        new_mapping = {"key_chain": new_key, "pattern": "b c h w -> h w b c"}
-    elif builtins.any([kc in old_key for kc in W_KEY]):
+    if builtins.any([kc in old_key for kc in W_KEY]) or re.match(
+        "up\d/((conv/double_conv/0)|(up))/weight", old_key
+    ):
         new_mapping = {"key_chain": new_key, "pattern": "b c h w -> h w c b"}
     elif "conv/bias" in old_key or "up/bias" in old_key:
         new_mapping = {"key_chain": new_key, "pattern": "h -> 1 1 1 h"}
@@ -86,7 +87,7 @@ def unet_carvana(n_channels=3, n_classes=2, v=None, pretrained=True):
             raw_keys_to_prune=["num_batches_tracked"],
             custom_mapping=_unet_torch_weights_mapping,
         )
-        model.v = w_clean
+        model._v = w_clean
     return model
 
 
