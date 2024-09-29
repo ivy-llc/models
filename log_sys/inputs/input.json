@@ -1,0 +1,16 @@
+'random_test_tensor shape is: ivy.Shape(1,
+224,
+224,
+3)'
+'test_ConvBlock | Test Successfull!'
+'random_test_tensor shape is: ivy.Shape(1,
+28,
+28,
+192)'
+'test_Inception | Test Successfull!'
+'random_test_tensor shape is: ivy.Shape(1,
+14,
+14,
+512)'
+'test_Auxiliary | Test Successfull!'
+'random_test_tensor shape is: ivy.Shape(1, 224, 224, 3)'

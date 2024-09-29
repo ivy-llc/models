@@ -1,0 +1,10 @@
+def test_AnyStage():
+    # N x 768 x 5 x 5
+    random_test_tensor = ivy.random_normal(shape=(1, 5, 5, 768))
+    display(f"random_test_tensor shape is: {random_test_tensor.shape}")
+
+    block = AnyStage(768, 128, [1, 1])
+    block(random_test_tensor)
+    # N x 128 x 5 x 5
+    display("Test Successfull!")
+
